@@ -22,3 +22,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# ─── MOTOR DE IA (PRIVADO) ───
+/flashealo-ia/
+*.pt
+*.pth
+*.onnx

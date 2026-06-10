@@ -1,0 +1,5 @@
+names:
+  0: number
+path: C:\FLASHEALO\flashealo-app\flashealo-ia\mi_dataset_dorsales\dataset\yolo_dataset
+train: images/train
+val: images/val

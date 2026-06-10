@@ -1,16 +1,14 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from './supabaseClient';
-import { RefreshCw, UserMinus, Combine, ArrowLeft, Hash, PlusCircle, Trash2, Edit2, ChevronLeft, ChevronRight, User, Image as ImageIcon, AlertTriangle, XCircle, Check, X } from 'lucide-react';
+import { RefreshCw, UserMinus, Combine, ArrowLeft, Loader2, Hash, PlusCircle, Trash2, Edit2, ChevronLeft, ChevronRight, User, Image as ImageIcon, AlertTriangle, XCircle, Check, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://muvzhnnsdnztlhynuipd.supabase.co";
-const FACE_COLORS = ['#00FF88', '#FF3366', '#33AAFF', '#FFD700', '#FF6B35', '#A855F7', '#22D3EE', '#FB923C', '#F43F5E', '#84CC16'];
+const FACE_COLORS = ['#C8B99A', '#9A8F82', '#1C1C1C', '#D4C5A5', '#A39887'];
 
 const fotoUrl = (path, optimizada = false) => {
   if (!path) return null;
   const base = SUPABASE_URL.endsWith('/') ? SUPABASE_URL.slice(0, -1) : SUPABASE_URL;
-  
-  // CACHE BUSTER: Agregamos un parámetro de versión para obligar 
-  // al servidor de Supabase a ignorar los recortes viejos de ayer.
   const version = "limpieza_total_v1";
 
   if (optimizada) {
@@ -18,6 +16,13 @@ const fotoUrl = (path, optimizada = false) => {
   }
   return `${base}/storage/v1/object/public/fotos/${path}?v=${version}`;
 };
+
+// ─── DESIGN TOKENS ───────────────────────────────────────────────────────────
+const SAND   = '#C8B99A';
+const TAUPE  = '#9A8F82';
+const INK    = '#1C1C1C';
+const CREAM  = '#FDFCF8';
+const WHITE  = '#FFFFFF';
 
 // ─── Componente: Recuadro Dinámico ──────────────────────────────────
 const BoundingBox = ({ bbox, color, label, onQuitar, esCuerpo }) => {
@@ -36,8 +41,8 @@ const BoundingBox = ({ bbox, color, label, onQuitar, esCuerpo }) => {
         }}
       />
       {!esCuerpo && label && (
-        <div className="absolute -top-8 left-1/2 -translate-x-1/2 flex items-center gap-1.5 bg-black/85 backdrop-blur-md px-2 py-0.5 rounded-full shadow-lg whitespace-nowrap pointer-events-auto">
-          <span className="text-white text-[10px] font-black tracking-wider leading-none">
+        <div className="absolute -top-8 left-1/2 -translate-x-1/2 flex items-center gap-1.5 bg-black/85 backdrop-blur-md px-2 py-0.5 rounded-sm shadow-sm whitespace-nowrap pointer-events-auto">
+          <span className="text-white text-[10px] uppercase tracking-[0.2em] leading-none">
             {label}
           </span>
           {onQuitar && (
@@ -55,7 +60,45 @@ const FaceBadge = ({ cara, color, esPendiente }) => {
   if (!cara.bbox) return null;
   return (
     <div className="absolute z-10 pointer-events-none transition-all duration-300" style={{ left: `${cara.bbox.x}%`, top: `${cara.bbox.y}%`, width: `${cara.bbox.w}%`, height: `${cara.bbox.h}%` }}>
-      <div className="absolute inset-0 border-[3px] rounded-sm transition-colors duration-300" style={{ borderColor: esPendiente ? '#EF4444' : color, boxShadow: esPendiente ? '0 0 16px rgba(239,68,68,0.8)' : `0 0 12px ${color}88` }} />
+      <div className="absolute inset-0 border-[2px] rounded-sm transition-colors duration-300" style={{ borderColor: esPendiente ? '#EF4444' : color, boxShadow: esPendiente ? '0 0 16px rgba(239,68,68,0.8)' : `0 0 12px ${color}44` }} />
+    </div>
+  );
+};
+
+// ─── Componente: Lupa Interactiva (Hover Zoom) ──────────────────────────────
+const InteractiveZoomImage = ({ zoomCara }) => {
+  const [isZoomed, setIsZoomed] = useState(false);
+  const [pos, setPos] = useState({ x: 50, y: 50 });
+
+  const handleMouseMove = (e) => {
+    const { left, top, width, height } = e.currentTarget.getBoundingClientRect();
+    const x = ((e.clientX - left) / width) * 100;
+    const y = ((e.clientY - top) / height) * 100;
+    setPos({ x, y });
+  };
+
+  return (
+    <div className="flex-1 relative overflow-hidden border h-[50vh] w-full flex items-center justify-center rounded-sm" style={{ background: CREAM, borderColor: 'rgba(0,0,0,0.06)' }}>
+      <div 
+        className="relative inline-block max-w-full max-h-full leading-none cursor-crosshair"
+        onMouseEnter={() => setIsZoomed(true)}
+        onMouseLeave={() => setIsZoomed(false)}
+        onMouseMove={handleMouseMove}
+        style={{
+          transform: isZoomed ? 'scale(2.5)' : 'scale(1)',
+          transformOrigin: `${pos.x}% ${pos.y}%`,
+          transition: 'transform 0.2s ease-out'
+        }}
+      >
+        <img src={fotoUrl(zoomCara.photo_url, true)} className="max-h-[50vh] w-auto max-w-full block filter saturate-[0.8]" alt="Contexto" draggable={false} />
+        <BoundingBox bbox={zoomCara.bbox} color={SAND} label="Auditoría" />
+      </div>
+      
+      {!isZoomed && (
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 px-4 py-1.5 bg-black/40 backdrop-blur-md rounded-full pointer-events-none text-white text-[9px] uppercase tracking-widest opacity-60">
+          Pasa el mouse para explorar
+        </div>
+      )}
     </div>
   );
 };
@@ -184,6 +227,20 @@ const ReviewPanel = ({ evento, onVolver }) => {
     setJugadorSeleccionado(actualizado);
     setListaJugadores(prev => prev.map(j => (j.id === actualizado.id ? actualizado : j)));
     setEditandoNombre(false);
+  };
+
+  // Función para guardar el nombre directamente desde el modal (Lupa Mágica)
+  const actualizarNombreDesdeModal = async (id, nuevoNombre) => {
+    const nombreLimpio = nuevoNombre.trim();
+    if (!nombreLimpio) return;
+    
+    await supabase.from('identities').update({ display_name: nombreLimpio }).eq('id', id);
+    
+    setListaJugadores(prev => prev.map(j => j.id === id ? { ...j, display_name: nombreLimpio } : j));
+    if (jugadorSeleccionado?.id === id) {
+      setJugadorSeleccionado(prev => ({ ...prev, display_name: nombreLimpio }));
+    }
+    setZoomCara(prev => ({ ...prev, identidad: { ...prev.identidad, display_name: nombreLimpio } }));
   };
 
   const desvincularDeteccion = async (faceId) => {
@@ -319,18 +376,20 @@ const ReviewPanel = ({ evento, onVolver }) => {
   const fotoRevisarActual = fotosRevisar[idxRevisar] ?? null;
 
   return (
-    <div className="min-h-screen bg-[#F5F2EB] text-[#1A1A1A] font-sans selection:bg-black selection:text-white relative">
+    <div className="min-h-screen font-sans selection:bg-black selection:text-white relative" style={{ background: CREAM, color: INK }}>
       
       {/* ─── HEADER ─── */}
-      <header className="sticky top-0 z-40 bg-[#F5F2EB]/80 backdrop-blur-xl border-b border-black/5 px-6 md:px-12 py-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+      <header className="sticky top-0 z-40 backdrop-blur-xl border-b px-6 md:px-12 py-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-6" style={{ background: 'rgba(253, 252, 248, 0.9)', borderColor: 'rgba(0,0,0,0.06)' }}>
         <div className="flex items-center gap-4">
-          <button onClick={onVolver} className="p-3 bg-white hover:bg-gray-100 rounded-2xl shadow-sm border border-black/5 transition-all"><ArrowLeft size={20} /></button>
+          <button onClick={onVolver} className="p-3 bg-transparent hover:bg-gray-100 rounded-none transition-all flex items-center gap-2 text-[10px] uppercase tracking-[0.2em] font-medium" style={{ color: TAUPE }}>
+            <ArrowLeft size={16} /> Volver
+          </button>
           <div>
-            <h1 className="text-3xl font-black uppercase tracking-tighter leading-none">{evento.nombre}</h1>
-            <p className="text-[10px] text-gray-500 mt-1 font-bold uppercase tracking-widest">AUDITORÍA · {evento.tipo_reconocimiento.toUpperCase()}</p>
+            <h1 className="text-3xl font-light tracking-wide leading-none" style={{ fontFamily: 'Georgia, serif', color: INK }}>{evento.nombre}</h1>
+            <p className="text-[9px] mt-1 font-bold uppercase tracking-[0.3em]" style={{ color: TAUPE }}>Auditoría · {evento.tipo_reconocimiento}</p>
           </div>
         </div>
-        <nav className="flex bg-white rounded-full p-1.5 shadow-sm border border-black/5">
+        <nav className="flex bg-transparent rounded-none p-1 border" style={{ borderColor: 'rgba(0,0,0,0.1)' }}>
           {(isOCR ? [
             { id: 'corredores', label: 'Grupos ReID', icon: User },
             { id: 'revisar_ocr', label: 'Foto por Foto', icon: ImageIcon }
@@ -339,7 +398,7 @@ const ReviewPanel = ({ evento, onVolver }) => {
             { id: 'revisar', label: 'Revisar', icon: ImageIcon },
             { id: 'dudas', label: 'Dudas', icon: AlertTriangle }
           ]).map((tab) => (
-            <button key={tab.id} onClick={() => setVista(tab.id)} className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-bold transition-all duration-300 uppercase tracking-wide ${vista === tab.id ? 'bg-[#1A1A1A] text-white shadow-md' : 'text-gray-400 hover:text-[#1A1A1A] hover:bg-gray-50'}`}>
+            <button key={tab.id} onClick={() => setVista(tab.id)} className={`flex items-center gap-2 px-5 py-2.5 text-[10px] font-bold transition-all duration-300 uppercase tracking-[0.2em] ${vista === tab.id ? 'shadow-sm' : 'hover:bg-gray-50'}`} style={{ background: vista === tab.id ? INK : 'transparent', color: vista === tab.id ? WHITE : TAUPE }}>
               <tab.icon size={14} /> {tab.label}
             </button>
           ))}
@@ -351,13 +410,13 @@ const ReviewPanel = ({ evento, onVolver }) => {
         {/* ════════ VISTA: CORREDORES (OCR RE-ID) ════════ */}
         {vista === 'corredores' && isOCR && (
           <div className="flex flex-col lg:flex-row gap-8 relative">
-            <aside className="w-full lg:w-80 shrink-0 bg-white rounded-3xl shadow-sm border border-black/5 p-5 max-h-[80vh] overflow-y-auto custom-scrollbar">
+            <aside className="w-full lg:w-80 shrink-0 bg-white rounded-none shadow-sm border p-5 max-h-[80vh] overflow-y-auto custom-scrollbar" style={{ borderColor: 'rgba(0,0,0,0.06)' }}>
               <div className="flex items-center justify-between mb-4 px-2">
-                <span className="font-bold text-xs uppercase tracking-widest text-gray-400">Pendientes Arriba</span>
-                <span className="bg-gray-100 text-[#1A1A1A] text-xs font-bold px-2 py-0.5 rounded-full">{listaCorredores.length}</span>
+                <span className="font-bold text-[10px] uppercase tracking-[0.2em]" style={{ color: TAUPE }}>Pendientes</span>
+                <span className="text-xs font-bold px-2 py-0.5 rounded-none" style={{ background: CREAM, color: INK }}>{listaCorredores.length}</span>
               </div>
               {cargandoCorredores && listaCorredores.length === 0 ? (
-                <div className="flex justify-center py-8 text-gray-300"><RefreshCw className="animate-spin" size={20} /></div>
+                <div className="flex justify-center py-8"><Loader2 className="animate-spin" size={20} style={{ color: SAND }} /></div>
               ) : (
                 <div className="flex flex-col gap-1.5">
                   {corredoresOrdenados.map((c, i) => {
@@ -366,15 +425,16 @@ const ReviewPanel = ({ evento, onVolver }) => {
                       <button
                         key={c.id}
                         onClick={() => seleccionarCorredor(c)}
-                        className={`flex items-center gap-3 p-2.5 rounded-2xl transition-all text-left group border ${
-                          corredorSeleccionado?.id === c.id ? 'bg-[#1A1A1A] text-white shadow-md border-black' : 
-                          validado ? 'bg-gray-50 border-transparent hover:border-gray-200 opacity-60 hover:opacity-100' : 'bg-white border-transparent hover:border-gray-200 shadow-sm'
+                        className={`flex items-center gap-3 p-2.5 rounded-none transition-all text-left group border ${
+                          corredorSeleccionado?.id === c.id ? 'shadow-sm border' : 
+                          validado ? 'border-transparent opacity-60 hover:opacity-100' : 'bg-white border-transparent hover:border-gray-200 shadow-sm'
                         }`}
+                        style={{ background: corredorSeleccionado?.id === c.id ? INK : (validado ? CREAM : WHITE), color: corredorSeleccionado?.id === c.id ? WHITE : INK, borderColor: corredorSeleccionado?.id === c.id ? 'transparent' : 'rgba(0,0,0,0.05)' }}
                       >
-                        <img src={fotoUrl(c.avatar_url, true)} loading="lazy" className="w-10 h-16 rounded-xl object-cover bg-gray-200 shrink-0" alt="" />
+                        <img src={fotoUrl(c.avatar_url, true)} loading="lazy" className="w-10 h-16 rounded-none object-cover shrink-0 filter saturate-[0.8]" style={{ background: CREAM }} alt="" />
                         <div>
-                          <span className="font-black text-base block">{validado ? `#${c.dorsal}` : '⚠️ Sin Número'}</span>
-                          <span className="text-[10px] uppercase font-bold block opacity-50">Grupo ReID</span>
+                          <span className="font-serif text-base block">{validado ? `#${c.dorsal}` : '⚠️ Sin Número'}</span>
+                          <span className="text-[9px] uppercase tracking-[0.2em] block opacity-50">Grupo ReID</span>
                         </div>
                       </button>
                     )
@@ -386,12 +446,12 @@ const ReviewPanel = ({ evento, onVolver }) => {
             <div className="flex-1 min-w-0">
               {corredorSeleccionado && (
                 <>
-                  <div className="bg-white rounded-3xl shadow-sm border border-black/5 p-6 mb-6 flex flex-col sm:flex-row items-center justify-between gap-6">
+                  <div className="bg-white rounded-none shadow-sm border p-6 mb-6 flex flex-col sm:flex-row items-center justify-between gap-6" style={{ borderColor: 'rgba(0,0,0,0.06)' }}>
                     <div className="flex items-center gap-6 w-full">
-                      <img src={fotoUrl(corredorSeleccionado.avatar_url, true)} className="w-20 h-28 rounded-2xl object-cover shadow-sm ring-4 ring-white shrink-0" alt="" />
+                      <img src={fotoUrl(corredorSeleccionado.avatar_url, true)} className="w-20 h-28 rounded-none object-cover shadow-sm shrink-0 filter saturate-[0.8]" alt="" />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 border-b-2 border-transparent focus-within:border-black transition-colors w-full max-w-xs pb-1 mb-2">
-                          <Hash className="text-gray-400" size={24}/>
+                          <Hash size={24} style={{ color: TAUPE }}/>
                           <input 
                             type="text" 
                             value={dorsalTemporal} 
@@ -399,40 +459,38 @@ const ReviewPanel = ({ evento, onVolver }) => {
                             onBlur={guardarDorsalGlobal}
                             onKeyDown={(e) => e.key === 'Enter' && e.target.blur()} 
                             placeholder="ESCRIBE AQUÍ..." 
-                            className="text-4xl font-black bg-transparent outline-none w-full uppercase placeholder:text-gray-200" 
+                            className="text-4xl font-serif bg-transparent outline-none w-full uppercase placeholder:text-gray-200" 
+                            style={{ color: INK }}
                           />
                         </div>
-                        <p className="text-gray-400 text-sm mt-1 font-medium">
-                          <span className="font-bold text-[#1A1A1A]">{fotosDelCorredor.length}</span> fotografías asociadas. Escribe y haz clic fuera para guardar.
+                        <p className="text-[10px] uppercase tracking-[0.1em] mt-2" style={{ color: TAUPE }}>
+                          <span className="font-bold" style={{ color: INK }}>{fotosDelCorredor.length}</span> fotografías asociadas.
                         </p>
                       </div>
                     </div>
-                    <button onClick={eliminarCorredorFalso} className="p-3 rounded-xl bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all shrink-0"><Trash2 size={18} /></button>
+                    <button onClick={eliminarCorredorFalso} className="p-3 rounded-none transition-all shrink-0" style={{ background: '#FDF8F8', color: '#C0392B' }}><Trash2 size={18} /></button>
                   </div>
 
-                  {/* NUEVA ESTRUCTURA "HUGGING" PARA QUE LA CAJA Y LA FOTO COINCIDAN */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 z-10">
                     {fotosDelCorredor.map((f) => (
-                      <div key={f.id} className="bg-white p-3 rounded-2xl shadow-sm border border-black/5 flex flex-col items-center justify-center group">
-                        
-                        {/* El wrapper ajustado milimétricamente a la imagen */}
-                        <div className="flex justify-center bg-gray-50 rounded-xl overflow-hidden w-full h-full">
+                      <div key={f.id} className="bg-white p-3 rounded-none shadow-sm border flex flex-col items-center justify-center group" style={{ borderColor: 'rgba(0,0,0,0.06)' }}>
+                        <div className="flex justify-center rounded-none overflow-hidden w-full h-full" style={{ background: CREAM }}>
                           <div 
                             className="relative inline-block leading-none max-w-full cursor-zoom-in"
-                            onClick={() => setZoomCara({ photo_url: f.photo_url, bbox: f.bbox_cuerpo || f.bbox })}
+                            onClick={() => setZoomCara({ photo_url: f.photo_url, bbox: f.bbox_cuerpo || f.bbox, identidad: null })}
                           >
                             <img 
                               src={fotoUrl(f.photo_url, true)} 
-                              className="max-h-[60vh] w-auto max-w-full block" 
+                              className="max-h-[60vh] w-auto max-w-full block filter saturate-[0.9]" 
                               alt="Foto Original" 
                             />
-                            <BoundingBox bbox={f.bbox_cuerpo} color="#33AAFF" esCuerpo={true} />
-                            <BoundingBox bbox={f.bbox} color="#00FF88" label={f.dorsal ? `#${f.dorsal}` : '⚠️'} />
+                            <BoundingBox bbox={f.bbox_cuerpo} color={SAND} esCuerpo={true} />
+                            <BoundingBox bbox={f.bbox} color={SAND} label={f.dorsal ? `#${f.dorsal}` : '⚠️'} />
                           </div>
                         </div>
 
-                        <div className="w-full mt-3 pt-3 border-t border-gray-100 flex justify-between items-center px-1">
-                          <span className="text-[10px] font-black text-gray-400 uppercase">
+                        <div className="w-full mt-3 pt-3 flex justify-between items-center px-1" style={{ borderTop: '1px solid rgba(0,0,0,0.06)' }}>
+                          <span className="text-[9px] uppercase tracking-[0.2em]" style={{ color: TAUPE }}>
                             {f.dorsal ? `Dorsal ${f.dorsal}` : 'Sin dorsal'}
                           </span>
                         </div>
@@ -445,58 +503,58 @@ const ReviewPanel = ({ evento, onVolver }) => {
           </div>
         )}
 
-        {/* ════════ VISTA: REVISAR OCR FOTO POR FOTO (COMPLEMENTO) ════════ */}
+        {/* ════════ VISTA: REVISAR OCR FOTO POR FOTO ════════ */}
         {vista === 'revisar_ocr' && isOCR && (
           <div className="max-w-6xl mx-auto">
             {cargandoRevisar ? (
-              <div className="flex justify-center items-center h-64 text-gray-400 font-bold"><RefreshCw className="animate-spin mr-2" /> Cargando galería...</div>
+              <div className="flex justify-center items-center h-64 text-sm font-bold uppercase tracking-[0.2em]" style={{ color: TAUPE }}><Loader2 className="animate-spin mr-2" /> Cargando galería...</div>
             ) : fotosRevisar.length === 0 ? (
-              <div className="bg-white text-gray-400 p-12 rounded-3xl text-center font-bold text-lg border border-dashed border-gray-200">No se detectaron etiquetas en este maratón.</div>
+              <div className="bg-white p-12 rounded-none text-center font-serif text-lg border border-dashed" style={{ color: TAUPE, borderColor: 'rgba(0,0,0,0.1)' }}>No se detectaron etiquetas.</div>
             ) : (
               <>
-                <div className="flex items-center justify-between mb-6 bg-white p-4 rounded-3xl shadow-sm border border-black/5">
+                <div className="flex items-center justify-between mb-6 bg-white p-4 rounded-none shadow-sm border" style={{ borderColor: 'rgba(0,0,0,0.06)' }}>
                   <div className="px-4">
-                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Auditoría por Fotografía</span>
-                    <div className="text-2xl font-black mt-1 text-[#1A1A1A]">{idxRevisar + 1} <span className="text-gray-300 font-medium">/</span> {fotosRevisar.length}</div>
+                    <span className="text-[9px] uppercase tracking-[0.3em]" style={{ color: TAUPE }}>Auditoría por Fotografía</span>
+                    <div className="text-3xl font-serif mt-1" style={{ color: INK }}>{idxRevisar + 1} <span style={{ color: 'rgba(0,0,0,0.2)' }}>/</span> {fotosRevisar.length}</div>
                   </div>
                   <div className="flex items-center gap-2 pr-2">
-                    <button onClick={() => setIdxRevisar(p => Math.max(0, p - 1))} disabled={idxRevisar === 0} className="p-4 rounded-2xl bg-gray-50 hover:bg-gray-100 disabled:opacity-30 transition-all text-[#1A1A1A]"><ChevronLeft size={20} /></button>
-                    <button onClick={() => setIdxRevisar(p => Math.min(fotosRevisar.length - 1, p + 1))} disabled={idxRevisar === fotosRevisar.length - 1} className="p-4 rounded-2xl bg-[#1A1A1A] hover:bg-black text-white disabled:opacity-30 transition-all"><ChevronRight size={20} /></button>
+                    <button onClick={() => setIdxRevisar(p => Math.max(0, p - 1))} disabled={idxRevisar === 0} className="p-4 rounded-none disabled:opacity-30 transition-all" style={{ background: CREAM, color: INK }}><ChevronLeft size={20} /></button>
+                    <button onClick={() => setIdxRevisar(p => Math.min(fotosRevisar.length - 1, p + 1))} disabled={idxRevisar === fotosRevisar.length - 1} className="p-4 rounded-none disabled:opacity-30 transition-all" style={{ background: INK, color: WHITE }}><ChevronRight size={20} /></button>
                   </div>
                 </div>
 
                 {fotoRevisarActual && (
                   <div className="flex flex-col lg:flex-row gap-6">
                     
-                    <div className="lg:w-[65%] bg-white rounded-3xl shadow-sm border border-black/5 p-4 flex items-center justify-center">
-                      <div className="flex items-center justify-center w-full h-full bg-gray-50 rounded-xl overflow-hidden">
-                        <div className={`relative inline-block leading-none max-w-full ${modoAñadirDorsal ? 'cursor-crosshair ring-4 ring-blue-500 rounded-xl' : ''}`}>
-                          <img src={fotoUrl(fotoRevisarActual.photo_url)} onClick={manejarClicImagenOCR} alt="Foto" className="max-h-[70vh] w-auto max-w-full block rounded-xl" />
+                    <div className="lg:w-[65%] bg-white rounded-none shadow-sm border p-4 flex items-center justify-center" style={{ borderColor: 'rgba(0,0,0,0.06)' }}>
+                      <div className="flex items-center justify-center w-full h-full rounded-none overflow-hidden" style={{ background: CREAM }}>
+                        <div className={`relative inline-block leading-none max-w-full ${modoAñadirDorsal ? 'cursor-crosshair ring-2 ring-[#1C1C1C]' : ''}`}>
+                          <img src={fotoUrl(fotoRevisarActual.photo_url)} onClick={manejarClicImagenOCR} alt="Foto" className="max-h-[70vh] w-auto max-w-full block filter saturate-[0.9]" />
                           {fotoRevisarActual.etiquetas?.map((tag) => (
-                            <BoundingBox key={`cuerpo-${tag.id}`} bbox={tag.bbox_cuerpo} color="#33AAFF" esCuerpo={true} />
+                            <BoundingBox key={`cuerpo-${tag.id}`} bbox={tag.bbox_cuerpo} color={SAND} esCuerpo={true} />
                           ))}
                           {fotoRevisarActual.etiquetas?.map((tag) => (
-                            <BoundingBox key={`dorsal-${tag.id}`} bbox={tag.bbox} color={tag.dorsal ? '#00FF88' : '#FFD700'} label={tag.dorsal ? `#${tag.dorsal}` : '⚠️ CORREGIR'} onQuitar={() => borrarDorsalIndividual(tag.id)}/>
+                            <BoundingBox key={`dorsal-${tag.id}`} bbox={tag.bbox} color={tag.dorsal ? SAND : '#C0392B'} label={tag.dorsal ? `#${tag.dorsal}` : '⚠️ CORREGIR'} onQuitar={() => borrarDorsalIndividual(tag.id)}/>
                           ))}
                         </div>
                       </div>
                     </div>
 
                     <div className="lg:w-[35%] flex flex-col gap-4">
-                      <div className="bg-white rounded-3xl shadow-sm border border-black/5 p-6">
-                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-5">Dorsales en esta Imagen</p>
+                      <div className="bg-white rounded-none shadow-sm border p-6" style={{ borderColor: 'rgba(0,0,0,0.06)' }}>
+                        <p className="text-[10px] uppercase tracking-[0.2em] mb-5" style={{ color: TAUPE }}>Dorsales en esta Imagen</p>
                         <div className="flex flex-col gap-3 max-h-[40vh] overflow-y-auto pr-1 custom-scrollbar">
                           {fotoRevisarActual.etiquetas?.map((tag) => (
-                            <div key={tag.id} className="flex items-center gap-3 p-3 rounded-2xl border border-gray-100 bg-gray-50 focus-within:border-black transition-all">
+                            <div key={tag.id} className="flex items-center gap-3 p-3 rounded-none border focus-within:border-black transition-all" style={{ background: CREAM, borderColor: 'rgba(0,0,0,0.05)' }}>
                               <div className="flex-1">
-                                <span className="text-[9px] font-bold text-gray-400 block uppercase tracking-wider mb-0.5">Número</span>
-                                <input defaultValue={tag.dorsal} onBlur={(e) => actualizarDorsalIndividual(tag.id, e.target.value)} className="w-full font-black text-xl bg-transparent outline-none uppercase" placeholder="VACÍO" />
+                                <span className="text-[8px] uppercase tracking-[0.3em] mb-1" style={{ color: TAUPE }}>Número</span>
+                                <input defaultValue={tag.dorsal} onBlur={(e) => actualizarDorsalIndividual(tag.id, e.target.value)} className="w-full font-serif text-xl bg-transparent outline-none uppercase" style={{ color: INK }} placeholder="VACÍO" />
                               </div>
-                              <button onClick={() => borrarDorsalIndividual(tag.id)} className="p-2 rounded-xl text-gray-400 hover:text-red-500 hover:bg-white transition-all"><Trash2 size={16} /></button>
+                              <button onClick={() => borrarDorsalIndividual(tag.id)} className="p-2 transition-all" style={{ color: '#C0392B' }}><Trash2 size={16} /></button>
                             </div>
                           ))}
                         </div>
-                        <button onClick={() => setModoAñadirDorsal(!modoAñadirDorsal)} className={`w-full mt-4 py-3.5 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all ${modoAñadirDorsal ? 'bg-blue-600 text-white' : 'bg-gray-100 text-[#1A1A1A] hover:bg-gray-200'}`}>
+                        <button onClick={() => setModoAñadirDorsal(!modoAñadirDorsal)} className="w-full mt-6 py-3.5 rounded-none text-[10px] uppercase tracking-[0.2em] flex items-center justify-center gap-2 transition-all" style={{ background: modoAñadirDorsal ? INK : CREAM, color: modoAñadirDorsal ? WHITE : INK }}>
                           <PlusCircle size={14}/> {modoAñadirDorsal ? 'Haz clic en la imagen...' : 'Añadir Dorsal Manual'}
                         </button>
                       </div>
@@ -508,28 +566,29 @@ const ReviewPanel = ({ evento, onVolver }) => {
           </div>
         )}
 
-        {/* ════════ VISTA 1: PERFILES (SOLO FACIAL ORIGINAL) ════════ */}
+        {/* ════════ VISTA 1: PERFILES (FACIAL) ════════ */}
         {vista === 'perfiles' && !isOCR && (
           <div className="flex flex-col lg:flex-row gap-8">
-            <aside className="w-full lg:w-72 shrink-0 bg-white rounded-3xl shadow-sm border border-black/5 p-5 max-h-[80vh] overflow-y-auto custom-scrollbar">
+            <aside className="w-full lg:w-72 shrink-0 bg-white rounded-none shadow-sm border p-5 max-h-[80vh] overflow-y-auto custom-scrollbar" style={{ borderColor: 'rgba(0,0,0,0.06)' }}>
               <div className="flex items-center justify-between mb-4 px-2">
-                <span className="font-bold text-xs uppercase tracking-widest text-gray-400">Jugadores</span>
-                <span className="bg-gray-100 text-[#1A1A1A] text-xs font-bold px-2 py-0.5 rounded-full">{listaJugadores.length}</span>
+                <span className="font-bold text-[10px] uppercase tracking-[0.2em]" style={{ color: TAUPE }}>Perfiles</span>
+                <span className="text-xs font-bold px-2 py-0.5" style={{ background: CREAM, color: INK }}>{listaJugadores.length}</span>
               </div>
               {cargandoPerfiles && listaJugadores.length === 0 ? (
-                <div className="flex justify-center py-8 text-gray-300"><RefreshCw className="animate-spin" size={20} /></div>
+                <div className="flex justify-center py-8"><Loader2 className="animate-spin" size={20} style={{ color: SAND }} /></div>
               ) : (
                 <div className="flex flex-col gap-1.5">
                   {listaJugadores.map((j) => (
                     <button
                       key={j.id}
                       onClick={() => seleccionarJugador(j)}
-                      className={`flex items-center gap-3 p-2.5 rounded-2xl transition-all text-left group ${
-                        jugadorSeleccionado?.id === j.id ? 'bg-[#1A1A1A] text-white shadow-md' : 'hover:bg-gray-50 bg-white border border-transparent hover:border-gray-100'
+                      className={`flex items-center gap-3 p-2.5 rounded-none transition-all text-left group border ${
+                        jugadorSeleccionado?.id === j.id ? 'shadow-sm border' : 'hover:bg-gray-50 bg-white border-transparent hover:border-gray-100'
                       }`}
+                      style={{ background: jugadorSeleccionado?.id === j.id ? INK : WHITE, color: jugadorSeleccionado?.id === j.id ? WHITE : INK, borderColor: jugadorSeleccionado?.id === j.id ? 'transparent' : 'rgba(0,0,0,0.05)' }}
                     >
-                      <img src={fotoUrl(j.avatar_url)} className="w-10 h-10 rounded-full object-cover bg-gray-200 border-2 border-white/10 shrink-0" alt="" />
-                      <span className="font-bold text-sm truncate">{j.display_name}</span>
+                      <img src={fotoUrl(j.avatar_url)} className="w-10 h-10 rounded-full object-cover shrink-0 filter saturate-[0.8]" style={{ background: CREAM }} alt="" />
+                      <span className="font-serif text-sm truncate">{j.display_name}</span>
                     </button>
                   ))}
                 </div>
@@ -539,104 +598,85 @@ const ReviewPanel = ({ evento, onVolver }) => {
             <div className="flex-1 min-w-0">
               {jugadorSeleccionado && (
                 <>
-                  <div className="bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-black/5 p-6 mb-6 flex flex-col sm:flex-row items-center justify-between gap-6">
+                  <div className="bg-white rounded-none shadow-sm border p-6 mb-6 flex flex-col sm:flex-row items-center justify-between gap-6" style={{ borderColor: 'rgba(0,0,0,0.06)' }}>
                     <div className="flex items-center gap-6 w-full">
-                      <img src={fotoUrl(jugadorSeleccionado.avatar_url)} className="w-20 h-20 rounded-full object-cover shadow-[0_4px_12px_rgba(0,0,0,0.15)] ring-4 ring-white" alt="" />
+                      <img src={fotoUrl(jugadorSeleccionado.avatar_url)} className="w-20 h-20 rounded-full object-cover shadow-sm shrink-0 filter saturate-[0.8]" alt="" />
                       <div className="flex-1 min-w-0">
                         {editandoNombre ? (
-                          <div className="flex items-center gap-3">
-                            <input type="text" value={nombreTemporal} onChange={(e) => setNombreTemporal(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && guardarNombre()} autoFocus className="text-2xl font-black bg-gray-50 border-2 border-gray-200 focus:border-black rounded-xl px-4 py-1.5 outline-none w-full max-w-xs transition-colors" />
-                            <button onClick={guardarNombre} className="bg-[#1A1A1A] text-white p-2.5 rounded-xl hover:bg-black transition-colors"><Check size={18} /></button>
-                            <button onClick={() => setEditandoNombre(false)} className="bg-gray-100 text-gray-400 p-2.5 rounded-xl hover:text-black transition-colors"><X size={18} /></button>
+                          <div className="flex items-center gap-3 mb-2">
+                            <input type="text" value={nombreTemporal} onChange={(e) => setNombreTemporal(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && guardarNombre()} autoFocus className="text-2xl font-serif border-b focus:border-black px-2 py-1 outline-none w-full max-w-xs transition-colors" style={{ background: CREAM, color: INK, borderColor: 'rgba(0,0,0,0.1)' }} />
+                            <button onClick={guardarNombre} className="p-2 transition-colors" style={{ background: INK, color: WHITE }}><Check size={16} /></button>
+                            <button onClick={() => setEditandoNombre(false)} className="p-2 transition-colors" style={{ background: CREAM, color: INK }}><X size={16} /></button>
                           </div>
                         ) : (
-                          <div className="flex items-center gap-3">
-                            <h2 className="text-3xl font-black truncate">{jugadorSeleccionado.display_name}</h2>
-                            <button onClick={iniciarEdicionNombre} className="text-gray-300 hover:text-black transition-colors p-2 rounded-xl hover:bg-gray-100"><Edit2 size={16} /></button>
+                          <div className="flex items-center gap-3 mb-2">
+                            <h2 className="text-3xl font-serif truncate" style={{ color: INK }}>{jugadorSeleccionado.display_name}</h2>
+                            <button onClick={iniciarEdicionNombre} className="p-2 rounded-none transition-colors" style={{ color: TAUPE }}><Edit2 size={14} /></button>
                           </div>
                         )}
-                        <p className="text-gray-400 text-sm mt-1">
-                          <span className="font-bold text-[#1A1A1A]">{fotosDelJugador.length}</span> fotos únicas · <span className="font-bold text-[#1A1A1A]">{fotosDelJugador.reduce((acc, f) => acc + f.detecciones.length, 0)}</span> detecciones
+                        <p className="text-[10px] uppercase tracking-[0.1em]" style={{ color: TAUPE }}>
+                          <span className="font-bold" style={{ color: INK }}>{fotosDelJugador.length}</span> fotos únicas · <span className="font-bold" style={{ color: INK }}>{fotosDelJugador.reduce((acc, f) => acc + f.detecciones.length, 0)}</span> detecciones
                         </p>
                       </div>
                     </div>
 
                     <div className="flex items-center gap-2 shrink-0">
-                      <button onClick={() => setFusionando(!fusionando)} className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${fusionando ? 'bg-blue-100 text-blue-700 shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`} title="Mover estas fotos a otro jugador">
-                        <Combine size={16} /> {fusionando ? 'Cancelar Fusión' : 'Fusionar Perfil'}
+                      <button onClick={() => setFusionando(!fusionando)} className="px-4 py-2.5 rounded-none text-[9px] uppercase tracking-[0.2em] transition-all flex items-center gap-2" style={{ background: fusionando ? INK : CREAM, color: fusionando ? WHITE : INK }}>
+                        <Combine size={14} /> {fusionando ? 'Cancelar Fusión' : 'Fusionar Perfil'}
                       </button>
-                      <button onClick={() => { if(window.confirm('¿Seguro que deseas eliminar este perfil por completo?')) destruirPerfilFalso(); }} className="p-2.5 rounded-xl bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all" title="Destruir perfil falso permanentemente">
+                      <button onClick={() => { if(window.confirm('¿Seguro que deseas eliminar este perfil por completo?')) destruirPerfilFalso(); }} className="p-2.5 rounded-none transition-all" style={{ background: '#FDF8F8', color: '#C0392B' }} title="Destruir perfil falso permanentemente">
                         <Trash2 size={16} />
                       </button>
                     </div>
                   </div>
 
                   {cargandoPerfiles ? (
-                    <div className="flex justify-center items-center h-48 text-gray-400"><RefreshCw className="animate-spin mr-2" size={18} /> Cargando datos...</div>
+                    <div className="flex justify-center items-center h-48 text-[10px] uppercase tracking-[0.3em]" style={{ color: TAUPE }}><Loader2 className="animate-spin mr-2" size={18} /> Cargando datos...</div>
                   ) : fusionando ? (
-                    <div className="bg-blue-50 border border-blue-100 p-8 rounded-3xl animate-in fade-in slide-in-from-top-4">
-                      <div className="flex items-center gap-3 mb-2"><Combine className="text-blue-500" size={24} /><h3 className="text-2xl font-black text-blue-900">¿Quién es realmente esta persona?</h3></div>
-                      <p className="text-blue-700 text-sm mb-8">Selecciona el perfil real a continuación. Todas las fotos de <b>{jugadorSeleccionado.display_name}</b> se moverán a ese perfil. Este perfil será eliminado.</p>
+                    <div className="p-8 rounded-none border mb-6" style={{ background: CREAM, borderColor: SAND }}>
+                      <div className="flex items-center gap-3 mb-4"><Combine size={20} style={{ color: INK }} /><h3 className="text-xl font-serif" style={{ color: INK }}>¿Quién es realmente esta persona?</h3></div>
+                      <p className="text-xs mb-8" style={{ color: TAUPE }}>Selecciona el perfil real a continuación. Todas las fotos de <b>{jugadorSeleccionado.display_name}</b> se moverán a ese perfil. Este perfil será eliminado.</p>
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-h-[50vh] overflow-y-auto custom-scrollbar pr-2">
                         {listaJugadores.filter(j => j.id !== jugadorSeleccionado.id).map(j => (
-                          <button key={j.id} onClick={() => fusionarConJugador(j.id)} className="bg-white p-3 rounded-2xl flex items-center gap-3 hover:shadow-md hover:-translate-y-1 transition-all border border-blue-100/50 text-left">
-                            <img src={fotoUrl(j.avatar_url)} className="w-10 h-10 rounded-full object-cover shrink-0"/>
-                            <span className="font-bold text-sm truncate text-blue-900">{j.display_name}</span>
+                          <button key={j.id} onClick={() => fusionarConJugador(j.id)} className="bg-white p-3 rounded-none flex items-center gap-3 border text-left transition-all hover:shadow-md" style={{ borderColor: 'rgba(0,0,0,0.05)' }}>
+                            <img src={fotoUrl(j.avatar_url)} className="w-10 h-10 rounded-full object-cover shrink-0 filter saturate-[0.8]"/>
+                            <span className="font-serif text-sm truncate" style={{ color: INK }}>{j.display_name}</span>
                           </button>
                         ))}
                       </div>
                     </div>
                   ) : (
-                    /* MULTI-GRID GRANDE Y COMPLETO CON HUGGING EXACTO */
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 z-10">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 z-10">
                       {fotosDelJugador.map(({ photo_url, detecciones }) => (
-                        <div 
-                          key={photo_url} 
-                          className="relative rounded-2xl bg-white shadow-sm border border-black/5 p-3 flex flex-col justify-between group"
-                        >
-                          <div className="flex items-center justify-center w-full bg-gray-50 rounded-xl overflow-hidden h-full">
-                            <div 
-                              className="relative inline-block leading-none max-w-full cursor-zoom-in"
-                              onClick={() => {
-                                if (detecciones && detecciones.length > 0) {
-                                  setZoomCara({ photo_url, bbox: detecciones[0].bbox });
-                                }
-                              }}
-                            >
-                              <img 
-                                src={fotoUrl(photo_url, true)} 
-                                loading="lazy" 
-                                className="w-auto max-w-full max-h-[65vh] block select-none rounded-lg" 
-                                alt="" 
-                              />
-                              
+                        <div key={photo_url} className="relative bg-white shadow-sm border p-3 flex flex-col justify-between group rounded-none" style={{ borderColor: 'rgba(0,0,0,0.06)' }}>
+                          <div className="flex items-center justify-center w-full rounded-none overflow-hidden h-full" style={{ background: CREAM }}>
+                            <div className="relative inline-block leading-none max-w-full cursor-zoom-in" onClick={() => { if (detecciones && detecciones.length > 0) { setZoomCara({ photo_url, bbox: detecciones[0].bbox, identidad: jugadorSeleccionado }); }}}>
+                              <img src={fotoUrl(photo_url, true)} loading="lazy" className="w-auto max-w-full max-h-[40vh] block select-none filter saturate-[0.9]" alt="" />
                               {detecciones.map((det) => (
                                 <div 
                                   key={det.id}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setZoomCara({ photo_url, bbox: det.bbox });
-                                  }}
-                                  className="absolute border-2 border-[#00FF88] shadow-[0_0_12px_#00FF8888] hover:bg-[#00FF88]/20 transition-all rounded-sm z-20 pointer-events-auto cursor-zoom-in"
-                                  style={{ left: `${det.bbox.x}%`, top: `${det.bbox.y}%`, width: `${det.bbox.w}%`, height: `${det.bbox.h}%` }}
+                                  onClick={(e) => { e.stopPropagation(); setZoomCara({ photo_url, bbox: det.bbox, identidad: jugadorSeleccionado }); }}
+                                  className="absolute border-[2px] transition-all rounded-sm z-20 pointer-events-auto cursor-zoom-in hover:bg-white/20"
+                                  style={{ left: `${det.bbox.x}%`, top: `${det.bbox.y}%`, width: `${det.bbox.w}%`, height: `${det.bbox.h}%`, borderColor: SAND }}
                                   title="Enfocar este rostro"
                                 />
                               ))}
                             </div>
                           </div>
 
-                          <div className="mt-3 flex items-center justify-between px-1 w-full">
-                            <span className="text-[10px] font-black text-gray-400 uppercase tracking-wider">
-                              {detecciones.length === 1 ? '1 Rostro Registrado' : `${detecciones.length} Rostros`}
+                          <div className="mt-4 flex items-center justify-between px-1 w-full" style={{ borderTop: '1px solid rgba(0,0,0,0.05)', paddingTop: 12 }}>
+                            <span className="text-[9px] uppercase tracking-[0.2em]" style={{ color: TAUPE }}>
+                              {detecciones.length === 1 ? '1 Rostro' : `${detecciones.length} Rostros`}
                             </span>
                             <div className="flex gap-1.5">
                               {detecciones.map((det) => (
                                 <button 
                                   key={det.id} 
                                   onClick={(e) => { e.stopPropagation(); desvincularDeteccion(det.id); }} 
-                                  className="bg-red-50 text-red-500 hover:bg-red-500 hover:text-white px-3 py-1.5 rounded-xl transition-colors text-xs font-bold flex items-center gap-1 shadow-sm"
+                                  className="px-2 py-1 transition-colors text-[9px] uppercase tracking-wider flex items-center gap-1"
+                                  style={{ background: '#FDF8F8', color: '#C0392B' }}
                                 >
-                                  <UserMinus size={13} /> Desvincular
+                                  <UserMinus size={10} /> Desvincular
                                 </button>
                               ))}
                             </div>
@@ -651,64 +691,62 @@ const ReviewPanel = ({ evento, onVolver }) => {
           </div>
         )}
 
-        {/* ════════ VISTA 2: REVISAR FOTOS (SOLO FACIAL ORIGINAL) ════════ */}
+        {/* ════════ VISTA 2: REVISAR FOTOS (FACIAL) ════════ */}
         {vista === 'revisar' && !isOCR && (
           <div className="max-w-5xl mx-auto">
              {cargandoRevisar ? (
-              <div className="flex justify-center items-center h-64 text-gray-400 font-bold"><RefreshCw className="animate-spin mr-2" /> Cargando todas las fotos...</div>
+              <div className="flex justify-center items-center h-64 text-[10px] uppercase tracking-[0.3em]" style={{ color: TAUPE }}><Loader2 className="animate-spin mr-2" /> Cargando galería...</div>
             ) : fotosRevisar.length === 0 ? (
-              <div className="bg-white text-gray-400 p-12 rounded-3xl text-center font-bold text-lg border border-dashed border-gray-200">No hay fotos registradas.</div>
+              <div className="bg-white p-12 text-center font-serif text-lg border border-dashed" style={{ color: TAUPE, borderColor: 'rgba(0,0,0,0.1)' }}>No hay fotos registradas.</div>
             ) : (
               <>
-                <div className="flex items-center justify-between mb-6 bg-white p-4 rounded-3xl shadow-sm border border-black/5">
+                <div className="flex items-center justify-between mb-6 bg-white p-4 shadow-sm border" style={{ borderColor: 'rgba(0,0,0,0.06)' }}>
                   <div className="px-4">
-                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Auditoría General</span>
-                    <div className="text-2xl font-black mt-1 text-[#1A1A1A]">{idxRevisar + 1} <span className="text-gray-300 font-medium">/</span> {fotosRevisar.length}</div>
+                    <span className="text-[9px] uppercase tracking-[0.3em]" style={{ color: TAUPE }}>Auditoría General</span>
+                    <div className="text-3xl font-serif mt-1" style={{ color: INK }}>{idxRevisar + 1} <span style={{ color: 'rgba(0,0,0,0.2)' }}>/</span> {fotosRevisar.length}</div>
                   </div>
                   <div className="flex items-center gap-2 pr-2">
-                    <button onClick={() => setIdxRevisar(p => Math.max(0, p - 1))} disabled={idxRevisar === 0} className="p-4 rounded-2xl bg-gray-50 hover:bg-gray-100 disabled:opacity-30 transition-all text-[#1A1A1A]"><ChevronLeft size={20} /></button>
-                    <button onClick={() => setIdxRevisar(p => Math.min(fotosRevisar.length - 1, p + 1))} disabled={idxRevisar === fotosRevisar.length - 1} className="p-4 rounded-2xl bg-[#1A1A1A] hover:bg-black text-white disabled:opacity-30 transition-all"><ChevronRight size={20} /></button>
+                    <button onClick={() => setIdxRevisar(p => Math.max(0, p - 1))} disabled={idxRevisar === 0} className="p-4 disabled:opacity-30 transition-all" style={{ background: CREAM, color: INK }}><ChevronLeft size={20} /></button>
+                    <button onClick={() => setIdxRevisar(p => Math.min(fotosRevisar.length - 1, p + 1))} disabled={idxRevisar === fotosRevisar.length - 1} className="p-4 disabled:opacity-30 transition-all" style={{ background: INK, color: WHITE }}><ChevronRight size={20} /></button>
                   </div>
                 </div>
 
                 {fotoRevisarActual && (
                   <div className="flex flex-col lg:flex-row gap-6">
-                    <div className="lg:w-[65%] bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-black/5 p-4 flex items-center justify-center">
-                      <div className="flex items-center justify-center w-full h-full bg-gray-50 rounded-xl overflow-hidden">
+                    <div className="lg:w-[65%] bg-white shadow-sm border p-4 flex items-center justify-center" style={{ borderColor: 'rgba(0,0,0,0.06)' }}>
+                      <div className="flex items-center justify-center w-full h-full overflow-hidden" style={{ background: CREAM }}>
                         <div className="relative inline-block leading-none max-w-full">
-                          <img src={fotoUrl(fotoRevisarActual.photo_url)} alt="Foto" className="max-h-[70vh] w-auto max-w-full block rounded-xl" />
+                          <img src={fotoUrl(fotoRevisarActual.photo_url)} alt="Foto" className="max-h-[70vh] w-auto max-w-full block filter saturate-[0.9]" />
                           {fotoRevisarActual.caras?.map((cara, idx) => (
-                            <FaceBadge key={cara.id} cara={cara} color={FACE_COLORS[idx % FACE_COLORS.length]} esPendiente={confirmDelete === cara.id} />
+                            <FaceBadge key={cara.id} cara={cara} color={SAND} esPendiente={confirmDelete === cara.id} />
                           ))}
                         </div>
                       </div>
                     </div>
 
                     <div className="lg:w-[35%] flex flex-col gap-4">
-                      <div className="bg-white rounded-3xl shadow-sm border border-black/5 p-6">
-                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-5">Rostros Detectados ({fotoRevisarActual.caras?.length || 0})</p>
+                      <div className="bg-white shadow-sm border p-6" style={{ borderColor: 'rgba(0,0,0,0.06)' }}>
+                        <p className="text-[9px] uppercase tracking-[0.3em] mb-5" style={{ color: TAUPE }}>Rostros Detectados ({fotoRevisarActual.caras?.length || 0})</p>
                         <div className="flex flex-col gap-3">
                           {fotoRevisarActual.caras?.map((cara, idx) => {
                             const ident = identidadMap[cara.identity_id];
-                            const color = FACE_COLORS[idx % FACE_COLORS.length];
                             const esPendiente = confirmDelete === cara.id;
 
                             return (
-                              <div key={cara.id} className={`flex items-center gap-3 p-3 rounded-2xl border transition-all ${esPendiente ? 'border-red-300 bg-red-50' : 'border-gray-100 bg-gray-50'}`}>
-                                <div className="w-3 h-3 rounded-full shrink-0 shadow-sm" style={{ background: color }} />
+                              <div key={cara.id} className="flex items-center gap-3 p-3 border transition-all" style={{ background: esPendiente ? '#FDF8F8' : CREAM, borderColor: esPendiente ? '#C0392B' : 'rgba(0,0,0,0.05)' }}>
                                 {ident ? (
-                                  <img src={fotoUrl(ident.avatar_url)} className="w-10 h-10 rounded-full object-cover bg-gray-200 border border-white shrink-0" alt="" />
+                                  <img src={fotoUrl(ident.avatar_url)} className="w-10 h-10 rounded-full object-cover shrink-0 filter saturate-[0.8]" alt="" />
                                 ) : (
-                                  <div className="w-10 h-10 rounded-full bg-gray-200 border border-white shrink-0 flex items-center justify-center"><span className="text-gray-400 font-bold text-xs">?</span></div>
+                                  <div className="w-10 h-10 rounded-full border flex items-center justify-center shrink-0" style={{ background: WHITE, borderColor: 'rgba(0,0,0,0.1)' }}><span className="font-serif text-xs" style={{ color: TAUPE }}>?</span></div>
                                 )}
-                                <span className="flex-1 text-sm font-bold truncate text-[#1A1A1A]">{ident ? ident.display_name : <span className="text-gray-400 italic">Sin asignar</span>}</span>
+                                <span className="flex-1 text-sm font-serif truncate" style={{ color: INK }}>{ident ? ident.display_name : <span style={{ color: TAUPE, fontStyle: 'italic' }}>Sin asignar</span>}</span>
 
                                 {!esPendiente ? (
-                                  <button onClick={() => setConfirmDelete(cara.id)} className="p-2 rounded-xl text-gray-400 hover:text-red-500 hover:bg-white transition-all"><Trash2 size={16} /></button>
+                                  <button onClick={() => setConfirmDelete(cara.id)} className="p-2 transition-all hover:bg-white" style={{ color: TAUPE }}><Trash2 size={16} /></button>
                                 ) : (
                                   <div className="flex gap-1">
-                                    <button onClick={() => borrarCaraDefinitivamente(cara.id)} className="text-[10px] font-bold uppercase tracking-wider bg-red-500 text-white px-3 py-1.5 rounded-lg hover:bg-red-600 transition-colors shadow-sm">Borrar</button>
-                                    <button onClick={() => setConfirmDelete(null)} className="text-[10px] font-bold uppercase tracking-wider bg-gray-200 text-gray-600 px-3 py-1.5 rounded-lg hover:bg-gray-300 transition-colors">No</button>
+                                    <button onClick={() => borrarCaraDefinitivamente(cara.id)} className="text-[8px] uppercase tracking-wider px-3 py-1.5 transition-colors" style={{ background: '#C0392B', color: WHITE }}>Borrar</button>
+                                    <button onClick={() => setConfirmDelete(null)} className="text-[8px] uppercase tracking-wider px-3 py-1.5 transition-colors border" style={{ background: WHITE, color: INK, borderColor: 'rgba(0,0,0,0.1)' }}>No</button>
                                   </div>
                                 )}
                               </div>
@@ -724,60 +762,62 @@ const ReviewPanel = ({ evento, onVolver }) => {
           </div>
         )}
 
-        {/* ════════ VISTA 3: CARAS DUDOSAS (SOLO FACIAL ORIGINAL) ════════ */}
+        {/* ════════ VISTA 3: CARAS DUDOSAS (FACIAL) ════════ */}
         {vista === 'dudas' && !isOCR && (
           <div className="max-w-5xl mx-auto">
              {cargandoDudas ? (
-              <div className="flex justify-center items-center h-64 text-gray-400 font-bold"><RefreshCw className="animate-spin mr-2" /> Analizando rostros dudosos...</div>
+              <div className="flex justify-center items-center h-64 text-[10px] uppercase tracking-[0.3em]" style={{ color: TAUPE }}><Loader2 className="animate-spin mr-2" /> Analizando rostros...</div>
             ) : !fotoDudosa ? (
-              <div className="bg-green-50 text-green-700 p-12 rounded-3xl text-center shadow-sm border border-green-200">
-                <div className="bg-green-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4"><Check size={32} className="text-green-600"/></div>
-                <h3 className="font-black text-2xl mb-2">¡Bandeja Limpia!</h3>
-                <p className="font-medium">No hay caras dudosas pendientes de asignación.</p>
+              <div className="p-12 text-center border" style={{ background: '#F8FBF8', borderColor: '#E2F0E2', color: '#2E7D32' }}>
+                <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4" style={{ background: WHITE }}><Check size={24} /></div>
+                <h3 className="font-serif text-2xl mb-2">¡Colección Limpia!</h3>
+                <p className="text-xs uppercase tracking-widest font-medium opacity-70">No hay rostros dudosos pendientes.</p>
               </div>
             ) : (
-              <div className="bg-white p-8 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 flex flex-col md:flex-row gap-12">
+              <div className="bg-white p-8 shadow-sm border flex flex-col md:flex-row gap-12" style={{ borderColor: 'rgba(0,0,0,0.06)' }}>
                 <div className="w-full md:w-[45%] flex flex-col items-center">
-                  <div className="flex items-center gap-2 text-amber-600 font-black mb-6 uppercase tracking-[0.2em] text-[10px] bg-amber-50 border border-amber-200 px-4 py-1.5 rounded-full shadow-sm">
-                    <AlertTriangle size={14} /> Rostro sin identificar
+                  <div className="flex items-center gap-2 mb-6 uppercase tracking-[0.3em] text-[9px] border px-4 py-1.5" style={{ background: '#FFFDF5', color: '#D4AF37', borderColor: '#F5E6B3' }}>
+                    <AlertTriangle size={12} /> Rostro sin identificar
                   </div>
-                  <div className="w-full bg-gray-100 rounded-3xl p-4 flex items-center justify-center">
-                    <div className="relative inline-block max-w-full shadow-lg border-4 border-white rounded-xl overflow-hidden leading-none">
-                      <img src={fotoUrl(fotoDudosa.photo_url)} alt="Dudoso" className="max-h-[50vh] w-auto max-w-full block opacity-90" />
+                  <div className="w-full rounded-none p-4 flex items-center justify-center" style={{ background: CREAM }}>
+                    <div className="relative inline-block max-w-full shadow-lg border-4 border-white overflow-hidden leading-none">
+                      <img src={fotoUrl(fotoDudosa.photo_url)} alt="Dudoso" className="max-h-[50vh] w-auto max-w-full block filter saturate-[0.8]" />
                       {fotoDudosa.bbox && (
                         <>
                           <div className="absolute inset-0 bg-black/40 pointer-events-none" />
                           <div 
-                            className="absolute border-4 border-amber-400 shadow-[0_0_0_9999px_rgba(0,0,0,0.6)] z-10 rounded-lg"
-                            style={{ left: `${fotoDudosa.bbox.x}%`, top: `${fotoDudosa.bbox.y}%`, width: `${fotoDudosa.bbox.w}%`, height: `${fotoDudosa.bbox.h}%` }}
+                            className="absolute border-[2px] shadow-[0_0_0_9999px_rgba(0,0,0,0.6)] z-10"
+                            style={{ left: `${fotoDudosa.bbox.x}%`, top: `${fotoDudosa.bbox.y}%`, width: `${fotoDudosa.bbox.w}%`, height: `${fotoDudosa.bbox.h}%`, borderColor: SAND }}
                           />
                         </>
                       )}
                     </div>
                   </div>
-                  <button onClick={descartarDuda} className="mt-8 text-xs font-bold text-gray-400 hover:text-red-500 uppercase tracking-widest flex items-center gap-2 transition-colors"><Trash2 size={14}/> Descartar rostro (Basura)</button>
+                  <button onClick={descartarDuda} className="mt-8 text-[9px] uppercase tracking-[0.3em] flex items-center gap-2 transition-colors hover:text-[#C0392B]" style={{ color: TAUPE }}><Trash2 size={12}/> Descartar rostro</button>
                 </div>
 
                 <div className="w-full md:w-[55%] flex flex-col justify-center">
-                  <h3 className="text-3xl font-black mb-2 text-[#1A1A1A]">¿Quién es esta persona?</h3>
-                  <p className="text-gray-500 mb-8 font-medium">La IA encontró similitudes. Asigna la identidad correcta para enlazar la foto.</p>
+                  <h3 className="text-3xl font-serif mb-4" style={{ color: INK }}>¿Quién es esta persona?</h3>
+                  <p className="text-xs mb-8" style={{ color: TAUPE }}>La IA encontró similitudes. Asigna la identidad correcta para enlazar la foto.</p>
                   
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     {candidatos.map((candidato) => {
                       const porcentaje = Math.round(candidato.porcentaje_similitud * 100);
                       const esAlto = porcentaje > 50;
                       return (
-                        <div key={candidato.id_identidad} className="bg-gray-50 p-5 rounded-3xl flex flex-col items-center border border-gray-100 hover:border-gray-300 transition-all hover:-translate-y-1 hover:shadow-md group">
+                        <div key={candidato.id_identidad} className="p-5 flex flex-col items-center border transition-all hover:shadow-md group" style={{ background: WHITE, borderColor: 'rgba(0,0,0,0.06)' }}>
                           <div className="relative mb-4">
-                            <img src={fotoUrl(candidato.avatar)} className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-sm bg-gray-200" alt="Candidato" />
-                            <div className={`absolute -top-2 -right-2 text-[10px] font-black px-2 py-1 rounded-full border-2 border-white shadow-sm ${esAlto ? 'bg-green-500 text-white' : 'bg-amber-400 text-amber-900'}`}>
+                            <img src={fotoUrl(candidato.avatar)} className="w-20 h-20 rounded-full object-cover border-4 shadow-sm filter saturate-[0.8]" style={{ borderColor: WHITE, background: CREAM }} alt="Candidato" />
+                            <div className={`absolute -top-2 -right-2 text-[9px] font-bold px-2 py-1 rounded-full border-2 shadow-sm`} style={{ background: esAlto ? '#2E7D32' : '#D4AF37', color: WHITE, borderColor: WHITE }}>
                               {porcentaje}%
                             </div>
                           </div>
-                          <p className="font-bold text-[#1A1A1A] text-sm text-center mb-5 truncate w-full px-2">{candidato.nombre_jugador}</p>
+                          <p className="font-serif text-[#1A1A1A] text-sm text-center mb-5 truncate w-full px-2">{candidato.nombre_jugador}</p>
                           <button 
                             onClick={() => asignarDudaAJugador(candidato.id_identidad)}
-                            className="w-full bg-white border border-gray-200 text-[#1A1A1A] hover:bg-[#1A1A1A] hover:text-white hover:border-[#1A1A1A] py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all"
+                            className="w-full py-2.5 text-[9px] uppercase tracking-widest transition-all"
+                            style={{ background: CREAM, color: INK }}
+                            onMouseEnter={e => e.target.style.background = INK} onMouseLeave={e => e.target.style.background = CREAM}
                           >
                             Seleccionar
                           </button>
@@ -792,55 +832,74 @@ const ReviewPanel = ({ evento, onVolver }) => {
         )}
       </main>
 
-      {/* ════════ MODAL DE ZOOM "LUPA MÁGICA" ════════ */}
-      {zoomCara && (
-        <div 
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 p-4 backdrop-blur-sm transition-opacity duration-300" 
-          onClick={() => setZoomCara(null)}
-        >
-          <div 
-            className="relative bg-white p-6 rounded-3xl max-w-4xl w-full flex flex-col md:flex-row gap-8 items-center shadow-2xl" 
-            onClick={e => e.stopPropagation()}
+      {/* ════════ MODAL DE ZOOM "LUPA MÁGICA Y COMPARADOR" ════════ */}
+      <AnimatePresence>
+        {zoomCara && (
+          <motion.div 
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4 backdrop-blur-md transition-opacity duration-300" 
+            style={{ background: 'rgba(253,252,248,0.96)' }}
+            onClick={() => setZoomCara(null)}
           >
-            <button 
-              onClick={() => setZoomCara(null)} 
-              className="absolute top-4 right-4 bg-gray-100 text-gray-500 hover:text-black hover:bg-gray-200 p-2.5 rounded-full transition-colors z-10"
+            <div 
+              className="relative bg-white p-6 max-w-5xl w-full flex flex-col md:flex-row gap-8 items-center shadow-2xl border rounded-sm" 
+              style={{ borderColor: 'rgba(0,0,0,0.06)' }}
+              onClick={e => e.stopPropagation()}
             >
-              <X size={20}/>
-            </button>
+              <button 
+                onClick={() => setZoomCara(null)} 
+                className="absolute top-4 right-4 p-2 transition-colors z-10"
+                style={{ color: TAUPE }}
+              >
+                <X size={20}/>
+              </button>
 
-            {/* COLUMNA IZQUIERDA: CONTEXTO GENERAL EXACTO */}
-            <div className="flex-1 relative rounded-2xl overflow-hidden bg-gray-50 border border-gray-200 h-[50vh] w-full flex items-center justify-center">
-               <div className="relative inline-block max-w-full max-h-full leading-none">
-                 <img src={fotoUrl(zoomCara.photo_url, true)} className="max-h-[50vh] w-auto max-w-full block rounded-lg" alt="Contexto" />
-                 <BoundingBox bbox={zoomCara.bbox} color="#00FF88" label="Rostro Auditado" />
-               </div>
-            </div>
+              {/* LUPA INTERACTIVA (Izquierda) */}
+              <InteractiveZoomImage zoomCara={zoomCara} />
 
-            {/* COLUMNA DERECHA: ZOOM MATEMÁTICO REAL */}
-            <div className="flex flex-col items-center justify-center w-full md:w-80 shrink-0">
-              <div className="text-center mb-6">
-                <h3 className="font-black text-2xl uppercase tracking-tight text-[#1A1A1A]">Foco de Rostro</h3>
-                <p className="text-xs text-gray-400 font-bold tracking-widest mt-1">Corte Dinámico Seguro</p>
-              </div>
-              
-              <div className="w-64 h-64 rounded-full border-8 border-[#00FF88]/20 overflow-hidden relative shadow-inner bg-gray-900 ring-4 ring-white flex items-center justify-center">
-                {zoomCara.bbox && (
-                  <img
-                    src={fotoUrl(zoomCara.photo_url, false)} 
-                    className="w-full h-full object-cover max-w-none"
-                    style={{
-                      objectPosition: `${zoomCara.bbox.x + (zoomCara.bbox.w / 2)}% ${zoomCara.bbox.y + (zoomCara.bbox.h / 2)}%`,
-                      transform: `scale(${100 / Math.max(zoomCara.bbox.w, zoomCara.bbox.h) * 1.5})`
-                    }}
-                    alt="Zoom"
-                  />
+              {/* COLUMNA DERECHA: AVATAR Y EDICIÓN RÁPIDA DE NOMBRE */}
+              <div className="flex flex-col items-center justify-center w-full md:w-80 shrink-0">
+                <div className="text-center mb-8">
+                  <h3 className="font-serif text-3xl text-[#1A1A1A] mb-1">Identidad</h3>
+                  <p className="text-[9px] uppercase tracking-[0.3em]" style={{ color: TAUPE }}>Perfil Asignado</p>
+                </div>
+                
+                {zoomCara.identidad ? (
+                  <div className="flex flex-col items-center w-full px-4">
+                    <div className="w-32 h-32 rounded-full overflow-hidden shadow-sm border-[3px] border-white ring-1 ring-black/5 mb-6" style={{ background: CREAM }}>
+                      <img src={fotoUrl(zoomCara.identidad.avatar_url)} className="w-full h-full object-cover filter saturate-[0.8]" alt="Perfil Oficial" />
+                    </div>
+                    
+                    <input 
+                      type="text" 
+                      defaultValue={zoomCara.identidad.display_name}
+                      onBlur={(e) => actualizarNombreDesdeModal(zoomCara.identidad.id, e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.target.blur();
+                        }
+                      }}
+                      className="w-full font-serif text-2xl text-center bg-transparent border-b outline-none transition-colors pb-2 focus:border-black"
+                      style={{ color: INK, borderColor: 'rgba(0,0,0,0.1)' }}
+                      placeholder="Nombre de la persona"
+                    />
+                    <p className="text-[9px] uppercase tracking-[0.2em] mt-3 text-center" style={{ color: TAUPE }}>
+                      Escribe y presiona Enter para guardar
+                    </p>
+                  </div>
+                ) : (
+                  <div className="text-center">
+                    <div className="w-32 h-32 rounded-full border border-dashed flex items-center justify-center mx-auto mb-6" style={{ borderColor: TAUPE, background: CREAM }}>
+                      <span className="font-serif text-3xl" style={{ color: TAUPE }}>?</span>
+                    </div>
+                    <p className="text-[10px] uppercase tracking-[0.2em]" style={{ color: TAUPE }}>Rostro sin perfil</p>
+                  </div>
                 )}
               </div>
             </div>
-          </div>
-        </div>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
     </div>
   );

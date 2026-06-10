@@ -1,24 +1,14 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
-
-// Importamos nuestras dos pantallas principales
 import App from './App.jsx'
-import AdminPanel from './AdminPanel.jsx'
-import ReviewPanel from './ReviewPanel.jsx'
-
-import './index.css'
+import './index.css' // Asegúrate de que el nombre de tu archivo CSS sea este
+import { BrowserRouter } from 'react-router-dom'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
+    {/* BrowserRouter envuelve a App, permitiendo que App controle las Rutas */}
     <BrowserRouter>
-      <Routes>
-        {/* La ruta principal (El Landing Page) */}
-        <Route path="/" element={<App />} />
-        <Route path="/review" element={<ReviewPanel />} />
-        {/* La ruta secreta del panel (El Administrador) */}
-        <Route path="/admin" element={<AdminPanel />} />
-      </Routes>
+      <App />
     </BrowserRouter>
   </React.StrictMode>,
 )

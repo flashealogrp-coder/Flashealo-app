@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Lock, ChevronDown, Instagram, Twitter, Mail } from 'lucide-react';
+import { Lock, ChevronDown, Mail} from 'lucide-react';
 
 // ==========================================
 // ESTILOS GLOBALES RECOMENDADOS (En tu CSS):
@@ -180,8 +180,8 @@ const ClientGallery = ({ eventoMock }) => {
           </div>
           
           <div className="flex gap-8">
-            <a href="#" className="text-gray-400 hover:text-black transition-colors duration-500"><Instagram strokeWidth={1.5} size={20}/></a>
-            <a href="#" className="text-gray-400 hover:text-black transition-colors duration-500"><Twitter strokeWidth={1.5} size={20}/></a>
+            <a href="#" className="text-gray-400 hover:text-black transition-colors duration-500"><Mail strokeWidth={1.5} size={20}/></a>
+            <a href="#" className="text-gray-400 hover:text-black transition-colors duration-500"><Mail strokeWidth={1.5} size={20}/></a>
             <a href="#" className="text-gray-400 hover:text-black transition-colors duration-500"><Mail strokeWidth={1.5} size={20}/></a>
           </div>
 

@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Loader2, Mail, ArrowUpRight, Calendar, Menu, X, CheckCircle2, MoveLeft, MoveRight } from 'lucide-react';
 import { SiInstagram, SiWhatsapp } from '@icons-pack/react-simple-icons';
 import { motion, AnimatePresence } from 'framer-motion';
+import FlashealoSport from './FlashealoSport';
 
 /* ─── DESIGN TOKENS (COLORES BASE) ──────────────────────────────────────────── */
 const WHITE  = '#FFFFFF';
@@ -13,7 +14,7 @@ const SAND   = '#C8B99A';
 const CREAM  = '#F9F8F6';
 const FOOTINK = '#111111';
 
-/* ─── DICCIONARIO DE TEMAS (EL CAMALEÓN EDITORIAL) ──────────────────────────── */
+/* ─── DICCIONARIO DE TEMAS ──────────────────────────────────────────────────── */
 const THEMES = {
   sesiones: {
     bg: '#FFFFFF', 
@@ -35,14 +36,13 @@ const THEMES = {
     aboutImg2: 'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?q=80&w=800&auto=format&fit=crop',
     
     galleryTitle: 'PORTAFOLIO RECIENTE',
-    // ENLACES CORREGIDOS Y SEGUROS PARA EL MASONRY
     portfolio: [
-      'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&w=800&h=1200', // Vertical Boda
-      'https://images.unsplash.com/photo-1515934751635-c81c6bc9a2d8?auto=format&fit=crop&w=800&h=533',  // Horizontal Pareja
-      'https://images.unsplash.com/photo-1520854221256-17451cc331bf?auto=format&fit=crop&w=800&h=1000', // Vertical (Medio)
-      'https://images.unsplash.com/photo-1519225421980-715cb0215aed?auto=format&fit=crop&w=800&h=600',  // Horizontal
-      'https://images.unsplash.com/photo-1537368910025-700350fe46c7?auto=format&fit=crop&w=800&h=1200', // Vertical
-      'https://images.unsplash.com/photo-1509927083803-4bd519298ac4?auto=format&fit=crop&w=800&h=1200'  // Vertical
+      'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&w=800&h=1200',
+      'https://images.unsplash.com/photo-1515934751635-c81c6bc9a2d8?auto=format&fit=crop&w=800&h=533',
+      'https://images.unsplash.com/photo-1520854221256-17451cc331bf?auto=format&fit=crop&w=800&h=1000',
+      'https://images.unsplash.com/photo-1519225421980-715cb0215aed?auto=format&fit=crop&w=800&h=600',
+      'https://images.unsplash.com/photo-1537368910025-700350fe46c7?auto=format&fit=crop&w=800&h=1200',
+      'https://images.unsplash.com/photo-1509927083803-4bd519298ac4?auto=format&fit=crop&w=800&h=1200'
     ],
 
     testimonioBg: '#F4F2EC', 
@@ -99,9 +99,9 @@ const THEMES = {
     bg: '#F4F4F5',
     text: '#09090B',
     accent: '#E11D48',
-    navBg: 'rgba(244,244,245,0.95)',
+    navBg: '#000000',
     logoFont: '"Arial Black", Impact, sans-serif',
-    logoStyle: 'italic',
+    logoStyle: 'normal', // Mantenemos el Flashealo normal
     logoText: 'FLASHEALO SPORT',
     titleMain: 'ACCIÓN',
     titleSub: 'AL LÍMITE.',
@@ -112,8 +112,6 @@ const THEMES = {
 
 const FlashealoApp = () => {
   const navigate = useNavigate();
-  const [eventosSport, setEventosSport] = useState([]);
-  const [cargandoEventos, setCargandoEventos] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
@@ -145,32 +143,10 @@ const FlashealoApp = () => {
   }, []);
 
   useEffect(() => {
-    if (seccionActiva !== 'sport') return;
-    const fetchEventosSport = async () => {
-      setCargandoEventos(true);
-      const { data } = await supabase
-        .from('eventos')
-        .select('*')
-        .eq('categoria', 'sport')
-        .or('password_cliente.is.null,password_cliente.eq.""')
-        .order('fecha_evento', { ascending: false });
-      if (data) setEventosSport(data);
-      setCargandoEventos(false);
-    };
-    fetchEventosSport();
-  }, [seccionActiva]);
-
-  useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 80);
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
-
-  const abrirEvento = (evento) => {
-    const ruta = evento.url_slug ? `/g/${evento.url_slug}` : `/g/${evento.id}`;
-    navigate(ruta);
-    window.scrollTo(0, 0);
-  };
 
   const abrirWhatsApp = () => {
     const numero = "18292856200";
@@ -236,8 +212,10 @@ const FlashealoApp = () => {
     transition: { duration: 0.8, ease: [0.22, 1, 0.36, 1] }
   };
 
-  const isNavSolid = scrolled || menuAbierto;
-  const navColor = isNavSolid ? theme.text : WHITE;
+  const isSport = seccionActiva === 'sport';
+  const isNavSolid = scrolled || menuAbierto || isSport;
+  const navColor = isSport ? WHITE : (isNavSolid ? theme.text : WHITE);
+  const navBgColor = isSport ? '#000000' : (isNavSolid ? theme.navBg : 'transparent');
 
   const inputStyle = {
     width: '100%', padding: '12px 0', background: 'transparent', border: 'none', 
@@ -252,17 +230,28 @@ const FlashealoApp = () => {
       <nav style={{
         position: 'fixed', top: 0, width: '100%', zIndex: 100,
         padding: isMobile ? (scrolled ? '16px 24px' : '24px 24px') : (scrolled ? '16px 48px' : '28px 48px'),
-        background: isNavSolid ? theme.navBg : 'transparent',
+        background: navBgColor,
         backdropFilter: isNavSolid ? 'blur(16px)' : 'none',
-        borderBottom: isNavSolid ? `1px solid ${theme.text}11` : '1px solid transparent',
+        borderBottom: isNavSolid ? `1px solid rgba(255,255,255,0.1)` : '1px solid transparent',
         transition: 'all 0.4s cubic-bezier(0.22,1,0.36,1)',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         boxSizing: 'border-box',
       }}>
         <div onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12, position: isMobile ? 'absolute' : 'static', left: isMobile ? '50%' : 'auto', transform: isMobile ? 'translateX(-50%)' : 'none', zIndex: 101 }}>
-          <span style={{ width: 3, height: 18, background: (scrolled || seccionActiva === 'sport') ? theme.accent : WHITE, display: 'inline-block', transition: 'all 0.5s ease' }} />
-          <span style={{ fontFamily: theme.logoFont, fontStyle: theme.logoStyle, fontSize: seccionActiva === 'sesiones' ? (isMobile ? 12 : 14) : (isMobile ? 13 : 14), fontWeight: seccionActiva === 'sport' ? 900 : 500, letterSpacing: seccionActiva === 'sesiones' ? '0.25em' : '0.1em', textTransform: 'uppercase', color: navColor, transition: 'color 0.4s ease' }}>
-            {theme.logoText}
+          <span style={{ width: 3, height: 18, background: isSport ? '#E11D48' : (scrolled ? theme.accent : WHITE), display: 'inline-block', transition: 'all 0.5s ease' }} />
+          
+          {/* EL LOGO MAGICO CON SPORT "FAST ACTIVO" */}
+          <span style={{ fontFamily: theme.logoFont, fontStyle: theme.logoStyle, fontSize: isMobile ? 13 : 14, fontWeight: isSport ? 900 : 500, letterSpacing: isSport ? '0.1em' : '0.25em', textTransform: 'uppercase', color: navColor, transition: 'color 0.4s ease', display: 'flex', alignItems: 'center', gap: 6 }}>
+            {isSport ? (
+              <>
+                FLASHEALO 
+                <span style={{ color: '#E11D48', fontStyle: 'italic', transform: 'skewX(-15deg)', display: 'inline-block', fontWeight: 900, paddingLeft: 2 }}>
+                  SPORT
+                </span>
+              </>
+            ) : (
+              theme.logoText
+            )}
           </span>
         </div>
 
@@ -296,14 +285,14 @@ const FlashealoApp = () => {
       {/* ── MENÚ DESPLEGABLE MÓVIL ── */}
       <AnimatePresence>
         {isMobile && menuAbierto && (
-          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.3 }} style={{ position: 'fixed', inset: 0, background: theme.bg, zIndex: 90, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 40 }}>
+          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.3 }} style={{ position: 'fixed', inset: 0, background: isSport ? '#000000' : theme.bg, zIndex: 90, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 40 }}>
             {[{ id: 'sesiones', label: 'Sesiones' }, { id: 'estudio', label: 'Estudio' }, { id: 'sport', label: 'Sport' }].map(tab => (
-              <button key={tab.id} onClick={() => cambiarSeccion(tab.id)} style={{ background: 'transparent', border: 'none', color: seccionActiva === tab.id ? theme.accent : theme.text, fontSize: 20, letterSpacing: '0.2em', textTransform: 'uppercase', fontFamily: 'Georgia, serif', opacity: seccionActiva === tab.id ? 1 : 0.5 }}>
+              <button key={tab.id} onClick={() => cambiarSeccion(tab.id)} style={{ background: 'transparent', border: 'none', color: seccionActiva === tab.id ? (isSport ? '#E11D48' : theme.accent) : (isSport ? WHITE : theme.text), fontSize: 20, letterSpacing: '0.2em', textTransform: 'uppercase', fontFamily: 'Georgia, serif', opacity: seccionActiva === tab.id ? 1 : 0.5 }}>
                 {tab.label}
               </button>
             ))}
             <div style={{ width: 40, height: 1, background: theme.accent, margin: '20px 0' }} />
-            <div style={{ display: 'flex', gap: 24, color: theme.text, opacity: 0.5 }}>
+            <div style={{ display: 'flex', gap: 24, color: isSport ? WHITE : theme.text, opacity: 0.5 }}>
               <a href="https://www.instagram.com/flashealo.studio/?utm_source=ig_web_button_share_sheet" target="_blank" rel="noreferrer" style={{ color: 'inherit' }}><SiInstagram size={20} /></a>
               <a href="mailto:info@flashealo.do" style={{ color: 'inherit' }}><Mail size={22} strokeWidth={1.5} /></a>
             </div>
@@ -560,70 +549,35 @@ const FlashealoApp = () => {
               VISTA 2: PLATAFORMA TECNOLÓGICA (SPORT)
           ══════════════════════════════════════════════════════════════════ */}
           {seccionActiva === 'sport' && (
-            <div style={{ paddingTop: 160, paddingLeft: isMobile ? 24 : 48, paddingRight: isMobile ? 24 : 48, paddingBottom: 120, maxWidth: 1400, margin: '0 auto' }}>
-              
-              <motion.div {...scrollAnim} style={{ marginBottom: 80, maxWidth: 800 }}>
-                <p style={{ fontSize: 10, letterSpacing: '0.3em', textTransform: 'uppercase', color: theme.accent, marginBottom: 20, fontWeight: 'bold' }}>GALERÍAS PÚBLICAS</p>
-                <h1 style={{ fontFamily: theme.logoFont, fontStyle: 'italic', fontSize: 'clamp(40px, 7vw, 88px)', fontWeight: 900, lineHeight: 1.05, margin: '0 0 24px 0', color: theme.text, textTransform: 'uppercase' }}>
-                  {theme.titleMain}<br /><span style={{ color: theme.accent }}>{theme.titleSub}</span>
-                </h1>
-                <p style={{ fontSize: 15, lineHeight: 1.6, opacity: 0.8, maxWidth: 600 }}>{theme.desc}</p>
-              </motion.div>
-
-              {cargandoEventos ? (
-                <div style={{ display: 'flex', justifyContent: 'center', padding: '120px 0' }}>
-                  <Loader2 size={36} className="animate-spin" style={{ color: theme.accent }} strokeWidth={1} />
-                </div>
-              ) : eventosSport.length === 0 ? (
-                <motion.div {...scrollAnim} style={{ border: `1px dashed ${theme.text}40`, padding: '80px 20px', textAlign: 'center' }}>
-                  <p style={{ color: theme.text, opacity: 0.6, fontStyle: 'italic', margin: 0 }}>No hay eventos deportivos disponibles actualmente.</p>
-                </motion.div>
-              ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: isMobile ? '40px' : '64px 48px' }}>
-                  {eventosSport.map((evento, i) => (
-                    <motion.div key={evento.id} initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: "-50px" }} transition={{ duration: 0.6, delay: isMobile ? 0 : (i % 3) * 0.1 }} onClick={() => abrirEvento(evento)} style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 0 }}>
-                      <div style={{ width: '100%', paddingBottom: '125%', position: 'relative', overflow: 'hidden', background: theme.cardBg }}>
-                        <img src={evento.portada_url || 'https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?q=80&w=800&auto=format&fit=crop'} alt={evento.nombre} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 1.8s cubic-bezier(0.22,1,0.36,1)', filter: 'saturate(0.95)' }} onMouseEnter={e => !isMobile && (e.currentTarget.style.transform = 'scale(1.04)')} onMouseLeave={e => !isMobile && (e.currentTarget.style.transform = 'scale(1)')} />
-                        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 100%)', padding: '40px 24px 20px' }}>
-                          <span style={{ color: theme.accent, fontSize: 9, letterSpacing: '0.28em', textTransform: 'uppercase', display: 'block', marginBottom: 6, fontWeight: 'bold' }}>{evento.fecha_evento}</span>
-                          <span style={{ color: WHITE, fontFamily: theme.logoFont, fontStyle: 'italic', fontSize: 24, letterSpacing: '0.02em', fontWeight: 900 }}>{evento.nombre}</span>
-                        </div>
-                      </div>
-                      <div style={{ paddingTop: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: `1px solid ${theme.text}22` }}>
-                        <span style={{ fontSize: 10, color: theme.text, opacity: 0.7, letterSpacing: '0.15em', textTransform: 'uppercase', fontWeight: 700 }}>Entrar a la galería</span>
-                        <ArrowUpRight size={16} style={{ color: theme.accent }} strokeWidth={2} />
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
-              )}
-            </div>
+            <FlashealoSport isMobile={isMobile} />
           )}
 
         </motion.main>
       </AnimatePresence>
 
-      {/* ── BOTONES FLOTANTES (FAB) ── */}
-      <div style={{ position: 'fixed', bottom: isMobile ? 24 : 32, right: isMobile ? 24 : 32, display: 'flex', flexDirection: 'column', gap: 12, zIndex: 10 }}>
-        
-        <button onClick={() => setModalReserva(true)} style={{
-          width: 50, height: 50, borderRadius: '50%', background: 'rgba(255,255,255,0.1)', 
-          backdropFilter: 'blur(12px)', border: `1px solid ${theme.text}33`,
-          display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
-          color: theme.text, boxShadow: '0 8px 32px rgba(0,0,0,0.1)', transition: 'all 0.3s ease'
-        }} title="Agendar Cita" onMouseEnter={e => !isMobile && (e.currentTarget.style.transform = 'scale(1.08)')} onMouseLeave={e => !isMobile && (e.currentTarget.style.transform = 'scale(1)')}>
-          <Calendar size={20} strokeWidth={1.5} />
-        </button>
+      {/* ── BOTONES FLOTANTES (FAB): OCULTOS EN SPORT ── */}
+      {seccionActiva !== 'sport' && (
+        <div style={{ position: 'fixed', bottom: isMobile ? 24 : 32, right: isMobile ? 24 : 32, display: 'flex', flexDirection: 'column', gap: 12, zIndex: 10 }}>
+          
+          <button onClick={() => setModalReserva(true)} style={{
+            width: 50, height: 50, borderRadius: '50%', background: 'rgba(255,255,255,0.1)', 
+            backdropFilter: 'blur(12px)', border: `1px solid ${theme.text}33`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+            color: theme.text, boxShadow: '0 8px 32px rgba(0,0,0,0.1)', transition: 'all 0.3s ease'
+          }} title="Agendar Cita" onMouseEnter={e => !isMobile && (e.currentTarget.style.transform = 'scale(1.08)')} onMouseLeave={e => !isMobile && (e.currentTarget.style.transform = 'scale(1)')}>
+            <Calendar size={20} strokeWidth={1.5} />
+          </button>
 
-        <button onClick={abrirWhatsApp} style={{
-          width: 50, height: 50, borderRadius: '50%', background: 'rgba(255,255,255,0.1)', 
-          backdropFilter: 'blur(12px)', border: `1px solid ${theme.text}33`,
-          display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
-          color: theme.text, boxShadow: '0 8px 32px rgba(0,0,0,0.1)', transition: 'all 0.3s ease'
-        }} title="Contactar por WhatsApp" onMouseEnter={e => !isMobile && (e.currentTarget.style.transform = 'scale(1.08)')} onMouseLeave={e => !isMobile && (e.currentTarget.style.transform = 'scale(1)')}>
-          <SiWhatsapp size={22} />
-        </button>
-      </div>
+          <button onClick={abrirWhatsApp} style={{
+            width: 50, height: 50, borderRadius: '50%', background: 'rgba(255,255,255,0.1)', 
+            backdropFilter: 'blur(12px)', border: `1px solid ${theme.text}33`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+            color: theme.text, boxShadow: '0 8px 32px rgba(0,0,0,0.1)', transition: 'all 0.3s ease'
+          }} title="Contactar por WhatsApp" onMouseEnter={e => !isMobile && (e.currentTarget.style.transform = 'scale(1.08)')} onMouseLeave={e => !isMobile && (e.currentTarget.style.transform = 'scale(1)')}>
+            <SiWhatsapp size={22} />
+          </button>
+        </div>
+      )}
 
       {/* ── FOOTER ────────────────────────────────────────────────────────── */}
       <footer style={{ background: FOOTINK, padding: isMobile ? '40px 24px' : '40px 48px' }}>
@@ -647,7 +601,7 @@ const FlashealoApp = () => {
         </div>
       </footer>
 
-      {/* CLASES CSS PARA MAGIA MÓVIL (Scroll horizontal invisible y Masonry Dinámico) */}
+      {/* CLASES CSS */}
       <style>{`
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
@@ -655,7 +609,6 @@ const FlashealoApp = () => {
         .snap-container { scroll-snap-type: x mandatory; }
         .snap-item { scroll-snap-align: center; }
 
-        /* MASONRY CSS RESPONSIVO */
         .masonry-grid {
           column-count: 3;
           column-gap: 24px;

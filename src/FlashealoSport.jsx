@@ -6,11 +6,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 // Lista de 25 disciplinas/eventos terminando en "tu evento deportivo"
 const PALABRAS_RULETA = [
-  'Automovilismo', 'Rally','Baseball', 'Surf', 
-  'HYROX', 'Pickleball', 'Triatlón', 'Ciclismo', 'Baloncesto', 
+  'Automovilismo', 'Rally','Baseball', 'Surf', 'HYROX', 'Pickleball', 'Triatlón', 'Ciclismo', 'Baloncesto', 
   'CrossFit', 'Tenis', 'Voleibol', 'Natación', 'Running', 
   'Karate', 'Golf', 'Gimnasia', 'Rugby', 'Atletismo', 
-  'Kickboxing','HYROX',  'Pickleball', 'Triatlón', 'Ciclismo', 'Fútbol', 'Maratón', 'Pádel', '5K', '10K', 'Medio Maratón',
+  'Kickboxing','HYROX', 'Pickleball', 'Triatlón', 'Ciclismo', 'Fútbol', 'Maratón', 'Pádel', '5K', '10K', 'Medio Maratón',
   'tu evento deportivo' // Cierre perfecto
 ];
 

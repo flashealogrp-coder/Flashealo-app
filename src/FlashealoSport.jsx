@@ -66,11 +66,35 @@ const FlashealoSport = ({ isMobile }) => {
   };
 
   // FUNCIÓN QUE RECIBE LAS 3 FOTOS DESDE EL MÓDULO DE LA CÁMARA
-  const manejarFotosCapturadas = (fotosBiometricas) => {
-    setModalCamaraAbierto(false); // Cerramos el modal
-    console.log("FOTOS RECIBIDAS LISTAS PARA ENVIAR A PYTHON:", fotosBiometricas);
-    alert("¡Fotos recibidas con éxito en la vista principal! Revisa la consola.");
-    // Aquí es donde llamaremos a tu API de Python.
+const manejarFotosCapturadas = async (fotosBiometricas) => {
+    try {
+      setModalCamaraAbierto(false); 
+      // Opcional: Podrías poner un estado de "setCargandoVector(true)" para mostrar un loader
+      
+      const URL_API = "https://tu-enlace-de-cloudflare.trycloudflare.com/vectorizar-selfie/";
+      
+      const response = await fetch(URL_API, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ imagen_base64: fotosBiometricas.frente }) 
+      });
+
+      if (!response.ok) throw new Error("No pudimos procesar el rostro.");
+
+      const data = await response.json();
+      
+      // Viajamos a la nueva página llevando la selfie original y el vector matemático
+      navigate('/mis-resultados', { 
+        state: { 
+          vector: data.vector, 
+          selfieB64: fotosBiometricas.frente 
+        } 
+      });
+
+    } catch (error) {
+      console.error(error);
+      alert("Error al analizar el rostro. Intenta de nuevo con mejor iluminación.");
+    }
   };
 
   const scrollAnim = {

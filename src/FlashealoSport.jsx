@@ -71,7 +71,7 @@ const manejarFotosCapturadas = async (fotosBiometricas) => {
       setModalCamaraAbierto(false); 
       // Opcional: Podrías poner un estado de "setCargandoVector(true)" para mostrar un loader
       
-      const URL_API = "https://tu-enlace-de-cloudflare.trycloudflare.com/vectorizar-selfie/";
+      const URL_API = "https://velvet-nitrogen-surf-suggests.trycloudflare.com";
       
       const response = await fetch(URL_API, {
         method: "POST",

@@ -337,27 +337,46 @@ const ReviewPanel = ({ evento, onVolver }) => {
     setFotosDelJugador(prev => prev.map(foto => ({ ...foto, detecciones: foto.detecciones.filter(d => d.id !== faceId) })).filter(foto => foto.detecciones.length > 0));
   };
 
-  // 🌟 NUEVA FUNCIÓN: Iniciar Fusión Inteligente
+  // 🌟 NUEVA FUNCIÓN: Iniciar Fusión Inteligente (A prueba de errores)
   const iniciarFusion = async () => {
     setFusionando(true);
     setCargandoFusionIA(true);
 
     if (jugadorSeleccionado && jugadorSeleccionado.embedding_promedio) {
-      const { data: sugerencias } = await supabase.rpc('sugerir_candidatos', {
-        huella_dudosa: jugadorSeleccionado.embedding_promedio,
+      
+      // 1. Nos aseguramos de que la huella sea un Array matemático, no un Texto
+      let vectorHuella = jugadorSeleccionado.embedding_promedio;
+      if (typeof vectorHuella === 'string') {
+        try {
+          vectorHuella = JSON.parse(vectorHuella);
+        } catch (e) {
+          console.error("Error parseando embedding:", e);
+        }
+      }
+
+      // 2. Llamamos a la base de datos
+      const { data: sugerencias, error } = await supabase.rpc('sugerir_candidatos', {
+        huella_dudosa: vectorHuella,
         limite_resultados: 4,
-        id_evento: evento.id
+        id_evento: String(evento.id) // Lo forzamos a texto para evitar choques
       });
+      
+      // 3. SI HAY ERROR, TE LO AVISARÁ EN PANTALLA
+      if (error) {
+        console.error("🔴 Error de IA en Fusión:", error);
+        alert("Error de Base de Datos: " + error.message);
+      }
       
       const sugerenciasValidas = (sugerencias || []).filter(s => s.id_identidad !== jugadorSeleccionado.id);
       setCandidatosFusion(sugerenciasValidas);
     } else {
+      alert("⚠️ Este perfil no tiene una huella facial guardada. No se puede usar la IA.");
       setCandidatosFusion([]);
     }
     
     setCargandoFusionIA(false);
   };
-
+  
   const fusionarConJugador = async (idDestino) => {
     setCargandoPerfiles(true);
     await supabase.from('face_detections').update({ identity_id: idDestino }).eq('identity_id', jugadorSeleccionado.id);

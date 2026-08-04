@@ -71,8 +71,7 @@ const manejarFotosCapturadas = async (fotosBiometricas) => {
       setModalCamaraAbierto(false); 
       // Opcional: Podrías poner un estado de "setCargandoVector(true)" para mostrar un loader
       
-      const URL_API = "https://brown-establish-hunter-rack.trycloudflare.com/vectorizar-selfie/";
-      
+    const URL_API = "https://api.flashealo.do/vectorizar-selfie/";      
       const response = await fetch(URL_API, {
         method: "POST",
         headers: { "Content-Type": "application/json" },

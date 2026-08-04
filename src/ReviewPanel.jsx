@@ -9,8 +9,21 @@ const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://muvzhnnsdnztl
 const fotoUrl = (path, optimizada = false) => {
   if (!path) return null;
   const base = SUPABASE_URL.endsWith('/') ? SUPABASE_URL.slice(0, -1) : SUPABASE_URL;
-  const version = "culling_pro_v5"; // Versionado de caché
-  if (optimizada) return `${base}/storage/v1/render/image/public/fotos/${path}?quality=50&format=webp&v=${version}`;
+  const version = "culling_pro_v5";
+
+  // Si es un avatar, no lo tocamos (ya es un recorte pequeño y ligero)
+  if (path.includes('/avatares/')) {
+      return `${base}/storage/v1/object/public/fotos/${path}?v=${version}`;
+  }
+
+  // 🚀 EL FIX: Si pedimos la optimizada, usamos la carpeta "previews" que ya creó tu Python
+  // en lugar del transformador de pago de Supabase.
+  if (optimizada && path.includes('/originales/')) {
+      let optimizedPath = path.replace('/originales/', '/previews/');
+      optimizedPath = optimizedPath.replace(/\.(jpg|jpeg|png)$/i, '.webp');
+      return `${base}/storage/v1/object/public/fotos/${optimizedPath}?v=${version}`;
+  }
+
   return `${base}/storage/v1/object/public/fotos/${path}?v=${version}`;
 };
 

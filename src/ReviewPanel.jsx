@@ -830,14 +830,24 @@ const ReviewPanel = ({ evento, onVolver }) => {
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 z-10">
                       {fotosDelJugador.map(({ photo_url, detecciones }, idx) => (
                         <div key={photo_url || `fdeljug-${idx}`} className="relative bg-white shadow-sm border p-3 flex flex-col justify-between group rounded-none" style={{ borderColor: 'rgba(0,0,0,0.06)' }}>
-                          <div className="flex items-center justify-center w-full rounded-none overflow-hidden h-full" style={{ background: CREAM }}>
+                          <div className="flex items-center justify-center w-full rounded-none overflow-hidden h-full relative" style={{ background: CREAM }}>
+                            
+                            {/* 🚀 NUEVO: Alerta de Cara de Fondo/Borrosa */}
+                            {detecciones[0] && detecciones[0].bbox && (detecciones[0].bbox.w * detecciones[0].bbox.h < 2.5) && (
+                                <div className="absolute top-2 right-2 z-30 pointer-events-none">
+                                  <span className="bg-red-900/90 text-red-300 border border-red-700/50 px-2 py-1 text-[8px] uppercase tracking-widest font-bold backdrop-blur-md flex items-center gap-1 shadow-lg">
+                                    <AlertTriangle size={10}/> Posible Fondo / Baja Calidad
+                                  </span>
+                                </div>
+                            )}
+
                             <div className="relative inline-block leading-none max-w-full cursor-zoom-in" onClick={() => { if (detecciones && detecciones.length > 0) { setZoomCara({ photo_url, bbox: detecciones[0].bbox, identidad: jugadorSeleccionado }); }}}>
                               <img src={fotoUrl(photo_url, true)} loading="lazy" className="w-auto max-w-full max-h-[40vh] block select-none filter saturate-[0.9]" alt="" />
                               {detecciones.map((det) => (
                                 <div 
                                   key={det.id}
                                   onClick={(e) => { e.stopPropagation(); setZoomCara({ photo_url, bbox: det.bbox, identidad: jugadorSeleccionado }); }}
-                                  className="absolute border-[2px] transition-all rounded-sm z-20 pointer-events-auto cursor-zoom-in hover:bg-white/20"
+                                  className="absolute border-[2px] transition-all rounded-sm z-20 pointer-events-auto cursor-zoom-in hover:bg-white/20 shadow-[0_0_12px_rgba(0,0,0,0.5)]"
                                   style={{ left: `${det.bbox.x}%`, top: `${det.bbox.y}%`, width: `${det.bbox.w}%`, height: `${det.bbox.h}%`, borderColor: SAND }}
                                   title="Enfocar este rostro"
                                 />
@@ -854,7 +864,7 @@ const ReviewPanel = ({ evento, onVolver }) => {
                                 <button 
                                   key={det.id} 
                                   onClick={(e) => { e.stopPropagation(); desvincularDeteccion(det.id); }} 
-                                  className="px-2 py-1 transition-colors text-[9px] uppercase tracking-wider flex items-center gap-1"
+                                  className="px-2 py-1 transition-colors text-[9px] uppercase tracking-wider flex items-center gap-1 hover:bg-red-100"
                                   style={{ background: '#FDF8F8', color: '#C0392B' }}
                                 >
                                   <UserMinus size={10} /> Desvincular

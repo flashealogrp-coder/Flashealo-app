@@ -376,7 +376,7 @@ const ReviewPanel = ({ evento, onVolver }) => {
     
     setCargandoFusionIA(false);
   };
-  
+
   const fusionarConJugador = async (idDestino) => {
     setCargandoPerfiles(true);
     await supabase.from('face_detections').update({ identity_id: idDestino }).eq('identity_id', jugadorSeleccionado.id);
@@ -513,7 +513,7 @@ const ReviewPanel = ({ evento, onVolver }) => {
 
       <main className="p-6 md:p-8 max-w-[100rem] mx-auto">
         
-        /* ════════ VISTA: CULLING STUDIO ════════ */
+        // ════════ VISTA: CULLING STUDIO ════════ 
         {(vista === 'revisar' || vista === 'revisar_ocr') && (
           <div className="max-w-[1600px] mx-auto">
              {cargandoRevisar ? (

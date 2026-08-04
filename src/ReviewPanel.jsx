@@ -16,8 +16,7 @@ const fotoUrl = (path, optimizada = false) => {
       return `${base}/storage/v1/object/public/fotos/${path}?v=${version}`;
   }
 
-  // 🚀 EL FIX: Si pedimos la optimizada, usamos la carpeta "previews" que ya creó tu Python
-  // en lugar del transformador de pago de Supabase.
+  // Si pedimos la optimizada, usamos la carpeta "previews" generada por Python
   if (optimizada && path.includes('/originales/')) {
       let optimizedPath = path.replace('/originales/', '/previews/');
       optimizedPath = optimizedPath.replace(/\.(jpg|jpeg|png)$/i, '.webp');
@@ -100,7 +99,11 @@ const ReviewPanel = ({ evento, onVolver }) => {
   const [cargandoPerfiles, setCargandoPerfiles] = useState(false);
   const [editandoNombre, setEditandoNombre] = useState(false);
   const [nombreTemporal, setNombreTemporal] = useState('');
+  
+  // 🌟 Nuevos Estados para la Fusión de Perfiles con IA
   const [fusionando, setFusionando] = useState(false);
+  const [candidatosFusion, setCandidatosFusion] = useState([]);
+  const [cargandoFusionIA, setCargandoFusionIA] = useState(false);
 
   const [listaCorredores, setListaCorredores] = useState([]);
   const [corredorSeleccionado, setCorredorSeleccionado] = useState(null);
@@ -154,16 +157,13 @@ const ReviewPanel = ({ evento, onVolver }) => {
   const calificarFoto = useCallback(async (estrellas) => {
     if (!fotoRevisarActual) return;
 
-    // Actualiza en tiempo real en la Base de Datos
     if (fotoRevisarActual.id) {
       await supabase.from('fotografias').update({ estrellas }).eq('id', fotoRevisarActual.id);
     }
 
-    // Actualiza el UI sin que la foto desaparezca inmediatamente del filtro (mejor UX)
     setFotosRevisar(prev => prev.map(f => f.id === fotoRevisarActual.id ? { ...f, estrellas } : f));
     setFotosFiltradas(prev => prev.map(f => f.id === fotoRevisarActual.id ? { ...f, estrellas } : f));
     
-    // Auto-Avanzar a la siguiente foto
     if (idxRevisar < fotosFiltradas.length - 1) setIdxRevisar(prev => prev + 1);
   }, [fotoRevisarActual, idxRevisar, fotosFiltradas.length]);
 
@@ -194,7 +194,6 @@ const ReviewPanel = ({ evento, onVolver }) => {
   const cargarRevisar = async () => {
     setCargandoRevisar(true);
     
-    // 1. Cargamos TODO el universo de fotos del evento desde Supabase
     const { data: fotosBase, error } = await supabase
       .from('fotografias')
       .select('*')
@@ -206,14 +205,12 @@ const ReviewPanel = ({ evento, onVolver }) => {
       return;
     }
 
-    // Creamos un diccionario para mapear la metadata fácilmente
     const fotosMap = {};
     fotosBase.forEach(f => {
-      const url = f.url_original || f.url_watermark; // Coincide con lo guardado por Python
+      const url = f.url_original || f.url_watermark; 
       fotosMap[url] = { ...f, photo_url: url, etiquetas: [], caras: [] };
     });
 
-    // 2. Anexar metadatos (OCR o Faciales) a las fotos correspondientes
     if (isOCR) {
       const { data: etiquetas } = await supabase.from('etiquetas_fotos').select('*').eq('evento_id', evento.id);
       if (etiquetas) {
@@ -234,7 +231,6 @@ const ReviewPanel = ({ evento, onVolver }) => {
       }
     }
 
-    // 3. Empaquetamos y aseguramos que la data IA exista
     const fotosReales = Object.values(fotosMap).map(f => ({
       ...f,
       estrellas: f.estrellas || 0,
@@ -290,7 +286,8 @@ const ReviewPanel = ({ evento, onVolver }) => {
 
   const cargarJugadores = async () => { 
     setCargandoPerfiles(true);
-    const { data } = await supabase.from('identities').select('id, display_name, avatar_url').eq('evento_id', evento.id).order('display_name');
+    // 🌟 NUEVO: Traemos el embedding_promedio para usar la IA en la fusión
+    const { data } = await supabase.from('identities').select('id, display_name, avatar_url, embedding_promedio').eq('evento_id', evento.id).order('display_name');
     if (data) {
       const unicos = Array.from(new Map(data.map((j) => [j.id, j])).values());
       setListaJugadores(unicos); if (unicos.length > 0) seleccionarJugador(unicos[0]);
@@ -299,7 +296,11 @@ const ReviewPanel = ({ evento, onVolver }) => {
   };
 
   const seleccionarJugador = async (jugador) => { 
-    setJugadorSeleccionado(jugador); setEditandoNombre(false); setFusionando(false); setCargandoPerfiles(true);
+    setJugadorSeleccionado(jugador); 
+    setEditandoNombre(false); 
+    setFusionando(false); 
+    setCandidatosFusion([]);
+    setCargandoPerfiles(true);
     const { data } = await supabase.from('face_detections').select('*').eq('identity_id', jugador.id).eq('evento_id', evento.id);
     if (data) {
       const sincDuplicados = Array.from(new Map(data.map((d) => [d.id, d])).values());
@@ -336,11 +337,35 @@ const ReviewPanel = ({ evento, onVolver }) => {
     setFotosDelJugador(prev => prev.map(foto => ({ ...foto, detecciones: foto.detecciones.filter(d => d.id !== faceId) })).filter(foto => foto.detecciones.length > 0));
   };
 
+  // 🌟 NUEVA FUNCIÓN: Iniciar Fusión Inteligente
+  const iniciarFusion = async () => {
+    setFusionando(true);
+    setCargandoFusionIA(true);
+
+    if (jugadorSeleccionado && jugadorSeleccionado.embedding_promedio) {
+      const { data: sugerencias } = await supabase.rpc('sugerir_candidatos', {
+        huella_dudosa: jugadorSeleccionado.embedding_promedio,
+        limite_resultados: 4,
+        id_evento: evento.id
+      });
+      
+      const sugerenciasValidas = (sugerencias || []).filter(s => s.id_identidad !== jugadorSeleccionado.id);
+      setCandidatosFusion(sugerenciasValidas);
+    } else {
+      setCandidatosFusion([]);
+    }
+    
+    setCargandoFusionIA(false);
+  };
+
   const fusionarConJugador = async (idDestino) => {
     setCargandoPerfiles(true);
     await supabase.from('face_detections').update({ identity_id: idDestino }).eq('identity_id', jugadorSeleccionado.id);
     await supabase.from('identities').delete().eq('id', jugadorSeleccionado.id);
-    setFusionando(false); setJugadorSeleccionado(null); cargarJugadores();
+    setFusionando(false); 
+    setCandidatosFusion([]); 
+    setJugadorSeleccionado(null); 
+    cargarJugadores();
   };
 
   const destruirPerfilFalso = async () => {
@@ -469,7 +494,7 @@ const ReviewPanel = ({ evento, onVolver }) => {
 
       <main className="p-6 md:p-8 max-w-[100rem] mx-auto">
         
-        {/* ════════ VISTA: CULLING STUDIO ════════ */}
+        /* ════════ VISTA: CULLING STUDIO ════════ */
         {(vista === 'revisar' || vista === 'revisar_ocr') && (
           <div className="max-w-[1600px] mx-auto">
              {cargandoRevisar ? (
@@ -659,7 +684,7 @@ const ReviewPanel = ({ evento, onVolver }) => {
           </div>
         )}
 
-        {/* ════════ VISTAS DE CORREDORES, PERFILES Y DUDAS OMITIDAS EN ESTE FRAGMENTO PARA FOCO (Mantienen el diseño previo) ════════ */}
+        {/* ════════ VISTA: CORREDORES (OCR) ════════ */}
         {vista === 'corredores' && isOCR && (
           <div className="flex flex-col lg:flex-row gap-8 relative">
             <aside className="w-full lg:w-80 shrink-0 bg-white rounded-none shadow-sm border p-5 max-h-[80vh] overflow-y-auto custom-scrollbar" style={{ borderColor: 'rgba(0,0,0,0.06)' }}>
@@ -748,6 +773,7 @@ const ReviewPanel = ({ evento, onVolver }) => {
           </div>
         )}
 
+        {/* ════════ VISTA: PERFILES (FACIAL) ════════ */}
         {vista === 'perfiles' && !isOCR && (
           <div className="flex flex-col lg:flex-row gap-8">
             <aside className="w-full lg:w-72 shrink-0 bg-white rounded-none shadow-sm border p-5 max-h-[80vh] overflow-y-auto custom-scrollbar" style={{ borderColor: 'rgba(0,0,0,0.06)' }}>
@@ -802,7 +828,8 @@ const ReviewPanel = ({ evento, onVolver }) => {
                     </div>
 
                     <div className="flex items-center gap-2 shrink-0">
-                      <button onClick={() => setFusionando(!fusionando)} className="px-4 py-2.5 rounded-none text-[9px] uppercase tracking-[0.2em] transition-all flex items-center gap-2" style={{ background: fusionando ? INK : CREAM, color: fusionando ? WHITE : INK }}>
+                      {/* 🌟 BOTÓN DE FUSIÓN CON IA */}
+                      <button onClick={() => fusionando ? setFusionando(false) : iniciarFusion()} className="px-4 py-2.5 rounded-none text-[9px] uppercase tracking-[0.2em] transition-all flex items-center gap-2" style={{ background: fusionando ? INK : CREAM, color: fusionando ? WHITE : INK }}>
                         <Combine size={14} /> {fusionando ? 'Cancelar Fusión' : 'Fusionar Perfil'}
                       </button>
                       <button onClick={() => { if(window.confirm('¿Seguro que deseas eliminar este perfil por completo?')) destruirPerfilFalso(); }} className="p-2.5 rounded-none transition-all" style={{ background: '#FDF8F8', color: '#C0392B' }} title="Destruir perfil falso permanentemente">
@@ -814,25 +841,71 @@ const ReviewPanel = ({ evento, onVolver }) => {
                   {cargandoPerfiles ? (
                     <div className="flex justify-center items-center h-48 text-[10px] uppercase tracking-[0.3em]" style={{ color: TAUPE }}><Loader2 className="animate-spin mr-2" size={18} /> Cargando datos...</div>
                   ) : fusionando ? (
-                    <div className="p-8 rounded-none border mb-6" style={{ background: CREAM, borderColor: SAND }}>
+                    
+                    //* 🌟 VISTA DE FUSIÓN CON SUGERENCIAS IA *//
+                    <div className="p-8 rounded-none border mb-6 transition-all" style={{ background: CREAM, borderColor: SAND }}>
                       <div className="flex items-center gap-3 mb-4"><Combine size={20} style={{ color: INK }} /><h3 className="text-xl font-serif" style={{ color: INK }}>¿Quién es realmente esta persona?</h3></div>
                       <p className="text-xs mb-8" style={{ color: TAUPE }}>Selecciona el perfil real a continuación. Todas las fotos de <b>{jugadorSeleccionado.display_name}</b> se moverán a ese perfil. Este perfil será eliminado.</p>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-h-[50vh] overflow-y-auto custom-scrollbar pr-2">
-                        {listaJugadores.filter(j => j.id !== jugadorSeleccionado.id).map(j => (
-                          <button key={j.id} onClick={() => fusionarConJugador(j.id)} className="bg-white p-3 rounded-none flex items-center gap-3 border text-left transition-all hover:shadow-md" style={{ borderColor: 'rgba(0,0,0,0.05)' }}>
-                            <img src={fotoUrl(j.avatar_url)} className="w-10 h-10 rounded-full object-cover shrink-0 filter saturate-[0.8]"/>
-                            <span className="font-serif text-sm truncate" style={{ color: INK }}>{j.display_name}</span>
-                          </button>
-                        ))}
-                      </div>
+                      
+                      {cargandoFusionIA ? (
+                        <div className="flex items-center justify-center py-12">
+                          <Loader2 className="animate-spin text-amber-500 mb-2" size={32}/>
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-h-[50vh] overflow-y-auto custom-scrollbar pr-2 pb-4">
+                          
+                          {/* BLOQUE DE SUGERENCIAS DE IA */}
+                          {candidatosFusion.length > 0 && (
+                            <>
+                              <div className="col-span-full flex items-center gap-2 mb-2 border-b border-black/5 pb-2">
+                                <Zap size={14} className="text-amber-500"/>
+                                <span className="text-[10px] uppercase tracking-widest font-bold text-amber-600">Sugerencias de IA</span>
+                              </div>
+                              
+                              {candidatosFusion.map(candidato => {
+                                const porcentaje = Math.round(candidato.porcentaje_similitud * 100);
+                                const esAlto = porcentaje >= 50;
+                                
+                                return (
+                                  <button key={`sug-${candidato.id_identidad}`} onClick={() => fusionarConJugador(candidato.id_identidad)} className="relative bg-amber-50/50 p-4 flex flex-col items-center border border-amber-200 transition-all hover:shadow-md hover:bg-amber-50 group">
+                                    <div className={`absolute -top-2 -right-2 text-[9px] font-bold px-2 py-0.5 rounded-full shadow-sm text-white ${esAlto ? 'bg-green-600' : 'bg-amber-500'}`}>
+                                      {porcentaje}% Match
+                                    </div>
+                                    <img src={fotoUrl(candidato.avatar)} className="w-16 h-16 rounded-full object-cover shadow-sm mb-3 border-2 border-white filter saturate-[0.9] group-hover:saturate-100 transition-all" />
+                                    <span className="font-serif text-sm truncate w-full text-center text-amber-900 font-bold">{candidato.nombre_jugador}</span>
+                                  </button>
+                                );
+                              })}
+                            </>
+                          )}
+
+                          {/* RESTO DE PERFILES (MANUAL) */}
+                          <div className="col-span-full flex items-center gap-2 mb-2 mt-6 border-b border-black/5 pb-2">
+                            <User size={14} style={{ color: TAUPE }}/>
+                            <span className="text-[10px] uppercase tracking-widest font-bold" style={{ color: TAUPE }}>Todos los Perfiles</span>
+                          </div>
+
+                          {listaJugadores
+                            .filter(j => j.id !== jugadorSeleccionado.id && !candidatosFusion.find(c => c.id_identidad === j.id))
+                            .map(j => (
+                              <button key={j.id} onClick={() => fusionarConJugador(j.id)} className="bg-white p-3 flex items-center gap-3 border text-left transition-all hover:shadow-sm" style={{ borderColor: 'rgba(0,0,0,0.05)' }}>
+                                <img src={fotoUrl(j.avatar_url)} className="w-10 h-10 rounded-full object-cover shrink-0 filter saturate-[0.8]"/>
+                                <span className="font-serif text-sm truncate" style={{ color: INK }}>{j.display_name}</span>
+                              </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
+
                   ) : (
+                    
+                    /* 🌟 VISTA NORMAL (CUADRÍCULA DE FOTOS) CON ALERTAS DE FONDO */
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 z-10">
                       {fotosDelJugador.map(({ photo_url, detecciones }, idx) => (
                         <div key={photo_url || `fdeljug-${idx}`} className="relative bg-white shadow-sm border p-3 flex flex-col justify-between group rounded-none" style={{ borderColor: 'rgba(0,0,0,0.06)' }}>
                           <div className="flex items-center justify-center w-full rounded-none overflow-hidden h-full relative" style={{ background: CREAM }}>
                             
-                            {/* 🚀 NUEVO: Alerta de Cara de Fondo/Borrosa */}
+                            {/* ALERTA DE CARA DE FONDO/BAJA CALIDAD */}
                             {detecciones[0] && detecciones[0].bbox && (detecciones[0].bbox.w * detecciones[0].bbox.h < 2.5) && (
                                 <div className="absolute top-2 right-2 z-30 pointer-events-none">
                                   <span className="bg-red-900/90 text-red-300 border border-red-700/50 px-2 py-1 text-[8px] uppercase tracking-widest font-bold backdrop-blur-md flex items-center gap-1 shadow-lg">
@@ -882,6 +955,7 @@ const ReviewPanel = ({ evento, onVolver }) => {
           </div>
         )}
 
+        {/* ════════ VISTA: DUDAS (HUÉRFANAS) ════════ */}
         {vista === 'dudas' && !isOCR && (
           <div className="max-w-5xl mx-auto">
              {cargandoDudas ? (
@@ -900,7 +974,7 @@ const ReviewPanel = ({ evento, onVolver }) => {
                   </div>
                   <div className="w-full rounded-none p-4 flex items-center justify-center" style={{ background: CREAM }}>
                     <div className="relative inline-block max-w-full shadow-lg border-4 border-white overflow-hidden leading-none">
-                      <img src={fotoUrl(fotoDudosa.photo_url)} alt="Dudoso" className="max-h-[50vh] w-auto max-w-full block filter saturate-[0.8]" />
+                      <img src={fotoUrl(fotoDudosa.photo_url, true)} alt="Dudoso" className="max-h-[50vh] w-auto max-w-full block filter saturate-[0.8]" />
                       {fotoDudosa.bbox && (
                         <>
                           <div className="absolute inset-0 bg-black/40 pointer-events-none" />
@@ -919,7 +993,7 @@ const ReviewPanel = ({ evento, onVolver }) => {
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     {candidatos.map((candidato) => {
                       const porcentaje = Math.round(candidato.porcentaje_similitud * 100);
-                      const esAlto = porcentaje > 50;
+                      const esAlto = porcentaje >= 50;
                       return (
                         <div key={candidato.id_identidad} className="p-5 flex flex-col items-center border transition-all hover:shadow-md group" style={{ background: WHITE, borderColor: 'rgba(0,0,0,0.06)' }}>
                           <div className="relative mb-4">

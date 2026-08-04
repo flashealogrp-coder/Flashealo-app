@@ -513,7 +513,7 @@ const ReviewPanel = ({ evento, onVolver }) => {
 
       <main className="p-6 md:p-8 max-w-[100rem] mx-auto">
         
-        // ════════ VISTA: CULLING STUDIO ════════ 
+        
         {(vista === 'revisar' || vista === 'revisar_ocr') && (
           <div className="max-w-[1600px] mx-auto">
              {cargandoRevisar ? (

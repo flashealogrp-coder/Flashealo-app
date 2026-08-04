@@ -313,9 +313,13 @@ const GaleriaCliente = () => {
             
             <header className="relative h-screen w-full flex items-center justify-center overflow-hidden bg-black">
               <div className="absolute inset-0 z-0">
-                <motion.img 
-                  src={evento.portada_url || "https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?q=80&w=2070&auto=format&fit=crop"} 
-                  initial={false}
+              <motion.img 
+                src={
+                  evento.url_portada 
+                    ? `https://muvzhnnsdnztlhynuipd.supabase.co/storage/v1/object/public/fotos/${evento.url_portada}` 
+                    : (evento.portada_url || "https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?q=80&w=2070&auto=format&fit=crop")
+                } 
+                initial={false}
                   animate={{ 
                     scale: autenticado ? [1, 1.05, 1] : 1.05,
                     filter: autenticado ? "brightness(0.85) saturate(0.85) blur(0px)" : "brightness(0.4) saturate(0.5) blur(16px)"

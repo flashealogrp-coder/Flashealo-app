@@ -69,37 +69,41 @@ const FlashealoSport = ({ isMobile }) => {
   const manejarFotosCapturadas = async (fotosBiometricas) => {
     try {
       setModalCamaraAbierto(false); 
-      // Opcional: Podrías poner un estado de "setCargandoVector(true)" para mostrar un loader
       
-      const URL_API = "https://api.flashealo.do/vectorizar-selfie/";      
+      // 1. Función a prueba de balas para convertir Base64 a Archivo (Compatible con iOS/Android)
+      const dataURLtoFile = (dataurl, filename) => {
+        let arr = dataurl.split(','),
+            mime = arr[0].match(/:(.*?);/)[1],
+            bstr = atob(arr[1]), 
+            n = bstr.length, 
+            u8arr = new Uint8Array(n);
+        while(n--){
+            u8arr[n] = bstr.charCodeAt(n);
+        }
+        return new File([u8arr], filename, {type:mime});
+      };
 
-      // 1. Convertimos el Base64 (texto) a un Blob (archivo binario físico)
-      const resBlob = await fetch(fotosBiometricas.frente);
-      const blob = await resBlob.blob();
+      // 2. Convertimos usando la nueva función
+      const archivoFoto = dataURLtoFile(fotosBiometricas.frente, 'selfie.jpg');
       
-      // 2. Empacamos el archivo en un FormData
+      // 3. Empacamos el archivo
       const formData = new FormData();
-      // OJO: El nombre 'file' debe ser el mismo que usaste en FastAPI (ej. file: UploadFile)
-      formData.append('file', blob, 'selfie.jpg'); 
+      formData.append('file', archivoFoto); 
 
-      // 3. Enviamos a Oracle
+      // 4. Enviamos a Oracle
+      const URL_API = "https://api.flashealo.do/vectorizar-selfie/";      
       const response = await fetch(URL_API, {
         method: "POST",
         body: formData, 
-        // 🚨 IMPORTANTE: No se pone ningún "Content-Type" aquí. 
-        // El navegador detecta el FormData y asigna "multipart/form-data" automáticamente.
       });
 
       if (!response.ok) {
-         // Si hay error, intentamos leer qué dice FastAPI para depurar
-         const errorInfo = await response.text();
-         console.error("Detalle del error del backend:", errorInfo);
          throw new Error("No pudimos procesar el rostro.");
       }
 
       const data = await response.json();
       
-      // Viajamos a la nueva página llevando la selfie original y el vector matemático
+      // Viajamos a la nueva página
       navigate('/mis-resultados', { 
         state: { 
           vector: data.vector, 
@@ -109,10 +113,10 @@ const FlashealoSport = ({ isMobile }) => {
 
     } catch (error) {
       console.error(error);
-      alert("Error al analizar el rostro. Intenta de nuevo con mejor iluminación.");
+      alert("Error al analizar el rostro en el móvil. Revisa tu conexión o iluminación.");
     }
   };
-  
+
   const scrollAnim = {
     initial: { opacity: 0, y: 30 },
     whileInView: { opacity: 1, y: 0 },

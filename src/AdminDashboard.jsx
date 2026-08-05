@@ -11,7 +11,7 @@ const INK    = '#1C1C1C';
 const CREAM  = '#F7F5F0';
 const WHITE  = '#FFFFFF';
 
-// 🌟 NUEVO: Función para resolver links de imágenes (Python vs Admin)
+// 🌟 Función para resolver links de imágenes
 const getUrlCompleta = (ruta) => {
   if (!ruta) return null;
   if (ruta.includes('http')) return ruta;
@@ -42,7 +42,7 @@ const AdminDashboard = () => {
     precio_galeria: 0.00, 
     logo_url: '', 
     portada_url: '',
-    titulo_about: '', // Añadido para que no se pierda al editar
+    titulo_about: '',
     password_cliente: '' 
   });
 
@@ -113,7 +113,7 @@ const AdminDashboard = () => {
       precio_galeria: ev.precio_galeria || 0, 
       logo_url: ev.logo_url || '', 
       portada_url: ev.portada_url || '',
-      titulo_about: ev.titulo_about || '', // Recuperamos el título editorial
+      titulo_about: ev.titulo_about || '', 
       password_cliente: ev.password_cliente || ''
     });
     setLogoFile(null);
@@ -137,7 +137,7 @@ const AdminDashboard = () => {
   return (
     <div style={{ background: CREAM, color: INK, fontFamily: 'system-ui, -apple-system, sans-serif', minHeight: '100vh' }}>
       
-      {/* ── NAVBAR ADMINISTRATIVO ─────────────────────────────────────────── */}
+      {/* ── NAVBAR ADMINISTRATIVO ── */}
       <nav style={{ padding: '24px 48px', background: WHITE, borderBottom: '1px solid rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 40 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
           <div style={{ width: 32, height: 32, background: INK, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -167,9 +167,6 @@ const AdminDashboard = () => {
         )}
 
         <AnimatePresence mode="wait">
-          {/* ====================================
-              PESTAÑA: LISTA DE EVENTOS
-              ==================================== */}
           {tabActiva === 'lista' && (
             <motion.div key="lista" initial="hidden" animate="visible" exit={{ opacity: 0 }} variants={{ visible: { transition: { staggerChildren: 0.1 } } }}>
               <div style={{ marginBottom: 64 }}>
@@ -192,7 +189,6 @@ const AdminDashboard = () => {
                       <motion.div key={ev.id} variants={fadeUp} style={{ background: WHITE, borderRadius: 2, overflow: 'hidden', boxShadow: '0 10px 40px rgba(0,0,0,0.03)', display: 'flex', flexDirection: 'column', position: 'relative' }}>
                         
                         <div style={{ position: 'relative', height: 200, background: '#E8E4DE', overflow: 'hidden' }}>
-                          {/* 🌟 ACTUALIZADO: Para mostrar la portada detectada por Python correctamente en la tarjeta */}
                           <img src={getUrlCompleta(ev.portada_url) || "https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?q=80&w=800&auto=format&fit=crop"} alt="Portada" style={{ width: '100%', height: '100%', objectFit: 'cover', filter: 'saturate(0.8)' }} />
                           
                           <div style={{ position: 'absolute', top: 16, left: 16, background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(4px)', padding: '6px 12px', fontSize: 8, letterSpacing: '0.2em', textTransform: 'uppercase', color: INK, fontWeight: 600 }}>
@@ -253,9 +249,6 @@ const AdminDashboard = () => {
             </motion.div>
           )}
 
-          {/* ====================================
-              PESTAÑA: CREAR / EDITAR EVENTO 
-              ==================================== */}
           {tabActiva === 'crear' && (
             <motion.div key="crear" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
               <div style={{ marginBottom: 64 }}>
@@ -296,43 +289,53 @@ const AdminDashboard = () => {
                 
                 <div style={{ marginBottom: 32 }}>
                   <label style={{ display: 'block', fontSize: 11, letterSpacing: '0.1em', color: INK, marginBottom: 12 }}>Título Editorial (About)</label>
-                  <input value={formData.titulo_about} onChange={e => setFormData({...formData, titulo_about: e.target.value})} placeholder='Ej. "Capturando la esencia de cada instante."' style={{ width: '100%', padding: 16, background: CREAM, border: 'none', fontSize: 16, fontFamily: 'Georgia, serif', outline: 'none', color: INK }} />
+                  <input value={formData.titulo_about || ''} onChange={e => setFormData({...formData, titulo_about: e.target.value})} placeholder='Ej. "Capturando la esencia de cada instante."' style={{ width: '100%', padding: 16, background: CREAM, border: 'none', fontSize: 16, fontFamily: 'Georgia, serif', outline: 'none', color: INK }} />
                 </div>
                 <div style={{ marginBottom: 64 }}>
                   <label style={{ display: 'block', fontSize: 11, letterSpacing: '0.1em', color: INK, marginBottom: 12 }}>Descripción Editorial</label>
-                  <textarea rows="3" value={formData.descripcion} onChange={e => setFormData({...formData, descripcion: e.target.value})} placeholder="Historia del evento..." style={{ width: '100%', padding: 16, background: CREAM, border: 'none', fontSize: 14, outline: 'none', color: INK, resize: 'none' }} />
+                  <textarea rows="5" value={formData.descripcion || ''} onChange={e => setFormData({...formData, descripcion: e.target.value})} placeholder="Historia del evento..." style={{ width: '100%', padding: 16, background: CREAM, border: 'none', fontSize: 14, outline: 'none', color: INK, resize: 'none' }} />
                 </div>
 
-                {/* IMÁGENES CON VISUALIZACIÓN */}
+                {/* IMÁGENES CON VISUALIZACIÓN OPTIMIZADA */}
                 <h3 style={{ fontSize: 10, letterSpacing: '0.3em', textTransform: 'uppercase', color: TAUPE, marginBottom: 32, borderBottom: '1px solid rgba(0,0,0,0.06)', paddingBottom: 16 }}>Dirección de Arte</h3>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 40, marginBottom: 64 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginBottom: 48 }}>
                   
                   {/* LOGO */}
-                  <div style={{ padding: 40, border: '1px dashed rgba(0,0,0,0.1)', textAlign: 'center', background: '#FAFAFA' }}>
-                    {/* 🌟 NUEVO: Muestra el logo actual si existe */}
-                    {formData.logo_url && !logoFile ? (
-                      <img src={getUrlCompleta(formData.logo_url)} alt="Logo actual" style={{ width: 80, height: 80, objectFit: 'contain', margin: '0 auto 16px', borderRadius: 8, border: '1px solid rgba(0,0,0,0.05)', background: WHITE }} />
-                    ) : (
-                      <ImageIcon size={24} style={{ margin: '0 auto 16px', color: TAUPE }} />
-                    )}
-                    
-                    <label style={{ display: 'block', fontSize: 11, letterSpacing: '0.1em', color: INK, marginBottom: 16, textTransform: 'uppercase' }}>Logo Cuadrado</label>
-                    <input type="file" accept="image/*" onChange={e => setLogoFile(e.target.files[0])} style={{ fontSize: 11, color: TAUPE, width: '100%' }} />
-                    {formData.logo_url && !logoFile && <p style={{ fontSize: 10, color: '#2E7D32', marginTop: 12 }}>✓ Mostrando imagen actual guardada</p>}
+                  <div style={{ padding: 24, border: '1px dashed rgba(0,0,0,0.1)', textAlign: 'center', background: '#FAFAFA', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                    <div>
+                      {formData.logo_url && !logoFile ? (
+                        <img src={getUrlCompleta(formData.logo_url)} alt="Logo actual" style={{ width: '100%', height: 180, objectFit: 'cover', margin: '0 auto 16px', borderRadius: 4, border: '1px solid rgba(0,0,0,0.05)', background: WHITE }} />
+                      ) : (
+                        <div style={{ height: 180, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16, border: '1px solid rgba(0,0,0,0.05)', background: WHITE, borderRadius: 4 }}>
+                          <ImageIcon size={32} style={{ color: TAUPE }} />
+                        </div>
+                      )}
+                      
+                      <label style={{ display: 'block', fontSize: 11, letterSpacing: '0.1em', color: INK, marginBottom: 16, textTransform: 'uppercase', fontWeight: 600 }}>Logo Cuadrado</label>
+                    </div>
+                    <div>
+                      <input type="file" accept="image/*" onChange={e => setLogoFile(e.target.files[0])} style={{ fontSize: 11, color: TAUPE, width: '100%' }} />
+                      {formData.logo_url && !logoFile && <p style={{ fontSize: 10, color: '#2E7D32', marginTop: 12 }}>✓ Mostrando imagen actual guardada</p>}
+                    </div>
                   </div>
 
                   {/* PORTADA */}
-                  <div style={{ padding: 40, border: '1px dashed rgba(0,0,0,0.1)', textAlign: 'center', background: '#FAFAFA' }}>
-                    {/* 🌟 NUEVO: Muestra la portada actual (elegida por Python o por ti) si existe */}
-                    {formData.portada_url && !portadaFile ? (
-                      <img src={getUrlCompleta(formData.portada_url)} alt="Portada actual" style={{ width: '100%', height: 120, objectFit: 'cover', margin: '0 auto 16px', borderRadius: 8, border: '1px solid rgba(0,0,0,0.05)' }} />
-                    ) : (
-                      <ImageIcon size={24} style={{ margin: '0 auto 16px', color: TAUPE }} />
-                    )}
+                  <div style={{ padding: 24, border: '1px dashed rgba(0,0,0,0.1)', textAlign: 'center', background: '#FAFAFA', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                    <div>
+                      {formData.portada_url && !portadaFile ? (
+                        <img src={getUrlCompleta(formData.portada_url)} alt="Portada actual" style={{ width: '100%', height: 180, objectFit: 'cover', margin: '0 auto 16px', borderRadius: 4, border: '1px solid rgba(0,0,0,0.05)' }} />
+                      ) : (
+                        <div style={{ height: 180, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16, border: '1px solid rgba(0,0,0,0.05)', background: WHITE, borderRadius: 4 }}>
+                          <ImageIcon size={32} style={{ color: TAUPE }} />
+                        </div>
+                      )}
 
-                    <label style={{ display: 'block', fontSize: 11, letterSpacing: '0.1em', color: INK, marginBottom: 16, textTransform: 'uppercase' }}>Portada Cinematográfica</label>
-                    <input type="file" accept="image/*" onChange={e => setPortadaFile(e.target.files[0])} style={{ fontSize: 11, color: TAUPE, width: '100%' }} />
-                    {formData.portada_url && !portadaFile && <p style={{ fontSize: 10, color: '#2E7D32', marginTop: 12 }}>✓ Mostrando imagen actual guardada</p>}
+                      <label style={{ display: 'block', fontSize: 11, letterSpacing: '0.1em', color: INK, marginBottom: 16, textTransform: 'uppercase', fontWeight: 600 }}>Portada Cinematográfica</label>
+                    </div>
+                    <div>
+                      <input type="file" accept="image/*" onChange={e => setPortadaFile(e.target.files[0])} style={{ fontSize: 11, color: TAUPE, width: '100%' }} />
+                      {formData.portada_url && !portadaFile && <p style={{ fontSize: 10, color: '#2E7D32', marginTop: 12 }}>✓ Mostrando imagen actual guardada</p>}
+                    </div>
                   </div>
 
                 </div>
@@ -350,7 +353,7 @@ const AdminDashboard = () => {
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: 11, letterSpacing: '0.1em', color: INK, marginBottom: 12 }}><Lock size={12} style={{display:'inline', marginRight:6}}/>Contraseña para el Cliente (Opcional)</label>
-                    <input type="text" placeholder="Ej. BODA2026" value={formData.password_cliente} onChange={e => setFormData({...formData, password_cliente: e.target.value})} style={{ width: '100%', padding: 16, background: CREAM, border: 'none', fontSize: 14, outline: 'none', color: INK }} />
+                    <input type="text" placeholder="Ej. BODA2026" value={formData.password_cliente || ''} onChange={e => setFormData({...formData, password_cliente: e.target.value})} style={{ width: '100%', padding: 16, background: CREAM, border: 'none', fontSize: 14, outline: 'none', color: INK }} />
                   </div>
                 </div>
 

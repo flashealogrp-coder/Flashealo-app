@@ -65,20 +65,37 @@ const FlashealoSport = ({ isMobile }) => {
     window.scrollTo(0, 0);
   };
 
-  // FUNCIÓN QUE RECIBE LAS 3 FOTOS DESDE EL MÓDULO DE LA CÁMARA
-const manejarFotosCapturadas = async (fotosBiometricas) => {
+// FUNCIÓN QUE RECIBE LAS 3 FOTOS DESDE EL MÓDULO DE LA CÁMARA
+  const manejarFotosCapturadas = async (fotosBiometricas) => {
     try {
       setModalCamaraAbierto(false); 
       // Opcional: Podrías poner un estado de "setCargandoVector(true)" para mostrar un loader
       
-    const URL_API = "https://api.flashealo.do/vectorizar-selfie/";      
+      const URL_API = "https://api.flashealo.do/vectorizar-selfie/";      
+
+      // 1. Convertimos el Base64 (texto) a un Blob (archivo binario físico)
+      const resBlob = await fetch(fotosBiometricas.frente);
+      const blob = await resBlob.blob();
+      
+      // 2. Empacamos el archivo en un FormData
+      const formData = new FormData();
+      // OJO: El nombre 'file' debe ser el mismo que usaste en FastAPI (ej. file: UploadFile)
+      formData.append('file', blob, 'selfie.jpg'); 
+
+      // 3. Enviamos a Oracle
       const response = await fetch(URL_API, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imagen_base64: fotosBiometricas.frente }) 
+        body: formData, 
+        // 🚨 IMPORTANTE: No se pone ningún "Content-Type" aquí. 
+        // El navegador detecta el FormData y asigna "multipart/form-data" automáticamente.
       });
 
-      if (!response.ok) throw new Error("No pudimos procesar el rostro.");
+      if (!response.ok) {
+         // Si hay error, intentamos leer qué dice FastAPI para depurar
+         const errorInfo = await response.text();
+         console.error("Detalle del error del backend:", errorInfo);
+         throw new Error("No pudimos procesar el rostro.");
+      }
 
       const data = await response.json();
       
@@ -95,7 +112,7 @@ const manejarFotosCapturadas = async (fotosBiometricas) => {
       alert("Error al analizar el rostro. Intenta de nuevo con mejor iluminación.");
     }
   };
-
+  
   const scrollAnim = {
     initial: { opacity: 0, y: 30 },
     whileInView: { opacity: 1, y: 0 },

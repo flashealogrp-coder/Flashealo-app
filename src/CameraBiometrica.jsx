@@ -64,35 +64,36 @@ const CameraBiometrica = ({ isOpen, onClose, onComplete }) => {
   };
 
   // ── LA MAGIA: RECORTE MATEMÁTICO DEL ROSTRO ──
+ // ── LA MAGIA: ENVIAMOS EL MARCO COMPLETO Y DEJAMOS QUE LA IA BUSQUE ──
   const capturarRecorteFacial = (anguloActual) => {
     if (videoRef.current && canvasRef.current) {
       const video = videoRef.current;
       const canvas = canvasRef.current;
       const ctx = canvas.getContext('2d');
 
+      // Tomamos la resolución original del video
       const vWidth = video.videoWidth;
       const vHeight = video.videoHeight;
 
-      // Calculamos un área central (Crop) que representa el 60% del ancho del video
-      const cropSize = Math.min(vWidth, vHeight) * 0.7; // Un cuadrado perfecto en el centro
-      const startX = (vWidth - cropSize) / 2;
-      const startY = (vHeight - cropSize) / 2;
+      // Escalamos la imagen para que no supere los 720px y se envíe rapidísimo
+      const resolucionMaxima = 720;
+      let escala = 1;
+      if (Math.max(vWidth, vHeight) > resolucionMaxima) {
+         escala = resolucionMaxima / Math.max(vWidth, vHeight);
+      }
 
-      canvas.width = cropSize;
-      canvas.height = cropSize;
+      canvas.width = vWidth * escala;
+      canvas.height = vHeight * escala;
 
       // Espejo en el canvas para que la foto se guarde como la ve el usuario
       ctx.translate(canvas.width, 0);
       ctx.scale(-1, 1);
 
-      // Recortamos (Crop) exactamente la parte de la cara y la pintamos
-      ctx.drawImage(
-        video,
-        startX, startY, cropSize, cropSize, // Qué parte del video tomar
-        0, 0, cropSize, cropSize          // Dónde pintarlo en el canvas
-      );
+      // Pintamos EL MARCO COMPLETO (Sin recortes artificiales)
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-      const imagenBase64 = canvas.toDataURL('image/jpeg', 0.9);
+      // Comprimimos ligeramente (0.8) para optimizar la red
+      const imagenBase64 = canvas.toDataURL('image/jpeg', 0.8);
 
       setFotos(prev => {
         const nuevasFotos = { ...prev, [anguloActual]: imagenBase64 };
@@ -104,7 +105,7 @@ const CameraBiometrica = ({ isOpen, onClose, onComplete }) => {
             setPaso('procesando');
             detenerCamara();
           }
-        }, 600); // Pequeña pausa para que vea el flash verde
+        }, 600);
         
         return nuevasFotos;
       });

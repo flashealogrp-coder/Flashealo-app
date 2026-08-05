@@ -46,6 +46,8 @@ const AdminDashboard = () => {
     password_cliente: '' 
   });
 
+ 
+ 
   useEffect(() => { cargarEventos(); }, []);
 
   const cargarEventos = async () => {
@@ -54,6 +56,20 @@ const AdminDashboard = () => {
     if (data) setListaEventos(data);
     setCargando(false);
   };
+
+
+// 🌟 NUEVO: Temporizador para ocultar notificaciones automáticamente
+  useEffect(() => {
+    if (mensaje.texto) {
+      const timer = setTimeout(() => {
+        setMensaje({ tipo: '', texto: '' });
+      }, 4000); // 4000 milisegundos = 4 segundos
+      return () => clearTimeout(timer); // Limpia el temporizador si el componente cambia
+    }
+  }, [mensaje]);
+
+
+
 
   const subirArchivo = async (file, subcarpeta) => {
     const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '');
@@ -160,11 +176,35 @@ const AdminDashboard = () => {
 
       <main style={{ maxWidth: 1200, margin: '0 auto', padding: '64px 48px 120px' }}>
         
-        {mensaje.texto && (
-          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} style={{ padding: '16px 24px', background: WHITE, borderLeft: `3px solid ${mensaje.tipo === 'exito' ? SAND : '#C0392B'}`, marginBottom: 48, fontSize: 13, letterSpacing: '0.04em', color: INK, boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
-            {mensaje.texto}
-          </motion.div>
-        )}
+{/* 🌟 NUEVO: ALERTA FLOTANTE ESTILO TOAST */}
+        <div style={{ position: 'fixed', top: 96, right: 48, zIndex: 100 }}>
+          <AnimatePresence>
+            {mensaje.texto && (
+              <motion.div 
+                initial={{ opacity: 0, x: 50 }} 
+                animate={{ opacity: 1, x: 0 }} 
+                exit={{ opacity: 0, x: 50 }}
+                transition={{ duration: 0.4, ease: "easeOut" }}
+                style={{ 
+                  padding: '16px 24px', 
+                  background: WHITE, 
+                  borderLeft: `3px solid ${mensaje.tipo === 'exito' ? SAND : '#C0392B'}`, 
+                  fontSize: 13, 
+                  letterSpacing: '0.04em', 
+                  color: INK, 
+                  boxShadow: '0 10px 40px rgba(0,0,0,0.08)',
+                  borderRadius: 4,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 12
+                }}
+              >
+                {mensaje.tipo === 'exito' ? <CheckCircle size={16} color={SAND} /> : <AlertTriangle size={16} color="#C0392B" />}
+                {mensaje.texto}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
 
         <AnimatePresence mode="wait">
           {tabActiva === 'lista' && (

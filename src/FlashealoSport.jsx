@@ -66,35 +66,18 @@ const FlashealoSport = ({ isMobile }) => {
   };
 
 // FUNCIÓN QUE RECIBE LAS 3 FOTOS DESDE EL MÓDULO DE LA CÁMARA
+// FUNCIÓN QUE RECIBE LAS 3 FOTOS DESDE EL MÓDULO DE LA CÁMARA
   const manejarFotosCapturadas = async (fotosBiometricas) => {
     try {
       setModalCamaraAbierto(false); 
       
-      // 1. Función a prueba de balas para convertir Base64 a Archivo (Compatible con iOS/Android)
-      const dataURLtoFile = (dataurl, filename) => {
-        let arr = dataurl.split(','),
-            mime = arr[0].match(/:(.*?);/)[1],
-            bstr = atob(arr[1]), 
-            n = bstr.length, 
-            u8arr = new Uint8Array(n);
-        while(n--){
-            u8arr[n] = bstr.charCodeAt(n);
-        }
-        return new File([u8arr], filename, {type:mime});
-      };
-
-      // 2. Convertimos usando la nueva función
-      const archivoFoto = dataURLtoFile(fotosBiometricas.frente, 'selfie.jpg');
-      
-      // 3. Empacamos el archivo
-      const formData = new FormData();
-      formData.append('file', archivoFoto); 
-
-      // 4. Enviamos a Oracle
       const URL_API = "https://api.flashealo.do/vectorizar-selfie/";      
+      
+      // 🚨 VOLVEMOS A TU CÓDIGO ORIGINAL (Enviando JSON con Base64)
       const response = await fetch(URL_API, {
         method: "POST",
-        body: formData, 
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ imagen_base64: fotosBiometricas.frente }) 
       });
 
       if (!response.ok) {
@@ -103,7 +86,7 @@ const FlashealoSport = ({ isMobile }) => {
 
       const data = await response.json();
       
-      // Viajamos a la nueva página
+      // Viajamos a la nueva página llevando la selfie y el vector
       navigate('/mis-resultados', { 
         state: { 
           vector: data.vector, 
@@ -113,7 +96,7 @@ const FlashealoSport = ({ isMobile }) => {
 
     } catch (error) {
       console.error(error);
-      alert("Error al analizar el rostro en el móvil. Revisa tu conexión o iluminación.");
+      alert("Error al analizar el rostro. Revisa tu conexión o iluminación.");
     }
   };
 

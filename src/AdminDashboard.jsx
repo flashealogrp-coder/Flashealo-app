@@ -31,22 +31,27 @@ const getUrlCompleta = (ruta) => {
   return `${DOMINIO_R2}/${ruta}`;
 };
 
-// Arquitectura 100% R2 (Costo Cero)
 const resolverUrlFoto = (foto, altaResolucion = false) => {
   if (!foto) return '';
   
-  // LÓGICA CORE: Si pedimos miniatura y existe, la usamos. Si no, usamos la original como respaldo temporal.
   let ruta = altaResolucion ? foto.url_original : (foto.url_watermark || foto.url_original);
-  
   if (!ruta) return '';
 
-  // Soporte para fotos viejas de Supabase (por si no se migraron todas)
-  if (ruta.includes('/originales/') || ruta.includes('/watermarks/')) {
+  // PARCHE ANTIFALLOS: Si la miniatura apunta al viejo Supabase, 
+  // la ignoramos y forzamos a que muestre la original nueva de R2.
+  if (ruta.includes('/watermarks/')) {
+    ruta = foto.url_original; 
+  }
+
+  // Si de verdad es una original que nunca se migró
+  if (ruta.includes('/originales/')) {
     return `https://muvzhnnsdnztlhynuipd.supabase.co/storage/v1/object/public/fotos/${ruta}`;
   }
 
-  // Entrega nativa y limpia desde Cloudflare R2
-  return `${DOMINIO_R2}/${ruta}`;
+  // Si el dominio no está cargando, evitamos el "undefined"
+  const baseR2 = typeof DOMINIO_R2 !== 'undefined' ? DOMINIO_R2 : 'https://pub-c4c062c3f8754b2d9ff6de40e9d6d713.r2.dev';
+
+  return `${baseR2}/${ruta}`;
 };
 
 export default function AdminDashboard() {

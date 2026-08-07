@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
 import ReviewPanel from './ReviewPanel'; 
-import { Loader2, Plus, Calendar, Settings, Image as ImageIcon, Trash2, Edit3, CheckCircle, ShieldCheck, ArrowRight, Lock, MapPin, Link } from 'lucide-react';
+import { Loader2, Plus, Calendar, Settings, Image as ImageIcon, Trash2, Edit3, CheckCircle, ShieldCheck, ArrowRight, Lock, MapPin, Link, UploadCloud, ChevronDown, ChevronUp, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 /* ─── DESIGN TOKENS ─────────────────────────────────────────────────────────── */
@@ -11,7 +11,7 @@ const INK    = '#1C1C1C';
 const CREAM  = '#F7F5F0';
 const WHITE  = '#FFFFFF';
 
-// 🌟 Función para resolver links de imágenes
+// Función para resolver links de imágenes
 const getUrlCompleta = (ruta) => {
   if (!ruta) return null;
   if (ruta.includes('http')) return ruta;
@@ -31,6 +31,13 @@ const AdminDashboard = () => {
   const [logoFile, setLogoFile] = useState(null);
   const [portadaFile, setPortadaFile] = useState(null);
   
+  // 🌟 NUEVO: Estado para controlar qué sección del acordeón está abierta
+  const [seccionAbierta, setSeccionAbierta] = useState('datos'); // 'datos' | 'fotos'
+
+  // 🌟 NUEVO: Estados para la subida de fotos a Cloudflare R2
+  const [fileParaSubir, setFileParaSubir] = useState(null);
+  const [estadoSubidaR2, setEstadoSubidaR2] = useState('');
+  
   const [formData, setFormData] = useState({
     nombre: '', 
     url_slug: '', 
@@ -46,8 +53,6 @@ const AdminDashboard = () => {
     password_cliente: '' 
   });
 
- 
- 
   useEffect(() => { cargarEventos(); }, []);
 
   const cargarEventos = async () => {
@@ -57,19 +62,15 @@ const AdminDashboard = () => {
     setCargando(false);
   };
 
-
-// 🌟 NUEVO: Temporizador para ocultar notificaciones automáticamente
+  // Temporizador para ocultar notificaciones automáticamente
   useEffect(() => {
     if (mensaje.texto) {
       const timer = setTimeout(() => {
         setMensaje({ tipo: '', texto: '' });
-      }, 4000); // 4000 milisegundos = 4 segundos
-      return () => clearTimeout(timer); // Limpia el temporizador si el componente cambia
+      }, 4000); 
+      return () => clearTimeout(timer); 
     }
   }, [mensaje]);
-
-
-
 
   const subirArchivo = async (file, subcarpeta) => {
     const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '');
@@ -118,6 +119,7 @@ const AdminDashboard = () => {
 
   const iniciarEdicion = (ev) => {
     setEventoEditandoId(ev.id);
+    setSeccionAbierta('datos'); // 🌟 NUEVO: Al editar, abrimos la sección de datos por defecto
     setFormData({
       nombre: ev.nombre || '', 
       url_slug: ev.url_slug || '', 
@@ -141,14 +143,60 @@ const AdminDashboard = () => {
     setEventoEditandoId(null);
     setLogoFile(null);
     setPortadaFile(null);
+    setSeccionAbierta('datos');
     setFormData({ nombre: '', url_slug: '', descripcion: '', fecha_evento: '', ubicacion: '', tipo_reconocimiento: 'hibrido', es_gratis: true, precio_galeria: 0, logo_url: '', portada_url: '', titulo_about: '', password_cliente: '' });
   };
   
+  // 🌟 NUEVO: Lógica directa para subir fotos a Cloudflare R2 (Lo que probamos en TestUpload)
+  const handleSubirFotoR2 = async () => {
+    if (!fileParaSubir) return setMensaje({ tipo: 'error', texto: 'Selecciona una foto primero' });
+    
+    setEstadoSubidaR2('Pidiendo permiso al servidor...');
+    
+    try {
+      // 1. Pedir URL prefirmada al API que creamos en Vercel
+      const resURL = await fetch("/api/upload-url", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fileName: fileParaSubir.name, fileType: fileParaSubir.type }),
+      });
+      
+      const data = await resURL.json();
+      if (!data.url) throw new Error("Fallo al obtener el ticket de Cloudflare");
+
+      setEstadoSubidaR2('Subiendo foto directo a Cloudflare R2...');
+
+      // 2. Subida directa al R2
+      const uploadRes = await fetch(data.url, {
+        method: "PUT",
+        headers: { "Content-Type": fileParaSubir.type },
+        body: fileParaSubir,
+      });
+
+      if (uploadRes.ok) {
+        setEstadoSubidaR2('¡Éxito! Foto subida a la nube.');
+        setMensaje({ tipo: 'exito', texto: 'Foto subida correctamente a Cloudflare R2' });
+        setFileParaSubir(null); // Limpiamos el input
+      } else {
+        throw new Error("Cloudflare rechazó la subida (Revisa el CORS en R2)");
+      }
+    } catch (error) {
+      console.error(error);
+      setEstadoSubidaR2('');
+      setMensaje({ tipo: 'error', texto: error.message });
+    }
+  };
+
+
   if (eventoParaAuditar) {
     return <ReviewPanel key={eventoParaAuditar.id} evento={eventoParaAuditar} onVolver={() => setEventoParaAuditar(null)} />;
   }
 
   const fadeUp = { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { duration: 0.6 } } };
+  const accordionVariant = {
+    hidden: { height: 0, opacity: 0, overflow: 'hidden' },
+    visible: { height: 'auto', opacity: 1, transition: { duration: 0.4, ease: "easeInOut" } }
+  };
 
   return (
     <div style={{ background: CREAM, color: INK, fontFamily: 'system-ui, -apple-system, sans-serif', minHeight: '100vh' }}>
@@ -176,7 +224,7 @@ const AdminDashboard = () => {
 
       <main style={{ maxWidth: 1200, margin: '0 auto', padding: '64px 48px 120px' }}>
         
-{/* 🌟 NUEVO: ALERTA FLOTANTE ESTILO TOAST */}
+        {/* ALERTA FLOTANTE ESTILO TOAST */}
         <div style={{ position: 'fixed', top: 96, right: 48, zIndex: 100 }}>
           <AnimatePresence>
             {mensaje.texto && (
@@ -207,6 +255,8 @@ const AdminDashboard = () => {
         </div>
 
         <AnimatePresence mode="wait">
+          
+          {/* TAB: LISTA DE EVENTOS */}
           {tabActiva === 'lista' && (
             <motion.div key="lista" initial="hidden" animate="visible" exit={{ opacity: 0 }} variants={{ visible: { transition: { staggerChildren: 0.1 } } }}>
               <div style={{ marginBottom: 64 }}>
@@ -262,7 +312,6 @@ const AdminDashboard = () => {
                                   const url = `${window.location.origin}/g/${ev.url_slug || ev.id}`;
                                   navigator.clipboard.writeText(url);
                                   setMensaje({ tipo: 'exito', texto: '¡Enlace copiado al portapapeles!' });
-                                  setTimeout(() => setMensaje({ tipo: '', texto: '' }), 4000);
                                 }} 
                                 style={{ flex: 1, padding: '12px 0', background: CREAM, color: INK, border: 'none', cursor: 'pointer', fontSize: 10, letterSpacing: '0.2em', textTransform: 'uppercase', transition: 'background 0.3s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }} 
                                 onMouseEnter={e => e.target.style.background = '#E8E4DE'} onMouseLeave={e => e.target.style.background = CREAM}
@@ -289,119 +338,193 @@ const AdminDashboard = () => {
             </motion.div>
           )}
 
+          {/* TAB: CREAR / GESTIONAR EVENTO */}
           {tabActiva === 'crear' && (
             <motion.div key="crear" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
               <div style={{ marginBottom: 64 }}>
                 <h1 style={{ fontFamily: 'Georgia, serif', fontSize: 48, fontWeight: 300, color: INK, marginBottom: 16 }}>
-                  {eventoEditandoId ? 'Refinar Colección' : 'Nueva Colección'}
+                  {eventoEditandoId ? `Gestionando: ${formData.nombre}` : 'Nueva Colección'}
                 </h1>
-                <p style={{ color: TAUPE, fontSize: 14, letterSpacing: '0.02em' }}>Define los detalles estéticos y logísticos para el portal del cliente.</p>
+                <p style={{ color: TAUPE, fontSize: 14, letterSpacing: '0.02em' }}>
+                  {eventoEditandoId ? 'Administra los datos y sube las fotografías del evento.' : 'Define los detalles estéticos y logísticos para el portal del cliente.'}
+                </p>
               </div>
 
-              <form onSubmit={guardarEvento} style={{ background: WHITE, padding: 64, boxShadow: '0 20px 60px rgba(0,0,0,0.02)' }}>
+              <div style={{ background: WHITE, boxShadow: '0 20px 60px rgba(0,0,0,0.02)', borderRadius: 4, overflow: 'hidden' }}>
                 
-                {/* IDENTIDAD */}
-                <h3 style={{ fontSize: 10, letterSpacing: '0.3em', textTransform: 'uppercase', color: TAUPE, marginBottom: 32, borderBottom: '1px solid rgba(0,0,0,0.06)', paddingBottom: 16 }}>Identidad Pública</h3>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 40, marginBottom: 64 }}>
-                  <div>
-                    <label style={{ display: 'block', fontSize: 11, letterSpacing: '0.1em', color: INK, marginBottom: 12 }}>Título de la Colección</label>
-                    <input required value={formData.nombre} onChange={e => setFormData({...formData, nombre: e.target.value})} placeholder="Ej. Boda Punta Cana" style={{ width: '100%', padding: '16px 0', background: 'transparent', border: 'none', borderBottom: '1px solid rgba(0,0,0,0.2)', fontSize: 20, fontFamily: 'Georgia, serif', outline: 'none' }} />
+                {/* 🌟 NUEVO: SECCIÓN 1 - DATOS (ACORDEÓN) */}
+                <div 
+                  onClick={() => setSeccionAbierta(seccionAbierta === 'datos' ? '' : 'datos')}
+                  style={{ padding: '24px 64px', background: seccionAbierta === 'datos' ? '#FAFAFA' : WHITE, borderBottom: '1px solid rgba(0,0,0,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', transition: 'background 0.3s' }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                    <Settings size={20} color={TAUPE} />
+                    <h2 style={{ fontFamily: 'Georgia, serif', fontSize: 20, color: INK, margin: 0 }}>Datos de la Colección</h2>
                   </div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: 11, letterSpacing: '0.1em', color: INK, marginBottom: 12 }}>Enlace Personalizado (Slug)</label>
-                    <input required value={formData.url_slug} onChange={e => setFormData({...formData, url_slug: e.target.value.toLowerCase().replace(/ /g, '-')})} placeholder="boda-punta-cana" style={{ width: '100%', padding: '16px 0', background: 'transparent', border: 'none', borderBottom: '1px solid rgba(0,0,0,0.2)', fontSize: 20, fontFamily: 'Georgia, serif', outline: 'none' }} />
-                    <p style={{ fontSize: 10, color: TAUPE, marginTop: 8 }}>Tus clientes entrarán a: <span style={{ color: SAND }}>misitio.com/g/{formData.url_slug || '...'}</span></p>
-                  </div>
+                  {seccionAbierta === 'datos' ? <ChevronUp size={20} color={TAUPE} /> : <ChevronDown size={20} color={TAUPE} />}
                 </div>
 
-                {/* LOGÍSTICA & ABOUT */}
-                <h3 style={{ fontSize: 10, letterSpacing: '0.3em', textTransform: 'uppercase', color: TAUPE, marginBottom: 32, borderBottom: '1px solid rgba(0,0,0,0.06)', paddingBottom: 16 }}>Logística y Narrativa</h3>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 40, marginBottom: 32 }}>
-                  <div>
-                    <label style={{ display: 'block', fontSize: 11, letterSpacing: '0.1em', color: INK, marginBottom: 12 }}><Calendar size={12} style={{display:'inline', marginRight:6}}/>Fecha del Evento</label>
-                    <input type="date" required value={formData.fecha_evento} onChange={e => setFormData({...formData, fecha_evento: e.target.value})} style={{ width: '100%', padding: 16, background: CREAM, border: 'none', fontSize: 14, outline: 'none', color: INK }} />
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: 11, letterSpacing: '0.1em', color: INK, marginBottom: 12 }}><MapPin size={12} style={{display:'inline', marginRight:6}}/>Locación</label>
-                    <input value={formData.ubicacion} onChange={e => setFormData({...formData, ubicacion: e.target.value})} placeholder="Ej. Casa de Campo" style={{ width: '100%', padding: 16, background: CREAM, border: 'none', fontSize: 14, outline: 'none', color: INK }} />
-                  </div>
-                </div>
-                
-                <div style={{ marginBottom: 32 }}>
-                  <label style={{ display: 'block', fontSize: 11, letterSpacing: '0.1em', color: INK, marginBottom: 12 }}>Título Editorial (About)</label>
-                  <input value={formData.titulo_about || ''} onChange={e => setFormData({...formData, titulo_about: e.target.value})} placeholder='Ej. "Capturando la esencia de cada instante."' style={{ width: '100%', padding: 16, background: CREAM, border: 'none', fontSize: 16, fontFamily: 'Georgia, serif', outline: 'none', color: INK }} />
-                </div>
-                <div style={{ marginBottom: 64 }}>
-                  <label style={{ display: 'block', fontSize: 11, letterSpacing: '0.1em', color: INK, marginBottom: 12 }}>Descripción Editorial</label>
-                  <textarea rows="5" value={formData.descripcion || ''} onChange={e => setFormData({...formData, descripcion: e.target.value})} placeholder="Historia del evento..." style={{ width: '100%', padding: 16, background: CREAM, border: 'none', fontSize: 14, outline: 'none', color: INK, resize: 'none' }} />
-                </div>
-
-                {/* IMÁGENES CON VISUALIZACIÓN OPTIMIZADA */}
-                <h3 style={{ fontSize: 10, letterSpacing: '0.3em', textTransform: 'uppercase', color: TAUPE, marginBottom: 32, borderBottom: '1px solid rgba(0,0,0,0.06)', paddingBottom: 16 }}>Dirección de Arte</h3>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginBottom: 48 }}>
-                  
-                  {/* LOGO */}
-                  <div style={{ padding: 24, border: '1px dashed rgba(0,0,0,0.1)', textAlign: 'center', background: '#FAFAFA', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                    <div>
-                      {formData.logo_url && !logoFile ? (
-                        <img src={getUrlCompleta(formData.logo_url)} alt="Logo actual" style={{ width: '100%', height: 180, objectFit: 'cover', margin: '0 auto 16px', borderRadius: 4, border: '1px solid rgba(0,0,0,0.05)', background: WHITE }} />
-                      ) : (
-                        <div style={{ height: 180, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16, border: '1px solid rgba(0,0,0,0.05)', background: WHITE, borderRadius: 4 }}>
-                          <ImageIcon size={32} style={{ color: TAUPE }} />
+                <AnimatePresence>
+                  {seccionAbierta === 'datos' && (
+                    <motion.div variants={accordionVariant} initial="hidden" animate="visible" exit="hidden">
+                      <form onSubmit={guardarEvento} style={{ padding: 64, paddingTop: 32 }}>
+                        
+                        {/* IDENTIDAD */}
+                        <h3 style={{ fontSize: 10, letterSpacing: '0.3em', textTransform: 'uppercase', color: TAUPE, marginBottom: 32, borderBottom: '1px solid rgba(0,0,0,0.06)', paddingBottom: 16 }}>Identidad Pública</h3>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 40, marginBottom: 64 }}>
+                          <div>
+                            <label style={{ display: 'block', fontSize: 11, letterSpacing: '0.1em', color: INK, marginBottom: 12 }}>Título de la Colección</label>
+                            <input required value={formData.nombre} onChange={e => setFormData({...formData, nombre: e.target.value})} placeholder="Ej. Boda Punta Cana" style={{ width: '100%', padding: '16px 0', background: 'transparent', border: 'none', borderBottom: '1px solid rgba(0,0,0,0.2)', fontSize: 20, fontFamily: 'Georgia, serif', outline: 'none' }} />
+                          </div>
+                          <div>
+                            <label style={{ display: 'block', fontSize: 11, letterSpacing: '0.1em', color: INK, marginBottom: 12 }}>Enlace Personalizado (Slug)</label>
+                            <input required value={formData.url_slug} onChange={e => setFormData({...formData, url_slug: e.target.value.toLowerCase().replace(/ /g, '-')})} placeholder="boda-punta-cana" style={{ width: '100%', padding: '16px 0', background: 'transparent', border: 'none', borderBottom: '1px solid rgba(0,0,0,0.2)', fontSize: 20, fontFamily: 'Georgia, serif', outline: 'none' }} />
+                            <p style={{ fontSize: 10, color: TAUPE, marginTop: 8 }}>Tus clientes entrarán a: <span style={{ color: SAND }}>misitio.com/g/{formData.url_slug || '...'}</span></p>
+                          </div>
                         </div>
-                      )}
-                      
-                      <label style={{ display: 'block', fontSize: 11, letterSpacing: '0.1em', color: INK, marginBottom: 16, textTransform: 'uppercase', fontWeight: 600 }}>Logo Cuadrado</label>
-                    </div>
-                    <div>
-                      <input type="file" accept="image/*" onChange={e => setLogoFile(e.target.files[0])} style={{ fontSize: 11, color: TAUPE, width: '100%' }} />
-                      {formData.logo_url && !logoFile && <p style={{ fontSize: 10, color: '#2E7D32', marginTop: 12 }}>✓ Mostrando imagen actual guardada</p>}
-                    </div>
-                  </div>
 
-                  {/* PORTADA */}
-                  <div style={{ padding: 24, border: '1px dashed rgba(0,0,0,0.1)', textAlign: 'center', background: '#FAFAFA', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                    <div>
-                      {formData.portada_url && !portadaFile ? (
-                        <img src={getUrlCompleta(formData.portada_url)} alt="Portada actual" style={{ width: '100%', height: 180, objectFit: 'cover', margin: '0 auto 16px', borderRadius: 4, border: '1px solid rgba(0,0,0,0.05)' }} />
-                      ) : (
-                        <div style={{ height: 180, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16, border: '1px solid rgba(0,0,0,0.05)', background: WHITE, borderRadius: 4 }}>
-                          <ImageIcon size={32} style={{ color: TAUPE }} />
+                        {/* LOGÍSTICA & ABOUT */}
+                        <h3 style={{ fontSize: 10, letterSpacing: '0.3em', textTransform: 'uppercase', color: TAUPE, marginBottom: 32, borderBottom: '1px solid rgba(0,0,0,0.06)', paddingBottom: 16 }}>Logística y Narrativa</h3>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 40, marginBottom: 32 }}>
+                          <div>
+                            <label style={{ display: 'block', fontSize: 11, letterSpacing: '0.1em', color: INK, marginBottom: 12 }}><Calendar size={12} style={{display:'inline', marginRight:6}}/>Fecha del Evento</label>
+                            <input type="date" required value={formData.fecha_evento} onChange={e => setFormData({...formData, fecha_evento: e.target.value})} style={{ width: '100%', padding: 16, background: CREAM, border: 'none', fontSize: 14, outline: 'none', color: INK }} />
+                          </div>
+                          <div>
+                            <label style={{ display: 'block', fontSize: 11, letterSpacing: '0.1em', color: INK, marginBottom: 12 }}><MapPin size={12} style={{display:'inline', marginRight:6}}/>Locación</label>
+                            <input value={formData.ubicacion} onChange={e => setFormData({...formData, ubicacion: e.target.value})} placeholder="Ej. Casa de Campo" style={{ width: '100%', padding: 16, background: CREAM, border: 'none', fontSize: 14, outline: 'none', color: INK }} />
+                          </div>
                         </div>
+                        
+                        <div style={{ marginBottom: 32 }}>
+                          <label style={{ display: 'block', fontSize: 11, letterSpacing: '0.1em', color: INK, marginBottom: 12 }}>Título Editorial (About)</label>
+                          <input value={formData.titulo_about || ''} onChange={e => setFormData({...formData, titulo_about: e.target.value})} placeholder='Ej. "Capturando la esencia de cada instante."' style={{ width: '100%', padding: 16, background: CREAM, border: 'none', fontSize: 16, fontFamily: 'Georgia, serif', outline: 'none', color: INK }} />
+                        </div>
+                        <div style={{ marginBottom: 64 }}>
+                          <label style={{ display: 'block', fontSize: 11, letterSpacing: '0.1em', color: INK, marginBottom: 12 }}>Descripción Editorial</label>
+                          <textarea rows="5" value={formData.descripcion || ''} onChange={e => setFormData({...formData, descripcion: e.target.value})} placeholder="Historia del evento..." style={{ width: '100%', padding: 16, background: CREAM, border: 'none', fontSize: 14, outline: 'none', color: INK, resize: 'none' }} />
+                        </div>
+
+                        {/* IMÁGENES CON VISUALIZACIÓN OPTIMIZADA */}
+                        <h3 style={{ fontSize: 10, letterSpacing: '0.3em', textTransform: 'uppercase', color: TAUPE, marginBottom: 32, borderBottom: '1px solid rgba(0,0,0,0.06)', paddingBottom: 16 }}>Dirección de Arte</h3>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginBottom: 48 }}>
+                          {/* LOGO */}
+                          <div style={{ padding: 24, border: '1px dashed rgba(0,0,0,0.1)', textAlign: 'center', background: '#FAFAFA', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                            <div>
+                              {formData.logo_url && !logoFile ? (
+                                <img src={getUrlCompleta(formData.logo_url)} alt="Logo actual" style={{ width: '100%', height: 180, objectFit: 'cover', margin: '0 auto 16px', borderRadius: 4, border: '1px solid rgba(0,0,0,0.05)', background: WHITE }} />
+                              ) : (
+                                <div style={{ height: 180, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16, border: '1px solid rgba(0,0,0,0.05)', background: WHITE, borderRadius: 4 }}>
+                                  <ImageIcon size={32} style={{ color: TAUPE }} />
+                                </div>
+                              )}
+                              <label style={{ display: 'block', fontSize: 11, letterSpacing: '0.1em', color: INK, marginBottom: 16, textTransform: 'uppercase', fontWeight: 600 }}>Logo Cuadrado</label>
+                            </div>
+                            <div>
+                              <input type="file" accept="image/*" onChange={e => setLogoFile(e.target.files[0])} style={{ fontSize: 11, color: TAUPE, width: '100%' }} />
+                            </div>
+                          </div>
+
+                          {/* PORTADA */}
+                          <div style={{ padding: 24, border: '1px dashed rgba(0,0,0,0.1)', textAlign: 'center', background: '#FAFAFA', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                            <div>
+                              {formData.portada_url && !portadaFile ? (
+                                <img src={getUrlCompleta(formData.portada_url)} alt="Portada actual" style={{ width: '100%', height: 180, objectFit: 'cover', margin: '0 auto 16px', borderRadius: 4, border: '1px solid rgba(0,0,0,0.05)' }} />
+                              ) : (
+                                <div style={{ height: 180, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16, border: '1px solid rgba(0,0,0,0.05)', background: WHITE, borderRadius: 4 }}>
+                                  <ImageIcon size={32} style={{ color: TAUPE }} />
+                                </div>
+                              )}
+                              <label style={{ display: 'block', fontSize: 11, letterSpacing: '0.1em', color: INK, marginBottom: 16, textTransform: 'uppercase', fontWeight: 600 }}>Portada Cinematográfica</label>
+                            </div>
+                            <div>
+                              <input type="file" accept="image/*" onChange={e => setPortadaFile(e.target.files[0])} style={{ fontSize: 11, color: TAUPE, width: '100%' }} />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* MOTORES Y SEGURIDAD */}
+                        <h3 style={{ fontSize: 10, letterSpacing: '0.3em', textTransform: 'uppercase', color: TAUPE, marginBottom: 32, borderBottom: '1px solid rgba(0,0,0,0.06)', paddingBottom: 16 }}>Configuración de Software</h3>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 40, marginBottom: 64 }}>
+                          <div>
+                            <label style={{ display: 'block', fontSize: 11, letterSpacing: '0.1em', color: INK, marginBottom: 12 }}><Settings size={12} style={{display:'inline', marginRight:6}}/>Motor de Inteligencia Artificial</label>
+                            <select value={formData.tipo_reconocimiento} onChange={e => setFormData({...formData, tipo_reconocimiento: e.target.value})} style={{ width: '100%', padding: 16, background: CREAM, border: 'none', fontSize: 14, outline: 'none', color: INK, cursor: 'pointer' }}>
+                              <option value="hibrido">Híbrido (Recomendado)</option>
+                              <option value="facial">Facial Puro (Eventos Sociales)</option>
+                              <option value="ocr">Lectura OCR (Dorsales)</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label style={{ display: 'block', fontSize: 11, letterSpacing: '0.1em', color: INK, marginBottom: 12 }}><Lock size={12} style={{display:'inline', marginRight:6}}/>Contraseña para el Cliente (Opcional)</label>
+                            <input type="text" placeholder="Ej. BODA2026" value={formData.password_cliente || ''} onChange={e => setFormData({...formData, password_cliente: e.target.value})} style={{ width: '100%', padding: 16, background: CREAM, border: 'none', fontSize: 14, outline: 'none', color: INK }} />
+                          </div>
+                        </div>
+
+                        {/* ACCIÓN */}
+                        <button disabled={cargando} style={{ width: '100%', padding: 24, background: INK, color: WHITE, border: 'none', cursor: 'pointer', fontSize: 11, letterSpacing: '0.3em', textTransform: 'uppercase', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, transition: 'background 0.3s' }} onMouseEnter={e => e.target.style.background = '#333'} onMouseLeave={e => e.target.style.background = INK}>
+                          {cargando ? <><Loader2 size={16} className="animate-spin"/> Guardando Colección...</> : <><CheckCircle size={16}/> {eventoEditandoId ? 'Actualizar Datos' : 'Crear Colección'}</>}
+                        </button>
+                      </form>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* 🌟 NUEVO: SECCIÓN 2 - SUBIDA DE FOTOS (ACORDEÓN - SOLO VISIBLE AL EDITAR) */}
+                {eventoEditandoId && (
+                  <>
+                    <div 
+                      onClick={() => setSeccionAbierta(seccionAbierta === 'fotos' ? '' : 'fotos')}
+                      style={{ padding: '24px 64px', background: seccionAbierta === 'fotos' ? '#FAFAFA' : WHITE, borderBottom: '1px solid rgba(0,0,0,0.06)', borderTop: '1px solid rgba(0,0,0,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', transition: 'background 0.3s' }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                        <UploadCloud size={20} color={seccionAbierta === 'fotos' ? INK : TAUPE} />
+                        <h2 style={{ fontFamily: 'Georgia, serif', fontSize: 20, color: seccionAbierta === 'fotos' ? INK : TAUPE, margin: 0 }}>Centro de Carga de Fotografías</h2>
+                      </div>
+                      {seccionAbierta === 'fotos' ? <ChevronUp size={20} color={INK} /> : <ChevronDown size={20} color={TAUPE} />}
+                    </div>
+
+                    <AnimatePresence>
+                      {seccionAbierta === 'fotos' && (
+                        <motion.div variants={accordionVariant} initial="hidden" animate="visible" exit="hidden">
+                          <div style={{ padding: 64, background: '#FAFAFA' }}>
+                            <div style={{ maxWidth: 600, margin: '0 auto', background: WHITE, padding: 40, border: '2px dashed rgba(0,0,0,0.1)', borderRadius: 8, textAlign: 'center' }}>
+                              
+                              <UploadCloud size={48} color={SAND} style={{ margin: '0 auto 24px' }} />
+                              <h3 style={{ fontFamily: 'Georgia, serif', fontSize: 24, color: INK, marginBottom: 8 }}>Sube fotos directo a Cloudflare R2</h3>
+                              <p style={{ fontSize: 13, color: TAUPE, marginBottom: 32 }}>Sin pasar por el servidor. Transferencia 100% gratuita.</p>
+                              
+                              <input 
+                                type="file" 
+                                accept="image/*" 
+                                onChange={(e) => setFileParaSubir(e.target.files[0])}
+                                style={{ display: 'block', margin: '0 auto 24px', color: TAUPE, fontSize: 12 }} 
+                              />
+                              
+                              <button 
+                                onClick={handleSubirFotoR2} 
+                                style={{ background: SAND, color: WHITE, padding: '12px 32px', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 11, letterSpacing: '0.2em', textTransform: 'uppercase', fontWeight: 600, transition: 'background 0.3s' }}
+                                onMouseEnter={e => e.target.style.background = '#b8a889'} 
+                                onMouseLeave={e => e.target.style.background = SAND}
+                              >
+                                {estadoSubidaR2.includes('Pidiendo') || estadoSubidaR2.includes('Subiendo') ? (
+                                  <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Loader2 size={14} className="animate-spin" /> Procesando...</span>
+                                ) : 'Iniciar Subida a R2'}
+                              </button>
+                              
+                              {estadoSubidaR2 && (
+                                <p style={{ marginTop: 24, fontSize: 12, fontWeight: 600, color: estadoSubidaR2.includes('Error') ? '#C0392B' : INK }}>
+                                  Estado: {estadoSubidaR2}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </motion.div>
                       )}
+                    </AnimatePresence>
+                  </>
+                )}
 
-                      <label style={{ display: 'block', fontSize: 11, letterSpacing: '0.1em', color: INK, marginBottom: 16, textTransform: 'uppercase', fontWeight: 600 }}>Portada Cinematográfica</label>
-                    </div>
-                    <div>
-                      <input type="file" accept="image/*" onChange={e => setPortadaFile(e.target.files[0])} style={{ fontSize: 11, color: TAUPE, width: '100%' }} />
-                      {formData.portada_url && !portadaFile && <p style={{ fontSize: 10, color: '#2E7D32', marginTop: 12 }}>✓ Mostrando imagen actual guardada</p>}
-                    </div>
-                  </div>
-
-                </div>
-
-                {/* MOTORES Y SEGURIDAD */}
-                <h3 style={{ fontSize: 10, letterSpacing: '0.3em', textTransform: 'uppercase', color: TAUPE, marginBottom: 32, borderBottom: '1px solid rgba(0,0,0,0.06)', paddingBottom: 16 }}>Configuración de Software</h3>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 40, marginBottom: 64 }}>
-                  <div>
-                    <label style={{ display: 'block', fontSize: 11, letterSpacing: '0.1em', color: INK, marginBottom: 12 }}><Settings size={12} style={{display:'inline', marginRight:6}}/>Motor de Inteligencia Artificial</label>
-                    <select value={formData.tipo_reconocimiento} onChange={e => setFormData({...formData, tipo_reconocimiento: e.target.value})} style={{ width: '100%', padding: 16, background: CREAM, border: 'none', fontSize: 14, outline: 'none', color: INK, cursor: 'pointer' }}>
-                      <option value="hibrido">Híbrido (Recomendado)</option>
-                      <option value="facial">Facial Puro (Eventos Sociales)</option>
-                      <option value="ocr">Lectura OCR (Dorsales)</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: 11, letterSpacing: '0.1em', color: INK, marginBottom: 12 }}><Lock size={12} style={{display:'inline', marginRight:6}}/>Contraseña para el Cliente (Opcional)</label>
-                    <input type="text" placeholder="Ej. BODA2026" value={formData.password_cliente || ''} onChange={e => setFormData({...formData, password_cliente: e.target.value})} style={{ width: '100%', padding: 16, background: CREAM, border: 'none', fontSize: 14, outline: 'none', color: INK }} />
-                  </div>
-                </div>
-
-                {/* ACCIÓN */}
-                <button disabled={cargando} style={{ width: '100%', padding: 24, background: INK, color: WHITE, border: 'none', cursor: 'pointer', fontSize: 11, letterSpacing: '0.3em', textTransform: 'uppercase', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, transition: 'background 0.3s' }} onMouseEnter={e => e.target.style.background = '#333'} onMouseLeave={e => e.target.style.background = INK}>
-                  {cargando ? <><Loader2 size={16} className="animate-spin"/> Guardando Colección...</> : <><CheckCircle size={16}/> {eventoEditandoId ? 'Actualizar Colección' : 'Lanzar Colección'}</>}
-                </button>
-              </form>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>

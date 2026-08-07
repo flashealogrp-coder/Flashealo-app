@@ -16,27 +16,36 @@ const CREAM  = '#FDFCF8';
 const WHITE  = '#FFFFFF';
 const BORDER = 'rgba(0,0,0,0.06)';
 
-// El dominio público de R2 viene de tu archivo .env
 const DOMINIO_R2 = import.meta.env.VITE_DOMINIO_R2; 
 
-// Resuelve URLs generales (como portadas y logos de Supabase)
+// Resuelve URLs para Portadas
 const getUrlCompleta = (ruta) => {
   if (!ruta) return null;
   if (ruta.includes('http')) return ruta;
-  return `https://muvzhnnsdnztlhynuipd.supabase.co/storage/v1/object/public/fotos/${ruta}`;
+  
+  // Si la portada quedó en Supabase por legado
+  if (ruta.includes('/portadas/') || ruta.includes('/logos/')) {
+    return `https://muvzhnnsdnztlhynuipd.supabase.co/storage/v1/object/public/assets/${ruta}`;
+  }
+  
+  return `${DOMINIO_R2}/${ruta}`;
 };
 
-// NUEVA FUNCIÓN: Identifica inteligentemente dónde está alojada la foto
-const resolverUrlFoto = (ruta) => {
-  if (!ruta) return '';
-  if (ruta.includes('http')) return ruta; 
+// Arquitectura 100% R2 (Costo Cero)
+const resolverUrlFoto = (foto, altaResolucion = false) => {
+  if (!foto) return '';
   
-  // Como vimos en el diagnóstico, tus fotos viejas tienen la palabra "originales" o "watermarks"
+  // LÓGICA CORE: Si pedimos miniatura y existe, la usamos. Si no, usamos la original como respaldo temporal.
+  let ruta = altaResolucion ? foto.url_original : (foto.url_watermark || foto.url_original);
+  
+  if (!ruta) return '';
+
+  // Soporte para fotos viejas de Supabase (por si no se migraron todas)
   if (ruta.includes('/originales/') || ruta.includes('/watermarks/')) {
     return `https://muvzhnnsdnztlhynuipd.supabase.co/storage/v1/object/public/fotos/${ruta}`;
   }
-  
-  // Las fotos nuevas que subas desde el panel no tendrán esa palabra, irán directo a R2
+
+  // Entrega nativa y limpia desde Cloudflare R2
   return `${DOMINIO_R2}/${ruta}`;
 };
 
@@ -50,11 +59,9 @@ export default function AdminDashboard() {
   const [cargando, setCargando] = useState(false);
   const [mensaje, setMensaje] = useState({ tipo: '', texto: '' });
   
-  // Estados de Edición de Eventos
   const [eventoEditandoId, setEventoEditandoId] = useState(null);
   const [formData, setFormData] = useState({ nombre: '', url_slug: '', tipo_reconocimiento: 'hibrido', password_cliente: '' });
 
-  // Estados del Dashboard del Evento
   const [eventoActivo, setEventoActivo] = useState(null);
   const [carpetas, setCarpetas] = useState([]);
   const [carpetaActiva, setCarpetaActiva] = useState(null);
@@ -63,7 +70,6 @@ export default function AdminDashboard() {
   const [lightboxIndex, setLightboxIndex] = useState(null);
   const [mostrarModalMover, setMostrarModalMover] = useState(false);
 
-  // Estados del Uploader Masivo
   const [mostrarUploader, setMostrarUploader] = useState(false);
   const [archivosUploader, setArchivosUploader] = useState([]);
   const [estadoSubida, setEstadoSubida] = useState({ activa: false, progreso: 0, total: 0 });
@@ -90,7 +96,6 @@ export default function AdminDashboard() {
     setFotosSeleccionadas([]);
     setVista('dashboard');
     
-    // 1. Cargar carpetas del evento
     let { data: carpetasData } = await supabase.from('carpetas_evento').select('*').eq('evento_id', ev.id).order('created_at', { ascending: true });
     
     if (!carpetasData || carpetasData.length === 0) {
@@ -101,7 +106,6 @@ export default function AdminDashboard() {
     setCarpetas(carpetasData);
     setCarpetaActiva(carpetasData[0]);
 
-    // 2. Cargar fotografías
     const { data: fotosData } = await supabase.from('fotografias').select('*').eq('evento_id', ev.id);
     if (fotosData) setFotosEvento(fotosData);
   };
@@ -116,7 +120,6 @@ export default function AdminDashboard() {
     }
   };
 
-  // ─── LÓGICA DEL SUBIDOR MASIVO (R2 + Supabase) ───
   const manejarSeleccionArchivos = (e) => {
     const files = Array.from(e.target.files);
     setArchivosUploader(prev => [...prev, ...files]);
@@ -149,7 +152,6 @@ export default function AdminDashboard() {
         });
 
         if (uploadRes.ok) {
-          // Registramos url_original tal como espera tu DB
           await supabase.from('fotografias').insert([{
             evento_id: eventoActivo.id,
             carpeta_id: carpetaActiva.id,
@@ -172,7 +174,6 @@ export default function AdminDashboard() {
     setMensaje({ tipo: 'exito', texto: `${subidasExitosas} fotografías procesadas.` });
   };
 
-  // ─── ACCIONES INTERACTIVAS DE FOTOS ───
   const toggleFotoSeleccion = (fotoId, e) => {
     e.stopPropagation();
     setFotosSeleccionadas(prev => prev.includes(fotoId) ? prev.filter(id => id !== fotoId) : [...prev, fotoId]);
@@ -221,7 +222,6 @@ export default function AdminDashboard() {
   return (
     <div style={{ display: 'flex', height: '100vh', background: CREAM, color: INK, fontFamily: 'system-ui, sans-serif', overflow: 'hidden' }}>
       
-      {/* ─── SIDEBAR ─── */}
       <aside style={{ width: sidebarOpen ? 240 : 64, background: WHITE, borderRight: `1px solid ${BORDER}`, display: 'flex', flexDirection: 'column', zIndex: 50, flexShrink: 0, transition: 'width 0.25s ease' }}>
         <div style={{ padding: sidebarOpen ? '0 16px 0 20px' : '0', height: 64, display: 'flex', alignItems: 'center', justifyContent: sidebarOpen ? 'space-between' : 'center', borderBottom: `1px solid ${BORDER}`, overflow: 'hidden' }}>
           {sidebarOpen ? (
@@ -243,7 +243,6 @@ export default function AdminDashboard() {
         </nav>
       </aside>
 
-      {/* ─── ÁREA PRINCIPAL ─── */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden' }}>
         <header style={{ height: vista === 'dashboard' ? 48 : 64, flexShrink: 0, background: WHITE, borderBottom: `1px solid ${BORDER}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 24px', zIndex: 40, transition: 'height 0.3s ease' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -255,7 +254,6 @@ export default function AdminDashboard() {
           </div>
         </header>
 
-        {/* ALERTA TOAST */}
         <AnimatePresence>
           {mensaje.texto && (
             <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} style={{ position: 'absolute', top: 16, right: 24, zIndex: 100, padding: '12px 20px', background: INK, fontSize: 12, color: WHITE, boxShadow: '0 10px 40px rgba(0,0,0,0.1)', borderRadius: 6, display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -266,7 +264,6 @@ export default function AdminDashboard() {
 
         <main style={{ flex: 1, overflowY: 'auto' }}>
           
-          {/* VISTA 1: GRILLA */}
           {vista === 'grid' && (
             <div style={{ maxWidth: 1200, margin: '0 auto', padding: '28px 32px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
@@ -290,7 +287,6 @@ export default function AdminDashboard() {
                     return (
                       <div key={ev.id} onClick={() => entrarAlEvento(ev)} style={{ background: WHITE, borderRadius: 6, overflow: 'hidden', cursor: 'pointer', border: `1px solid ${BORDER}`, display: 'flex', flexDirection: 'column' }}>
                         <div style={{ height: 160, position: 'relative', background: '#E8E4DE' }}>
-                          {/* CORRECCIÓN 1: Portadas de Grilla */}
                           <img src={getUrlCompleta(ev.portada_url) || "https://images.unsplash.com/photo-1541534741688?w=800"} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                           <div style={{ position: 'absolute', top: 10, right: 10, background: esPrivado ? 'rgba(28,28,28,0.85)' : 'rgba(255,255,255,0.92)', color: esPrivado ? WHITE : INK, padding: '3px 8px', borderRadius: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
                             {esPrivado ? <Lock size={10} color={SAND} /> : <Unlock size={10} color={TAUPE} />}
@@ -308,12 +304,10 @@ export default function AdminDashboard() {
             </div>
           )}
 
-          {/* VISTA 3: DASHBOARD DEL EVENTO */}
           {vista === 'dashboard' && eventoActivo && (
             <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
               
               <div style={{ height: 180, position: 'relative', background: INK, display: 'flex', alignItems: 'flex-end', padding: '0 32px 24px', flexShrink: 0 }}>
-                {/* CORRECCIÓN 2: Portada del evento grande */}
                 <img src={getUrlCompleta(eventoActivo.portada_url) || "https://images.unsplash.com/photo-1541534741688?w=1200"} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.4 }} />
                 <div style={{ position: 'relative', zIndex: 10, width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
                   <div>
@@ -328,7 +322,6 @@ export default function AdminDashboard() {
               </div>
 
               <div style={{ display: 'flex', flex: 1, minHeight: 450 }}>
-                {/* COLUMNA CARPETAS */}
                 <div style={{ width: 220, background: WHITE, borderRight: `1px solid ${BORDER}`, padding: '20px 0', flexShrink: 0 }}>
                   <div style={{ padding: '0 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                     <span style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: TAUPE }}>Carpetas</span>
@@ -346,7 +339,6 @@ export default function AdminDashboard() {
                   })}
                 </div>
 
-                {/* COLUMNA FOTOS Y SUBIDOR MASIVO */}
                 <div style={{ flex: 1, padding: 28, background: '#FAFAFA', position: 'relative' }}>
                   
                   <AnimatePresence>
@@ -423,8 +415,9 @@ export default function AdminDashboard() {
                             const isSelected = fotosSeleccionadas.includes(foto.id);
                             return (
                               <div key={foto.id} className="group" style={{ aspectRatio: '1', position: 'relative', borderRadius: 4, overflow: 'hidden', border: isSelected ? `3px solid ${SAND}` : '3px solid transparent', background: '#E8E4DE' }}>
-                                {/* CORRECCIÓN 3: Fotos de la grilla (Viejas o nuevas) */}
-                                <img src={resolverUrlFoto(foto.url_original)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                
+                                {/* 🌟 GRILLA: Le pedimos la versión miniatura (si existe) o la grande temporal */}
+                                <img src={resolverUrlFoto(foto, false)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                 
                                 <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => setLightboxIndex(index)} style={{ cursor: 'zoom-in' }}>
                                   <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', color: WHITE }}><Maximize2 size={22} /></div>
@@ -459,7 +452,6 @@ export default function AdminDashboard() {
                   <span style={{ fontSize: 12, letterSpacing: '0.1em' }}>{lightboxIndex + 1} / {fotosActuales.length}</span>
                   <div style={{ display: 'flex', gap: 24, alignItems: 'center' }}>
                     <button onClick={() => toggleFavorito(fotosActuales[lightboxIndex].id)} style={{ background: 'none', border: 'none', color: WHITE, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}><Heart size={15} fill={fotosActuales[lightboxIndex].es_favorita ? '#E74C3C' : 'none'} color={fotosActuales[lightboxIndex].es_favorita ? '#E74C3C' : WHITE}/> Favorita</button>
-                    {/* CORRECCIÓN 4: Pasar el path crudo a la función hacerPortada */}
                     <button onClick={() => hacerPortada(fotosActuales[lightboxIndex].url_original)} style={{ background: 'none', border: 'none', color: WHITE, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}><ImageIcon size={15} /> Usar como Portada</button>
                     <button onClick={() => borrarFotos([fotosActuales[lightboxIndex].id])} style={{ background: 'none', border: 'none', color: '#E74C3C', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}><Trash2 size={15} /> Borrar</button>
                     <button onClick={() => setLightboxIndex(null)} style={{ background: 'none', border: 'none', color: WHITE, cursor: 'pointer' }}><X size={22} /></button>
@@ -468,8 +460,8 @@ export default function AdminDashboard() {
                 <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 24px' }}>
                   <button onClick={() => setLightboxIndex(prev => (prev === 0 ? fotosActuales.length - 1 : prev - 1))} style={{ background: 'none', border: 'none', color: WHITE, cursor: 'pointer', padding: 20 }}><ChevronLeft size={36} strokeWidth={1} /></button>
                   <div style={{ flex: 1, height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 12 }}>
-                    {/* CORRECCIÓN 5: Imagen del Lightbox resuelta */}
-                    <img src={resolverUrlFoto(fotosActuales[lightboxIndex]?.url_original)} alt="" style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain' }} />
+                    {/* 🌟 VISOR AMPLIADO: Le pedimos la versión en alta resolución pasando 'true' */}
+                    <img src={resolverUrlFoto(fotosActuales[lightboxIndex], true)} alt="" style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain' }} />
                   </div>
                   <button onClick={() => setLightboxIndex(prev => (prev === fotosActuales.length - 1 ? 0 : prev + 1))} style={{ background: 'none', border: 'none', color: WHITE, cursor: 'pointer', padding: 20 }}><ChevronRightIcon size={36} strokeWidth={1} /></button>
                 </div>

@@ -180,7 +180,7 @@ export default function AdminDashboard() {
     
     try {
       // Este es el enlace que Modal nos dará cuando creemos la cuenta y subamos el código.
-      const res = await fetch("TU_URL_DE_MODAL_AQUI", {
+      const res = await fetch("https://flashealogrp-coder--flashealo-sport-ia-procesar-fotografias.modal.run", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ evento_id: eventoActivo.id })

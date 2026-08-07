@@ -15,8 +15,23 @@ const INK    = '#1C1C1C';
 const CREAM  = '#FDFCF8'; 
 const WHITE  = '#FFFFFF';
 const BORDER = 'rgba(0,0,0,0.06)';
-// Asegúrate de cambiar esto por el dominio real que conectaste a tu R2 en Cloudflare
-const DOMINIO_R2 = import.meta.env.VITE_R2_DOMINIO;
+
+// El dominio público de R2 viene de tu archivo .env
+const DOMINIO_R2 = import.meta.env.VITE_DOMINIO_R2; 
+
+// Resuelve URLs generales (como portadas y logos de Supabase)
+const getUrlCompleta = (ruta) => {
+  if (!ruta) return null;
+  if (ruta.includes('http')) return ruta;
+  return `https://muvzhnnsdnztlhynuipd.supabase.co/storage/v1/object/public/fotos/${ruta}`;
+};
+
+// 🌟 NUEVA FUNCIÓN: Resuelve fotos mezcladas (Viejas de Supabase vs Nuevas de R2)
+const resolverUrlFoto = (ruta) => {
+  if (!ruta) return '';
+  if (ruta.includes('http')) return ruta; // Si ya tiene HTTP, es de Supabase. La mostramos tal cual.
+  return `${DOMINIO_R2}/${ruta}`; // Si no, es una ruta limpia de Cloudflare R2
+};
 
 export default function AdminDashboard() {
   const [sidebarTab, setSidebarTab] = useState('colecciones'); 
@@ -63,7 +78,6 @@ export default function AdminDashboard() {
     setCargando(false);
   };
 
-  // Carga de la estructura real de la base de datos (Carpetas y Fotos)
   const entrarAlEvento = async (ev) => {
     setEventoActivo(ev);
     setFotosSeleccionadas([]);
@@ -72,7 +86,6 @@ export default function AdminDashboard() {
     // 1. Cargar carpetas del evento
     let { data: carpetasData } = await supabase.from('carpetas_evento').select('*').eq('evento_id', ev.id).order('created_at', { ascending: true });
     
-    // Si no tiene carpetas, creamos "Highlights" por defecto
     if (!carpetasData || carpetasData.length === 0) {
       const { data: nuevaCarpeta } = await supabase.from('carpetas_evento').insert([{ evento_id: ev.id, nombre: 'Highlights' }]).select();
       carpetasData = nuevaCarpeta;
@@ -89,7 +102,7 @@ export default function AdminDashboard() {
   const crearNuevaCarpeta = async () => {
     const nombre = window.prompt("Nombre de la nueva carpeta:");
     if (!nombre) return;
-    const { data, error } = await supabase.from('carpetas_evento').insert([{ evento_id: eventoActivo.id, nombre }]).select();
+    const { data } = await supabase.from('carpetas_evento').insert([{ evento_id: eventoActivo.id, nombre }]).select();
     if (data) {
       setCarpetas([...carpetas, data[0]]);
       setCarpetaActiva(data[0]);
@@ -113,7 +126,6 @@ export default function AdminDashboard() {
     for (let i = 0; i < archivosUploader.length; i++) {
       const file = archivosUploader[i];
       try {
-        // 1. Pedir URL prefirmada al Vercel Backend
         const resURL = await fetch("/api/upload-url", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -123,7 +135,6 @@ export default function AdminDashboard() {
         
         if (!data.url) throw new Error("Fallo al obtener ticket");
 
-        // 2. Subir directamente a Cloudflare R2
         const uploadRes = await fetch(data.url, {
           method: "PUT",
           headers: { "Content-Type": file.type },
@@ -131,11 +142,11 @@ export default function AdminDashboard() {
         });
 
         if (uploadRes.ok) {
-          // 3. Registrar en Supabase usando url_original (Ajustado a tu esquema)
+          // Registramos url_original tal como espera tu DB
           await supabase.from('fotografias').insert([{
             evento_id: eventoActivo.id,
             carpeta_id: carpetaActiva.id,
-            url_original: data.path // Guardamos la ruta física exacta que devolvió Vercel
+            url_original: data.path 
           }]);
           subidasExitosas++;
         }
@@ -145,7 +156,6 @@ export default function AdminDashboard() {
       setEstadoSubida(prev => ({ ...prev, progreso: i + 1 }));
     }
 
-    // Refrescar vista
     const { data: fotosNuevas } = await supabase.from('fotografias').select('*').eq('evento_id', eventoActivo.id);
     if (fotosNuevas) setFotosEvento(fotosNuevas);
     
@@ -156,6 +166,11 @@ export default function AdminDashboard() {
   };
 
   // ─── ACCIONES INTERACTIVAS DE FOTOS ───
+  const toggleFotoSeleccion = (fotoId, e) => {
+    e.stopPropagation();
+    setFotosSeleccionadas(prev => prev.includes(fotoId) ? prev.filter(id => id !== fotoId) : [...prev, fotoId]);
+  };
+
   const toggleFavorito = async (fotoId, e) => {
     e?.stopPropagation();
     const foto = fotosEvento.find(f => f.id === fotoId);
@@ -166,8 +181,6 @@ export default function AdminDashboard() {
   };
 
   const borrarFotos = async (ids) => {
-    // Aquí idealmente también deberías enviar una petición a R2 para borrar el archivo físico, 
-    // pero por ahora borraremos el registro de la base de datos.
     await supabase.from('fotografias').delete().in('id', ids);
     setFotosEvento(prev => prev.filter(f => !ids.includes(f.id)));
     setFotosSeleccionadas([]);
@@ -180,7 +193,7 @@ export default function AdminDashboard() {
     setFotosEvento(prev => prev.map(f => fotosSeleccionadas.includes(f.id) ? { ...f, carpeta_id: nuevaCarpetaId } : f));
     setFotosSeleccionadas([]);
     setMostrarModalMover(false);
-    setMensaje({ tipo: 'exito', texto: `Movidas correctamente` });
+    setMensaje({ tipo: 'exito', texto: `Fotografías movidas correctamente.` });
   };
 
   const hacerPortada = async (url) => {
@@ -189,7 +202,6 @@ export default function AdminDashboard() {
     setMensaje({ tipo: 'exito', texto: 'Portada actualizada.' });
   };
 
-  // Filtramos las fotos para mostrar solo las de la carpeta seleccionada
   const fotosActuales = carpetaActiva ? fotosEvento.filter(f => f.carpeta_id === carpetaActiva.id) : [];
 
   const SidebarItem = ({ id, icon: Icon, label }) => (
@@ -257,16 +269,22 @@ export default function AdminDashboard() {
                 </button>
               </div>
               
+              <div style={{ display: 'flex', gap: 24, borderBottom: `1px solid ${BORDER}`, marginBottom: 24 }}>
+                <button onClick={() => setFiltroGrid('social')} style={{ background: 'none', border: 'none', padding: '0 0 10px 0', fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: filtroGrid === 'social' ? 600 : 400, color: filtroGrid === 'social' ? INK : TAUPE, borderBottom: filtroGrid === 'social' ? `2px solid ${INK}` : '2px solid transparent', cursor: 'pointer' }}>Eventos y Bodas</button>
+                <button onClick={() => setFiltroGrid('sport')} style={{ background: 'none', border: 'none', padding: '0 0 10px 0', fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: filtroGrid === 'sport' ? 600 : 400, color: filtroGrid === 'sport' ? INK : TAUPE, borderBottom: filtroGrid === 'sport' ? `2px solid ${INK}` : '2px solid transparent', cursor: 'pointer' }}>Flashealo Sport</button>
+              </div>
+
               {cargando ? (
                 <div style={{ display: 'flex', justifyContent: 'center', padding: '80px 0' }}><Loader2 size={24} className="animate-spin" color={TAUPE} /></div>
               ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 20 }}>
-                  {listaEventos.map(ev => {
+                  {listaEventos.filter(e => filtroGrid === 'sport' ? e.tipo_reconocimiento === 'ocr' : e.tipo_reconocimiento !== 'ocr').map(ev => {
                     const esPrivado = ev.password_cliente && ev.password_cliente.trim() !== '';
                     return (
                       <div key={ev.id} onClick={() => entrarAlEvento(ev)} style={{ background: WHITE, borderRadius: 6, overflow: 'hidden', cursor: 'pointer', border: `1px solid ${BORDER}`, display: 'flex', flexDirection: 'column' }}>
                         <div style={{ height: 160, position: 'relative', background: '#E8E4DE' }}>
-                          <img src={ev.portada_url ? `${DOMINIO_R2}/${ev.portada_url}` : "https://images.unsplash.com/photo-1541534741688?w=800"} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          {/* CORRECCIÓN 1: Portadas de Grilla */}
+                          <img src={getUrlCompleta(ev.portada_url) || "https://images.unsplash.com/photo-1541534741688?w=800"} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                           <div style={{ position: 'absolute', top: 10, right: 10, background: esPrivado ? 'rgba(28,28,28,0.85)' : 'rgba(255,255,255,0.92)', color: esPrivado ? WHITE : INK, padding: '3px 8px', borderRadius: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
                             {esPrivado ? <Lock size={10} color={SAND} /> : <Unlock size={10} color={TAUPE} />}
                             <span style={{ fontSize: 8, textTransform: 'uppercase', fontWeight: 600 }}>{esPrivado ? 'Privada' : 'Pública'}</span>
@@ -288,7 +306,8 @@ export default function AdminDashboard() {
             <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
               
               <div style={{ height: 180, position: 'relative', background: INK, display: 'flex', alignItems: 'flex-end', padding: '0 32px 24px', flexShrink: 0 }}>
-                <img src={eventoActivo.portada_url ? `${DOMINIO_R2}/${eventoActivo.portada_url}` : "https://images.unsplash.com/photo-1541534741688?w=1200"} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.4 }} />
+                {/* CORRECCIÓN 2: Portada del evento grande */}
+                <img src={getUrlCompleta(eventoActivo.portada_url) || "https://images.unsplash.com/photo-1541534741688?w=1200"} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.4 }} />
                 <div style={{ position: 'relative', zIndex: 10, width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
                   <div>
                     <h1 style={{ fontSize: 28, fontFamily: 'Georgia, serif', color: WHITE, margin: '0 0 4px 0' }}>{eventoActivo.nombre}</h1>
@@ -302,7 +321,7 @@ export default function AdminDashboard() {
               </div>
 
               <div style={{ display: 'flex', flex: 1, minHeight: 450 }}>
-                {/* COLUMNA CARPETAS (Conectada a la BD) */}
+                {/* COLUMNA CARPETAS */}
                 <div style={{ width: 220, background: WHITE, borderRight: `1px solid ${BORDER}`, padding: '20px 0', flexShrink: 0 }}>
                   <div style={{ padding: '0 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                     <span style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: TAUPE }}>Carpetas</span>
@@ -323,7 +342,6 @@ export default function AdminDashboard() {
                 {/* COLUMNA FOTOS Y SUBIDOR MASIVO */}
                 <div style={{ flex: 1, padding: 28, background: '#FAFAFA', position: 'relative' }}>
                   
-                  {/* PANTALLA DE SUBIDA (MODAL INTERNO) */}
                   <AnimatePresence>
                     {mostrarUploader && (
                       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} style={{ position: 'absolute', inset: 0, background: 'rgba(250,250,250,0.95)', zIndex: 50, padding: 40, display: 'flex', flexDirection: 'column' }}>
@@ -345,7 +363,6 @@ export default function AdminDashboard() {
                           <div style={{ flex: 1, border: `2px dashed ${TAUPE}`, borderRadius: 8, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: WHITE }}>
                             <UploadCloud size={40} color={TAUPE} style={{ marginBottom: 16 }} />
                             <p style={{ fontSize: 14, color: INK, marginBottom: 8, fontWeight: 500 }}>Arrastra tus fotografías aquí</p>
-                            <p style={{ fontSize: 12, color: TAUPE, marginBottom: 24 }}>o selecciona archivos desde tu computadora</p>
                             <input type="file" multiple accept="image/*" ref={fileInputRef} onChange={manejarSeleccionArchivos} style={{ display: 'none' }} />
                             <button onClick={() => fileInputRef.current?.click()} style={{ padding: '10px 24px', background: WHITE, border: `1px solid ${BORDER}`, borderRadius: 4, fontSize: 12, cursor: 'pointer' }}>Explorar Archivos</button>
                             
@@ -361,9 +378,29 @@ export default function AdminDashboard() {
                     )}
                   </AnimatePresence>
 
-                  {/* VISTA NORMAL DE LA CARPETA */}
                   {!mostrarUploader && (
                     <>
+                      <AnimatePresence>
+                        {fotosSeleccionadas.length > 0 && (
+                          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }} style={{ position: 'fixed', bottom: 40, left: '55%', transform: 'translateX(-50%)', background: INK, color: WHITE, padding: '12px 24px', borderRadius: 8, display: 'flex', alignItems: 'center', gap: 32, boxShadow: '0 20px 40px rgba(0,0,0,0.2)', zIndex: 100 }}>
+                            <span style={{ fontSize: 13, fontWeight: 600 }}>{fotosSeleccionadas.length} seleccionadas</span>
+                            <div style={{ display: 'flex', gap: 16 }}>
+                              <div style={{ position: 'relative' }}>
+                                <button onClick={() => setMostrarModalMover(!mostrarModalMover)} style={{ background: 'transparent', border: 'none', color: WHITE, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}><FolderInput size={14} /> Mover a Set</button>
+                                {mostrarModalMover && (
+                                  <div style={{ position: 'absolute', bottom: '100%', left: 0, marginBottom: 12, background: WHITE, borderRadius: 6, padding: 8, width: 160, boxShadow: '0 10px 30px rgba(0,0,0,0.1)' }}>
+                                    {carpetas.map(s => (
+                                      <button key={s.id} onClick={() => moverFotosASet(s.id)} style={{ width: '100%', textAlign: 'left', background: 'none', border: 'none', padding: '8px 12px', fontSize: 12, cursor: 'pointer', color: INK, borderRadius: 4 }}>Mover a {s.nombre}</button>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                              <button onClick={() => borrarFotos(fotosSeleccionadas)} style={{ background: 'transparent', border: 'none', color: '#E74C3C', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}><Trash2 size={14} /> Eliminar</button>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
                         <h2 style={{ fontSize: 18, margin: 0, fontWeight: 500 }}>{carpetaActiva?.nombre}</h2>
                         <button onClick={() => setMostrarUploader(true)} style={{ background: INK, color: WHITE, border: 'none', padding: '9px 18px', borderRadius: 4, cursor: 'pointer', fontSize: 12, fontWeight: 500, display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -379,7 +416,8 @@ export default function AdminDashboard() {
                             const isSelected = fotosSeleccionadas.includes(foto.id);
                             return (
                               <div key={foto.id} className="group" style={{ aspectRatio: '1', position: 'relative', borderRadius: 4, overflow: 'hidden', border: isSelected ? `3px solid ${SAND}` : '3px solid transparent', background: '#E8E4DE' }}>
-                                <img src={`${DOMINIO_R2}/${foto.urlOriginal}`} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                {/* CORRECCIÓN 3: Fotos de la grilla (Viejas o nuevas) */}
+                                <img src={resolverUrlFoto(foto.url_original)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                 
                                 <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => setLightboxIndex(index)} style={{ cursor: 'zoom-in' }}>
                                   <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', color: WHITE }}><Maximize2 size={22} /></div>
@@ -414,7 +452,8 @@ export default function AdminDashboard() {
                   <span style={{ fontSize: 12, letterSpacing: '0.1em' }}>{lightboxIndex + 1} / {fotosActuales.length}</span>
                   <div style={{ display: 'flex', gap: 24, alignItems: 'center' }}>
                     <button onClick={() => toggleFavorito(fotosActuales[lightboxIndex].id)} style={{ background: 'none', border: 'none', color: WHITE, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}><Heart size={15} fill={fotosActuales[lightboxIndex].es_favorita ? '#E74C3C' : 'none'} color={fotosActuales[lightboxIndex].es_favorita ? '#E74C3C' : WHITE}/> Favorita</button>
-                    <button onClick={() => hacerPortada(fotosActuales[lightboxIndex].urlOriginal)} style={{ background: 'none', border: 'none', color: WHITE, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}><ImageIcon size={15} /> Usar como Portada</button>
+                    {/* CORRECCIÓN 4: Pasar el path crudo a la función hacerPortada */}
+                    <button onClick={() => hacerPortada(fotosActuales[lightboxIndex].url_original)} style={{ background: 'none', border: 'none', color: WHITE, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}><ImageIcon size={15} /> Usar como Portada</button>
                     <button onClick={() => borrarFotos([fotosActuales[lightboxIndex].id])} style={{ background: 'none', border: 'none', color: '#E74C3C', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}><Trash2 size={15} /> Borrar</button>
                     <button onClick={() => setLightboxIndex(null)} style={{ background: 'none', border: 'none', color: WHITE, cursor: 'pointer' }}><X size={22} /></button>
                   </div>
@@ -422,7 +461,8 @@ export default function AdminDashboard() {
                 <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 24px' }}>
                   <button onClick={() => setLightboxIndex(prev => (prev === 0 ? fotosActuales.length - 1 : prev - 1))} style={{ background: 'none', border: 'none', color: WHITE, cursor: 'pointer', padding: 20 }}><ChevronLeft size={36} strokeWidth={1} /></button>
                   <div style={{ flex: 1, height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 12 }}>
-                    <img src={`${DOMINIO_R2}/${fotosActuales[lightboxIndex]?.urlOriginal}`} alt="" style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain' }} />
+                    {/* CORRECCIÓN 5: Imagen del Lightbox resuelta */}
+                    <img src={resolverUrlFoto(fotosActuales[lightboxIndex]?.url_original)} alt="" style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain' }} />
                   </div>
                   <button onClick={() => setLightboxIndex(prev => (prev === fotosActuales.length - 1 ? 0 : prev + 1))} style={{ background: 'none', border: 'none', color: WHITE, cursor: 'pointer', padding: 20 }}><ChevronRightIcon size={36} strokeWidth={1} /></button>
                 </div>

@@ -3,9 +3,9 @@ import { supabase } from './supabaseClient';
 import ReviewPanel from './ReviewPanel'; 
 import { 
   Loader2, Plus, Calendar, Settings, Image as ImageIcon, Trash2, CheckCircle, 
-  Lock, Unlock, Home, Grid, Folder, Star, PanelLeftClose, PanelLeft, ArrowLeft, 
-  UploadCloud, FolderInput, CheckCircle2, ChevronLeft, ChevronRight as ChevronRightIcon, 
-  Eye, Heart, Maximize2, X
+  Lock, Unlock, Grid, Folder, Star, Home, ChevronRight, ArrowLeft, 
+  FolderInput, CheckCircle2, ChevronLeft, ChevronRight as ChevronRightIcon, 
+  Eye, Heart, Maximize2, X, PanelLeftClose, PanelLeft
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -26,33 +26,33 @@ const getUrlCompleta = (ruta) => {
 export default function AdminDashboard() {
   const [sidebarTab, setSidebarTab] = useState('colecciones'); 
   const [sidebarOpen, setSidebarOpen] = useState(true); 
-  const [vista, setVista] = useState('grid'); 
+  const [vista, setVista] = useState('grid'); // 'grid' | 'form' | 'dashboard'
   const [filtroGrid, setFiltroGrid] = useState('social'); 
 
   const [listaEventos, setListaEventos] = useState([]);
   const [cargando, setCargando] = useState(false);
   const [mensaje, setMensaje] = useState({ tipo: '', texto: '' });
+  const [eventoParaAuditar, setEventoParaAuditar] = useState(null);
 
+  // Estados del Formulario de Ajustes
   const [eventoEditandoId, setEventoEditandoId] = useState(null);
-  const [formData, setFormData] = useState({ nombre: '', url_slug: '', tipo_reconocimiento: 'hibrido', password_cliente: '' });
+  const [logoFile, setLogoFile] = useState(null);
+  const [portadaFile, setPortadaFile] = useState(null);
+  const [formData, setFormData] = useState({
+    nombre: '', url_slug: '', descripcion: '', fecha_evento: '', ubicacion: '', 
+    tipo_reconocimiento: 'hibrido', password_cliente: '', portada_url: ''
+  });
 
+  // Estados del Dashboard del Evento Activo
   const [eventoActivo, setEventoActivo] = useState(null);
   const [setActivo, setSetActivo] = useState('Highlights');
   const [fotosSeleccionadas, setFotosSeleccionadas] = useState([]);
-  
   const [lightboxIndex, setLightboxIndex] = useState(null);
   const [mostrarModalMover, setMostrarModalMover] = useState(false);
 
-  // ─── ESTADO DINÁMICO DE FOTOS (Simulando la Base de Datos) ───
+  // Fotografías del evento activo (Conectadas a Supabase o estado local de trabajo)
+  const [fotosEvento, setFotosEvento] = useState([]);
   const setsDisponibles = ['Highlights', 'Ceremonia', 'Recepción', 'Detalles'];
-  const [fotos, setFotos] = useState([
-    { id: 1, url: 'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=800', set: 'Highlights', favorite: true },
-    { id: 2, url: 'https://images.unsplash.com/photo-1519225421980-715cb0215aed?w=800', set: 'Highlights', favorite: false },
-    { id: 3, url: 'https://images.unsplash.com/photo-1520854221256-17451cc331bf?w=800', set: 'Ceremonia', favorite: false },
-    { id: 4, url: 'https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=800', set: 'Recepción', favorite: false },
-  ]);
-
-  const fotosActuales = fotos.filter(f => f.set === setActivo);
 
   useEffect(() => { cargarEventos(); }, []);
 
@@ -75,72 +75,103 @@ export default function AdminDashboard() {
     setCargando(false);
   };
 
-  // ─── NAVEGACIÓN CORREGIDA ───
+  const cargarFotosDeEvento = async (eventoId) => {
+    const { data } = await supabase.from('fotografias').select('*').eq('evento_id', eventoId);
+    if (data) {
+      setFotosEvento(data.map(f => ({
+        id: f.id,
+        url: f.ruta_r2.startsWith('http') ? f.ruta_r2 : `https://fotos.flashealo.do/${f.ruta_r2}`,
+        set: f.set_name || 'Highlights',
+        favorite: f.es_favorita || false,
+        rutaOriginal: f.ruta_r2
+      })));
+    } else {
+      setFotosEvento([]);
+    }
+  };
+
+  // ─── NAVEGACIÓN Y RETROCESO INTELIGENTE ───
   const manejarVolver = () => {
     if (vista === 'form' && eventoActivo) {
-      setVista('dashboard'); // Si veníamos de una galería, volvemos a la galería
+      setVista('dashboard'); // Si estábamos ajustando la galería activa, volvemos a ella
     } else {
       setVista('grid');
       setEventoActivo(null);
     }
   };
 
-  const abrirFormulario = (ev = null) => {
-    if (ev) {
-      setEventoEditandoId(ev.id);
-      setFormData({ ...ev });
-    } else {
-      setEventoEditandoId(null);
-      setFormData({ nombre: '', url_slug: '', tipo_reconocimiento: 'hibrido', password_cliente: '' });
-    }
+  const abrirAjustes = (ev) => {
+    setEventoEditandoId(ev.id);
+    setFormData({ ...ev });
     setVista('form');
   };
 
-  const entrarAlEvento = (ev) => {
+  const entrarAlEvento = async (ev) => {
     setEventoActivo(ev);
     setSetActivo('Highlights');
     setFotosSeleccionadas([]);
+    await cargarFotosDeEvento(ev.id);
     setVista('dashboard');
   };
 
-  // ─── FUNCIONES DE FOTOS Y LIGHTBOX ───
+  // ─── ACCIONES DE FOTOS ───
   const toggleFotoSeleccion = (fotoId, e) => {
     e.stopPropagation();
     setFotosSeleccionadas(prev => prev.includes(fotoId) ? prev.filter(id => id !== fotoId) : [...prev, fotoId]);
   };
 
-  const toggleFavorito = (fotoId, e) => {
+  const toggleFavorito = async (fotoId, e) => {
     e?.stopPropagation();
-    setFotos(prev => prev.map(f => f.id === fotoId ? { ...f, favorite: !f.favorite } : f));
+    const foto = fotosEvento.find(f => f.id === fotoId);
+    if (!foto) return;
+
+    const nuevoEstado = !foto.favorite;
+    setFotosEvento(prev => prev.map(f => f.id === fotoId ? { ...f, favorite: nuevoEstado } : f));
+    
+    await supabase.from('fotografias').update({ es_favorita: nuevoEstado }).eq('id', fotoId);
   };
 
-  const borrarFotos = (ids) => {
-    setFotos(prev => prev.filter(f => !ids.includes(f.id)));
+  const borrarFotos = async (ids) => {
+    await supabase.from('fotografias').delete().in('id', ids);
+    setFotosEvento(prev => prev.filter(f => !ids.includes(f.id)));
     setFotosSeleccionadas([]);
     setLightboxIndex(null);
     setMensaje({ tipo: 'exito', texto: 'Fotografías eliminadas correctamente.' });
   };
 
-  const moverFotosASet = (nuevoSet) => {
-    setFotos(prev => prev.map(f => fotosSeleccionadas.includes(f.id) ? { ...f, set: nuevoSet } : f));
+  const moverFotosASet = async (nuevoSet) => {
+    await supabase.from('fotografias').update({ set_name: nuevoSet }).in('id', fotosSeleccionadas);
+    setFotosEvento(prev => prev.map(f => fotosSeleccionadas.includes(f.id) ? { ...f, set: nuevoSet } : f));
     setFotosSeleccionadas([]);
     setMostrarModalMover(false);
     setMensaje({ tipo: 'exito', texto: `Movidas a ${nuevoSet}` });
   };
 
-  const hacerPortada = (url) => {
+  const hacerPortada = async (url) => {
+    await supabase.from('eventos').update({ portada_url: url }).eq('id', eventoActivo.id);
     setEventoActivo(prev => ({ ...prev, portada_url: url }));
-    setMensaje({ tipo: 'exito', texto: 'Portada actualizada.' });
+    setMensaje({ tipo: 'exito', texto: 'Portada de la colección actualizada.' });
   };
 
-  const avanzarLightbox = (dir) => {
-    let nuevoIndex = lightboxIndex + dir;
-    if (nuevoIndex < 0) nuevoIndex = fotosActuales.length - 1;
-    if (nuevoIndex >= fotosActuales.length) nuevoIndex = 0;
-    setLightboxIndex(nuevoIndex);
+  const guardarAjustesEvento = async (e) => {
+    e.preventDefault();
+    setCargando(true);
+    try {
+      await supabase.from('eventos').update(formData).eq('id', eventoEditandoId);
+      setMensaje({ tipo: 'exito', texto: 'Ajustes guardados correctamente.' });
+      await cargarEventos();
+      setEventoActivo({ ...eventoActivo, ...formData });
+      setVista('dashboard');
+    } catch (err) {
+      setMensaje({ tipo: 'error', texto: "Error al guardar: " + err.message });
+    } finally {
+      setCargando(false);
+    }
   };
 
-  const headerHeight = vista === 'dashboard' ? 48 : 64;
+  const fotosActuales = fotosEvento.filter(f => f.set === setActivo);
+
+  if (eventoParaAuditar) return <ReviewPanel key={eventoParaAuditar.id} evento={eventoParaAuditar} onVolver={() => setEventoParaAuditar(null)} />;
 
   const SidebarItem = ({ id, icon: Icon, label }) => (
     <button onClick={() => { setSidebarTab(id); setVista('grid'); setEventoActivo(null); }}
@@ -154,6 +185,8 @@ export default function AdminDashboard() {
       {sidebarOpen && <span>{label}</span>}
     </button>
   );
+
+  const headerHeight = vista === 'dashboard' ? 48 : 64;
 
   return (
     <div style={{ display: 'flex', height: '100vh', background: CREAM, color: INK, fontFamily: 'system-ui, sans-serif', overflow: 'hidden' }}>
@@ -171,7 +204,7 @@ export default function AdminDashboard() {
             </div>
           ) : <span style={{ width: 3, height: 20, background: SAND, borderRadius: 1 }} />}
 
-          <button onClick={() => setSidebarOpen(!sidebarOpen)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: TAUPE, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 6, borderRadius: 4, transition: 'all 0.2s' }} onMouseEnter={e => { e.currentTarget.style.color = INK; e.currentTarget.style.background = '#F5F5F5'; }} onMouseLeave={e => { e.currentTarget.style.color = TAUPE; e.currentTarget.style.background = 'none'; }}>
+          <button onClick={() => setSidebarOpen(!sidebarOpen)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: TAUPE, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 6, borderRadius: 4, transition: 'all 0.2s' }}>
             {sidebarOpen ? <PanelLeftClose size={16} /> : <PanelLeft size={16} />}
           </button>
         </div>
@@ -186,11 +219,11 @@ export default function AdminDashboard() {
       {/* ─── ÁREA PRINCIPAL ─── */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden' }}>
         
-        {/* BARRA SUPERIOR FIJA Y CON MEMORIA */}
+        {/* BARRA SUPERIOR CON MEMORIA */}
         <header style={{ height: headerHeight, flexShrink: 0, background: WHITE, borderBottom: `1px solid ${BORDER}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 24px', zIndex: 40, transition: 'height 0.3s ease' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             {(vista === 'form' || vista === 'dashboard') && (
-              <button onClick={manejarVolver} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, color: TAUPE, fontSize: 12, transition: 'color 0.2s', fontWeight: 500 }} onMouseEnter={e => e.currentTarget.style.color = INK} onMouseLeave={e => e.currentTarget.style.color = TAUPE}>
+              <button onClick={manejarVolver} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, color: TAUPE, fontSize: 12, transition: 'color 0.2s', fontWeight: 500 }}>
                 <ArrowLeft size={14} /> Volver {vista === 'form' && eventoActivo ? 'a la Galería' : 'a Colecciones'}
               </button>
             )}
@@ -205,7 +238,7 @@ export default function AdminDashboard() {
           </div>
         </header>
 
-        {/* ALERTA FLOTANTE */}
+        {/* NOTIFICACIONES TOAST */}
         <AnimatePresence>
           {mensaje.texto && (
             <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} style={{ position: 'absolute', top: 16, right: 24, zIndex: 100, padding: '12px 20px', background: INK, fontSize: 12, color: WHITE, boxShadow: '0 10px 40px rgba(0,0,0,0.1)', borderRadius: 6, display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -216,34 +249,40 @@ export default function AdminDashboard() {
 
         <main style={{ flex: 1, overflowY: 'auto' }}>
           
-          {/* =========================================
-              VISTA 1: GRILLA
-              ========================================= */}
+          {/* VISTA 1: GRILLA */}
           {vista === 'grid' && (
             <div style={{ maxWidth: 1200, margin: '0 auto', padding: '28px 32px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-                <h1 style={{ fontSize: 24, fontWeight: 400, fontFamily: 'Georgia, serif', margin: 0 }}>Colecciones</h1>
-                <button onClick={() => abrirFormulario()} style={{ background: INK, color: WHITE, border: 'none', padding: '9px 18px', borderRadius: 4, cursor: 'pointer', fontSize: 12, fontWeight: 500, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <h1 style={{ fontSize: 24, fontWeight: 400, fontFamily: 'Georgia, serif', margin: 0, color: INK }}>Colecciones</h1>
+                <button onClick={() => { setEventoEditandoId(null); setFormData({ nombre: '', url_slug: '', tipo_reconocimiento: 'hibrido', password_cliente: '' }); setVista('form'); }} style={{ background: INK, color: WHITE, border: 'none', padding: '9px 18px', borderRadius: 4, cursor: 'pointer', fontSize: 12, fontWeight: 500, display: 'flex', alignItems: 'center', gap: 6 }}>
                   <Plus size={14} /> Crear Colección
                 </button>
+              </div>
+
+              <div style={{ display: 'flex', gap: 24, borderBottom: `1px solid ${BORDER}`, marginBottom: 24 }}>
+                <button onClick={() => setFiltroGrid('social')} style={{ background: 'none', border: 'none', padding: '0 0 10px 0', fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: filtroGrid === 'social' ? 600 : 400, color: filtroGrid === 'social' ? INK : TAUPE, borderBottom: filtroGrid === 'social' ? `2px solid ${INK}` : '2px solid transparent', cursor: 'pointer' }}>Eventos y Bodas</button>
+                <button onClick={() => setFiltroGrid('sport')} style={{ background: 'none', border: 'none', padding: '0 0 10px 0', fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: filtroGrid === 'sport' ? 600 : 400, color: filtroGrid === 'sport' ? INK : TAUPE, borderBottom: filtroGrid === 'sport' ? `2px solid ${INK}` : '2px solid transparent', cursor: 'pointer' }}>Flashealo Sport</button>
               </div>
 
               {cargando ? (
                 <div style={{ display: 'flex', justifyContent: 'center', padding: '80px 0' }}><Loader2 size={24} className="animate-spin" color={TAUPE} /></div>
               ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 20 }}>
-                  {listaEventos.map(ev => {
+                  {listaEventos.filter(e => filtroGrid === 'sport' ? e.tipo_reconocimiento === 'ocr' : e.tipo_reconocimiento !== 'ocr').map(ev => {
                     const esPrivado = ev.password_cliente && ev.password_cliente.trim() !== '';
+                    const tipoIA = ev.tipo_reconocimiento ? ev.tipo_reconocimiento.toUpperCase() : 'HÍBRIDO';
+
                     return (
-                      <div key={ev.id} onClick={() => entrarAlEvento(ev)} style={{ background: WHITE, borderRadius: 6, overflow: 'hidden', cursor: 'pointer', border: `1px solid ${BORDER}`, display: 'flex', flexDirection: 'column' }}>
+                      <div key={ev.id} onClick={() => entrarAlEvento(ev)} style={{ background: WHITE, borderRadius: 6, overflow: 'hidden', cursor: 'pointer', border: `1px solid ${BORDER}`, display: 'flex', flexDirection: 'column', transition: 'all 0.2s' }} onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'} onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}>
                         <div style={{ height: 160, position: 'relative', background: '#E8E4DE' }}>
                           <img src={getUrlCompleta(ev.portada_url) || "https://images.unsplash.com/photo-1541534741688?w=800"} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                          <div style={{ position: 'absolute', top: 10, right: 10, background: esPrivado ? 'rgba(28,28,28,0.85)' : 'rgba(255,255,255,0.92)', backdropFilter: 'blur(4px)', color: esPrivado ? WHITE : INK, padding: '3px 8px', borderRadius: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <div style={{ position: 'absolute', top: 10, left: 10, background: 'rgba(255,255,255,0.92)', color: INK, padding: '3px 8px', borderRadius: 4, fontSize: 8, fontWeight: 700, letterSpacing: '0.1em' }}>{tipoIA}</div>
+                          <div style={{ position: 'absolute', top: 10, right: 10, background: esPrivado ? 'rgba(28,28,28,0.85)' : 'rgba(255,255,255,0.92)', color: esPrivado ? WHITE : INK, padding: '3px 8px', borderRadius: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
                             {esPrivado ? <Lock size={10} color={SAND} /> : <Unlock size={10} color={TAUPE} />}
                             <span style={{ fontSize: 8, letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 600 }}>{esPrivado ? 'Privada' : 'Pública'}</span>
                           </div>
                         </div>
-                        <div style={{ padding: 14, flex: 1, display: 'flex', flexDirection: 'column' }}>
+                        <div style={{ padding: 14, flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                           <h3 style={{ fontSize: 14, fontWeight: 600, margin: '0 0 8px 0', color: INK }}>{ev.nombre}</h3>
                           <span style={{ fontSize: 11, color: TAUPE, display: 'flex', alignItems: 'center', gap: 4 }}><Calendar size={11} /> {ev.fecha_evento || 'Sin fecha'}</span>
                         </div>
@@ -255,26 +294,30 @@ export default function AdminDashboard() {
             </div>
           )}
 
-          {/* =========================================
-              VISTA 2: FORMULARIO
-              ========================================= */}
+          {/* VISTA 2: FORMULARIO DE AJUSTES */}
           {vista === 'form' && (
             <div style={{ maxWidth: 600, margin: '0 auto', padding: '40px 32px' }}>
-              <h1 style={{ fontFamily: 'Georgia, serif', fontSize: 28, color: INK, margin: '0 0 20px 0' }}>{eventoEditandoId ? `Ajustes: ${formData.nombre}` : 'Nueva Colección'}</h1>
-              <div style={{ background: WHITE, padding: 36, borderRadius: 6, border: `1px solid ${BORDER}` }}>
-                {/* Oculto el formulario largo visualmente para este ejemplo, asumiendo que sigue igual */}
-                <p style={{color: TAUPE, fontSize: 13}}>Aquí va tu formulario de ajustes que ya creamos.</p>
-              </div>
+              <h1 style={{ fontFamily: 'Georgia, serif', fontSize: 28, color: INK, margin: '0 0 20px 0' }}>Ajustes de Colección</h1>
+              <form onSubmit={guardarAjustesEvento} style={{ background: WHITE, padding: 36, borderRadius: 6, border: `1px solid ${BORDER}` }}>
+                <div style={{ marginBottom: 20 }}>
+                  <label style={{ display: 'block', fontSize: 11, color: TAUPE, marginBottom: 6 }}>Título</label>
+                  <input required value={formData.nombre} onChange={e => setFormData({...formData, nombre: e.target.value})} style={{ width: '100%', padding: '8px 0', border: 'none', borderBottom: '1px solid rgba(0,0,0,0.2)', fontSize: 16, outline: 'none' }} />
+                </div>
+                <div style={{ marginBottom: 20 }}>
+                  <label style={{ display: 'block', fontSize: 11, color: TAUPE, marginBottom: 6 }}>Clave de Acceso</label>
+                  <input type="text" value={formData.password_cliente || ''} onChange={e => setFormData({...formData, password_cliente: e.target.value})} placeholder="Vacío = Pública" style={{ width: '100%', padding: 10, background: CREAM, border: 'none', borderRadius: 4, fontSize: 13, outline: 'none' }} />
+                </div>
+                <button disabled={cargando} style={{ width: '100%', padding: 12, background: INK, color: WHITE, border: 'none', borderRadius: 4, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.1em', cursor: 'pointer' }}>
+                  {cargando ? <Loader2 size={14} className="animate-spin" /> : 'Guardar Cambios'}
+                </button>
+              </form>
             </div>
           )}
 
-          {/* =========================================
-              VISTA 3: DASHBOARD DEL EVENTO
-              ========================================= */}
+          {/* VISTA 3: DASHBOARD DE LA GALERÍA */}
           {vista === 'dashboard' && eventoActivo && (
             <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
               
-              {/* HEADER DEL EVENTO */}
               <div style={{ height: 180, position: 'relative', background: INK, display: 'flex', alignItems: 'flex-end', padding: '0 32px 24px', flexShrink: 0 }}>
                 <img src={getUrlCompleta(eventoActivo.portada_url) || "https://images.unsplash.com/photo-1541534741688?w=1200"} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.4 }} />
                 <div style={{ position: 'relative', zIndex: 10, width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
@@ -283,23 +326,21 @@ export default function AdminDashboard() {
                     <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: 11, margin: 0 }}>{eventoActivo.fecha_evento || 'Sin fecha'}</p>
                   </div>
                   <div style={{ display: 'flex', gap: 8 }}>
-                    <button onClick={() => window.open(`/g/${eventoActivo.url_slug || eventoActivo.id}`, '_blank')} style={{ background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(4px)', color: WHITE, border: 'none', padding: '8px 14px', borderRadius: 4, cursor: 'pointer', fontSize: 11, display: 'flex', alignItems: 'center', gap: 6 }}><Eye size={13} /> Ver Galería</button>
-                    <button onClick={() => abrirFormulario(eventoActivo)} style={{ background: WHITE, color: INK, border: 'none', padding: '8px 14px', borderRadius: 4, cursor: 'pointer', fontSize: 11, display: 'flex', alignItems: 'center', gap: 6, fontWeight: 500 }}><Settings size={13} /> Ajustes</button>
+                    <button onClick={() => window.open(`/g/${eventoActivo.url_slug || eventoActivo.id}`, '_blank')} style={{ background: 'rgba(255,255,255,0.15)', color: WHITE, border: 'none', padding: '8px 14px', borderRadius: 4, cursor: 'pointer', fontSize: 11, display: 'flex', alignItems: 'center', gap: 6 }}><Eye size={13} /> Ver</button>
+                    <button onClick={() => abrirAjustes(eventoActivo)} style={{ background: WHITE, color: INK, border: 'none', padding: '8px 14px', borderRadius: 4, cursor: 'pointer', fontSize: 11, display: 'flex', alignItems: 'center', gap: 6, fontWeight: 500 }}><Settings size={13} /> Ajustes</button>
                   </div>
                 </div>
               </div>
 
-              {/* BODY: SETS + FOTOS */}
               <div style={{ display: 'flex', flex: 1, minHeight: 450 }}>
-                
-                {/* COLUMNA SETS */}
+                {/* SETS */}
                 <div style={{ width: 220, background: WHITE, borderRight: `1px solid ${BORDER}`, padding: '20px 0', flexShrink: 0 }}>
                   <div style={{ padding: '0 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                     <span style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: TAUPE }}>Carpetas</span>
                     <button style={{ background: 'none', border: 'none', color: TAUPE, cursor: 'pointer' }}><Plus size={14} /></button>
                   </div>
                   {setsDisponibles.map(set => {
-                    const cant = fotos.filter(f => f.set === set).length;
+                    const cant = fotosEvento.filter(f => f.set === set).length;
                     return (
                       <div key={set} onClick={() => setSetActivo(set)} style={{ padding: '10px 16px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: setActivo === set ? '#F5F5F5' : 'transparent', borderLeft: setActivo === set ? `3px solid ${INK}` : '3px solid transparent' }}>
                         <span style={{ fontSize: 12, fontWeight: setActivo === set ? 500 : 400, color: INK }}>{set}</span>
@@ -309,27 +350,25 @@ export default function AdminDashboard() {
                   })}
                 </div>
 
-                {/* COLUMNA FOTOS */}
+                {/* FOTOS */}
                 <div style={{ flex: 1, padding: 28, background: '#FAFAFA', position: 'relative' }}>
                   
-                  {/* ACCIONES FLOTANTES (Selección múltiple) */}
                   <AnimatePresence>
                     {fotosSeleccionadas.length > 0 && (
                       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }} style={{ position: 'fixed', bottom: 40, left: '55%', transform: 'translateX(-50%)', background: INK, color: WHITE, padding: '12px 24px', borderRadius: 8, display: 'flex', alignItems: 'center', gap: 32, boxShadow: '0 20px 40px rgba(0,0,0,0.2)', zIndex: 100 }}>
                         <span style={{ fontSize: 13, fontWeight: 600 }}>{fotosSeleccionadas.length} seleccionadas</span>
                         <div style={{ display: 'flex', gap: 16 }}>
-                          {/* Botón Mover a Set que abre el modal pequeño */}
                           <div style={{ position: 'relative' }}>
-                            <button onClick={() => setMostrarModalMover(!mostrarModalMover)} style={{ background: 'transparent', border: 'none', color: WHITE, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}><FolderInput size={14} /> Mover a Set</button>
+                            <button onClick={() => setMostrarModalMover(!mostrarModalMover)} style={{ background: 'transparent', border: 'none', color: WHITE, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}><FolderInput size={14} /> Mover</button>
                             {mostrarModalMover && (
                               <div style={{ position: 'absolute', bottom: '100%', left: 0, marginBottom: 12, background: WHITE, borderRadius: 6, padding: 8, width: 160, boxShadow: '0 10px 30px rgba(0,0,0,0.1)' }}>
                                 {setsDisponibles.map(s => (
-                                  <button key={s} onClick={() => moverFotosASet(s)} style={{ width: '100%', textAlign: 'left', background: 'none', border: 'none', padding: '8px 12px', fontSize: 12, cursor: 'pointer', color: INK, borderRadius: 4 }}>Mover a {s}</button>
+                                  <button key={s} onClick={() => moverFotosASet(s)} style={{ width: '100%', textAlign: 'left', background: 'none', border: 'none', padding: '8px 12px', fontSize: 12, cursor: 'pointer', color: INK }}>Mover a {s}</button>
                                 ))}
                               </div>
                             )}
                           </div>
-                          <button onClick={() => borrarFotos(fotosSeleccionadas)} style={{ background: 'transparent', border: 'none', color: '#E74C3C', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}><Trash2 size={14} /> Eliminar</button>
+                          <button onClick={() => borrarFotos(fotosSeleccionadas)} style={{ background: 'transparent', border: 'none', color: '#E74C3C', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}><Trash2 size={14} /> Borrar</button>
                         </div>
                       </motion.div>
                     )}
@@ -342,66 +381,59 @@ export default function AdminDashboard() {
                     </button>
                   </div>
 
-                  {/* GRILLA DE FOTOS INTERACTIVAS */}
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 16 }}>
-                    {fotosActuales.map((foto, index) => {
-                      const isSelected = fotosSeleccionadas.includes(foto.id);
-                      return (
-                        <div key={foto.id} className="group" style={{ aspectRatio: '1', position: 'relative', borderRadius: 4, overflow: 'hidden', border: isSelected ? `3px solid ${SAND}` : '3px solid transparent', transition: 'all 0.2s', background: '#E8E4DE' }}>
-                          <img src={foto.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                          
-                          {/* OVERLAY ON HOVER */}
-                          <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => setLightboxIndex(index)} style={{ cursor: 'zoom-in' }}>
-                            <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', color: WHITE }}><Maximize2 size={24} /></div>
-                          </div>
+                  {fotosActuales.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '60px 0', color: TAUPE, fontStyle: 'italic', fontSize: 13 }}>No hay fotografías en este set todavía.</div>
+                  ) : (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 16 }}>
+                      {fotosActuales.map((foto, index) => {
+                        const isSelected = fotosSeleccionadas.includes(foto.id);
+                        return (
+                          <div key={foto.id} className="group" style={{ aspectRatio: '1', position: 'relative', borderRadius: 4, overflow: 'hidden', border: isSelected ? `3px solid ${SAND}` : '3px solid transparent', background: '#E8E4DE' }}>
+                            <img src={foto.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            
+                            <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => setLightboxIndex(index)} style={{ cursor: 'zoom-in' }}>
+                              <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', color: WHITE }}><Maximize2 size={22} /></div>
+                            </div>
 
-                          {/* BOTONES DIRECTOS SOBRE LA FOTO */}
-                          <div style={{ position: 'absolute', top: 6, left: 6, zIndex: 10 }} onClick={(e) => toggleFotoSeleccion(foto.id, e)}>
-                            <div style={{ width: 22, height: 22, borderRadius: '50%', background: isSelected ? SAND : 'rgba(255,255,255,0.8)', border: '1px solid rgba(0,0,0,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-                              {isSelected && <CheckCircle2 size={12} color={WHITE} />}
+                            <div style={{ position: 'absolute', top: 6, left: 6, zIndex: 10 }} onClick={(e) => toggleFotoSeleccion(foto.id, e)}>
+                              <div style={{ width: 20, height: 20, borderRadius: '50%', background: isSelected ? SAND : 'rgba(255,255,255,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                                {isSelected && <CheckCircle2 size={11} color={WHITE} />}
+                              </div>
+                            </div>
+
+                            <div style={{ position: 'absolute', bottom: 6, right: 6, zIndex: 10 }} onClick={(e) => toggleFavorito(foto.id, e)}>
+                              <Heart size={16} fill={foto.favorite ? '#E74C3C' : 'none'} color={foto.favorite ? '#E74C3C' : WHITE} style={{ cursor: 'pointer', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))' }} />
                             </div>
                           </div>
-
-                          <div style={{ position: 'absolute', bottom: 8, right: 8, zIndex: 10 }} onClick={(e) => toggleFavorito(foto.id, e)}>
-                            <Heart size={18} fill={foto.favorite ? '#E74C3C' : 'none'} color={foto.favorite ? '#E74C3C' : WHITE} style={{ cursor: 'pointer', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))' }} />
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
           )}
 
-          {/* =========================================
-              LIGHTBOX (PANTALLA COMPLETA)
-              ========================================= */}
+          {/* LIGHTBOX */}
           <AnimatePresence>
             {lightboxIndex !== null && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.95)', display: 'flex', flexDirection: 'column' }}>
-                
-                {/* Header Lightbox */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 24px', color: WHITE }}>
-                  <span style={{ fontSize: 12, letterSpacing: '0.1em' }}>{lightboxIndex + 1} DE {fotosActuales.length}</span>
+                  <span style={{ fontSize: 12, letterSpacing: '0.1em' }}>{lightboxIndex + 1} / {fotosActuales.length}</span>
                   <div style={{ display: 'flex', gap: 24, alignItems: 'center' }}>
-                    <button onClick={() => toggleFavorito(fotosActuales[lightboxIndex].id)} style={{ background: 'none', border: 'none', color: WHITE, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}><Heart size={16} fill={fotosActuales[lightboxIndex].favorite ? '#E74C3C' : 'none'} color={fotosActuales[lightboxIndex].favorite ? '#E74C3C' : WHITE}/> Favorita</button>
-                    <button onClick={() => hacerPortada(fotosActuales[lightboxIndex].url)} style={{ background: 'none', border: 'none', color: WHITE, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}><ImageIcon size={16} /> Hacer Portada</button>
-                    <button onClick={() => borrarFotos([fotosActuales[lightboxIndex].id])} style={{ background: 'none', border: 'none', color: '#E74C3C', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}><Trash2 size={16} /> Borrar</button>
-                    <div style={{ width: 1, height: 16, background: 'rgba(255,255,255,0.2)' }} />
-                    <button onClick={() => setLightboxIndex(null)} style={{ background: 'none', border: 'none', color: WHITE, cursor: 'pointer' }}><X size={24} /></button>
+                    <button onClick={() => toggleFavorito(fotosActuales[lightboxIndex].id)} style={{ background: 'none', border: 'none', color: WHITE, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}><Heart size={15} fill={fotosActuales[lightboxIndex].favorite ? '#E74C3C' : 'none'} color={fotosActuales[lightboxIndex].favorite ? '#E74C3C' : WHITE}/> Favorita</button>
+                    <button onClick={() => hacerPortada(fotosActuales[lightboxIndex].url)} style={{ background: 'none', border: 'none', color: WHITE, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}><ImageIcon size={15} /> Usar como Portada</button>
+                    <button onClick={() => borrarFotos([fotosActuales[lightboxIndex].id])} style={{ background: 'none', border: 'none', color: '#E74C3C', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}><Trash2 size={15} /> Borrar</button>
+                    <button onClick={() => setLightboxIndex(null)} style={{ background: 'none', border: 'none', color: WHITE, cursor: 'pointer' }}><X size={22} /></button>
                   </div>
                 </div>
 
-                {/* Imagen Central y Flechas */}
                 <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 24px' }}>
-                  <button onClick={() => avanzarLightbox(-1)} style={{ background: 'none', border: 'none', color: WHITE, cursor: 'pointer', padding: 24 }}><ChevronLeft size={40} strokeWidth={1} /></button>
-                  
-                  <div style={{ flex: 1, height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-                    <img src={fotosActuales[lightboxIndex]?.url} alt="Ampliación" style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain' }} />
+                  <button onClick={() => setLightboxIndex(prev => (prev === 0 ? fotosActuales.length - 1 : prev - 1))} style={{ background: 'none', border: 'none', color: WHITE, cursor: 'pointer', padding: 20 }}><ChevronLeft size={36} strokeWidth={1} /></button>
+                  <div style={{ flex: 1, height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 12 }}>
+                    <img src={fotosActuales[lightboxIndex]?.url} alt="" style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain' }} />
                   </div>
-
-                  <button onClick={() => avanzarLightbox(1)} style={{ background: 'none', border: 'none', color: WHITE, cursor: 'pointer', padding: 24 }}><ChevronRightIcon size={40} strokeWidth={1} /></button>
+                  <button onClick={() => setLightboxIndex(prev => (prev === fotosActuales.length - 1 ? 0 : prev + 1))} style={{ background: 'none', border: 'none', color: WHITE, cursor: 'pointer', padding: 20 }}><ChevronRightIcon size={36} strokeWidth={1} /></button>
                 </div>
               </motion.div>
             )}

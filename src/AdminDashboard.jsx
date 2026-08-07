@@ -17,30 +17,20 @@ const WHITE  = '#FFFFFF';
 const BORDER = 'rgba(0,0,0,0.06)';
 
 const DOMINIO_R2 = import.meta.env.VITE_R2_DOMINIO || 'https://pub-c4c062c3f8754b2d9ff6de40e9d6d713.r2.dev'; 
+const MODAL_API_URL = "https://flashealogrp-coder--flashealo-sport-ia-procesar-fotografias.modal.run";
 
-// Resuelve URLs para Portadas
 const getUrlCompleta = (ruta) => {
   if (!ruta) return null;
   if (ruta.includes('http')) return ruta;
-  
-  if (ruta.includes('/portadas/') || ruta.includes('/logos/')) {
-    return `https://muvzhnnsdnztlhynuipd.supabase.co/storage/v1/object/public/assets/${ruta}`;
-  }
-  
+  if (ruta.includes('/portadas/') || ruta.includes('/logos/')) return `https://muvzhnnsdnztlhynuipd.supabase.co/storage/v1/object/public/assets/${ruta}`;
   return `${DOMINIO_R2}/${ruta}`;
 };
 
-// Arquitectura 100% R2 (Costo Cero)
 const resolverUrlFoto = (foto, altaResolucion = false) => {
   if (!foto) return '';
-  
   let ruta = altaResolucion ? foto.url_original : (foto.url_watermark || foto.url_original);
   if (!ruta) return '';
-
-  if (ruta.includes('/originales/') || ruta.includes('/watermarks/')) {
-    return `https://muvzhnnsdnztlhynuipd.supabase.co/storage/v1/object/public/fotos/${ruta}`;
-  }
-
+  if (ruta.includes('/originales/') || ruta.includes('/watermarks/')) return `https://muvzhnnsdnztlhynuipd.supabase.co/storage/v1/object/public/fotos/${ruta}`;
   return `${DOMINIO_R2}/${ruta}`;
 };
 
@@ -69,8 +59,6 @@ export default function AdminDashboard() {
   const [archivosUploader, setArchivosUploader] = useState([]);
   const [estadoSubida, setEstadoSubida] = useState({ activa: false, progreso: 0, total: 0 });
   const fileInputRef = useRef(null);
-
-  // 🌟 NUEVO ESTADO: Para el botón de IA
   const [procesandoIA, setProcesandoIA] = useState(false);
 
   useEffect(() => { cargarEventos(); }, []);
@@ -128,7 +116,6 @@ export default function AdminDashboard() {
     
     setEstadoSubida({ activa: true, progreso: 0, total: archivosUploader.length });
     let subidasExitosas = 0;
-    
     const baseR2Path = `${eventoActivo.url_slug || eventoActivo.id}/${carpetaActiva.nombre.toLowerCase().replace(/ /g, '-')}`;
 
     for (let i = 0; i < archivosUploader.length; i++) {
@@ -143,23 +130,13 @@ export default function AdminDashboard() {
         
         if (!data.url) throw new Error("Fallo al obtener ticket");
 
-        const uploadRes = await fetch(data.url, {
-          method: "PUT",
-          headers: { "Content-Type": file.type },
-          body: file,
-        });
+        const uploadRes = await fetch(data.url, { method: "PUT", headers: { "Content-Type": file.type }, body: file });
 
         if (uploadRes.ok) {
-          await supabase.from('fotografias').insert([{
-            evento_id: eventoActivo.id,
-            carpeta_id: carpetaActiva.id,
-            url_original: data.path 
-          }]);
+          await supabase.from('fotografias').insert([{ evento_id: eventoActivo.id, carpeta_id: carpetaActiva.id, url_original: data.path }]);
           subidasExitosas++;
         }
-      } catch (error) {
-        console.error("Error subiendo archivo:", file.name, error);
-      }
+      } catch (error) { console.error("Error subiendo archivo:", file.name, error); }
       setEstadoSubida(prev => ({ ...prev, progreso: i + 1 }));
     }
 
@@ -169,34 +146,37 @@ export default function AdminDashboard() {
     setArchivosUploader([]);
     setEstadoSubida({ activa: false, progreso: 0, total: 0 });
     setMostrarUploader(false);
-    setMensaje({ tipo: 'exito', texto: `${subidasExitosas} fotografías procesadas.` });
+
+    // 🚀 ORDEN 1: AUTOMÁTICA (Solo crear miniaturas para que la galería no pese)
+    setMensaje({ tipo: 'exito', texto: `${subidasExitosas} fotos subidas. Creando versiones web en segundo plano...` });
+    try {
+      await fetch(MODAL_API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ evento_id: eventoActivo.id, accion: "miniaturas" })
+      });
+    } catch (err) { console.log("Fallo al iniciar miniaturas automáticas", err); }
   };
 
-  // 🌟 NUEVA FUNCIÓN: Disparar la Inteligencia Artificial en Modal
+  // 🚀 ORDEN 2: A VOLUNTAD (Tú presionas el botón para iniciar la IA pesada)
   const dispararInteligenciaArtificial = async () => {
     if (!eventoActivo) return;
     setProcesandoIA(true);
-    setMensaje({ tipo: 'info', texto: 'Iniciando servidores GPU en la nube...' });
+    setMensaje({ tipo: 'info', texto: 'Iniciando reconocimiento IA masivo...' });
     
     try {
-      // Este es el enlace que Modal nos dará cuando creemos la cuenta y subamos el código.
-      const res = await fetch("https://flashealogrp-coder--flashealo-sport-ia-procesar-fotografias.modal.run", {
+      await fetch(MODAL_API_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ evento_id: eventoActivo.id })
+        body: JSON.stringify({ 
+          evento_id: eventoActivo.id, 
+          accion: "ia", 
+          tipo_reconocimiento: eventoActivo.tipo_reconocimiento 
+        })
       });
-      
-      if (!res.ok) throw new Error("Fallo en Modal");
-      
-      const data = await res.json();
-      setMensaje({ tipo: 'exito', texto: `¡IA Finalizada! ${data.procesadas} fotos optimizadas e indexadas.` });
-      
-      // Recargamos para ver las miniaturas nuevas
-      const { data: fotosNuevas } = await supabase.from('fotografias').select('*').eq('evento_id', eventoActivo.id);
-      if (fotosNuevas) setFotosEvento(fotosNuevas);
-      
+      setMensaje({ tipo: 'exito', texto: `¡IA Inicializada! Verás los rostros y etiquetas en unos minutos.` });
     } catch (error) {
-      setMensaje({ tipo: 'error', texto: 'Error al conectar con el motor IA. (Configura Modal primero)' });
+      setMensaje({ tipo: 'error', texto: 'Error al conectar con la IA.' });
     }
     setProcesandoIA(false);
   };
@@ -343,7 +323,7 @@ export default function AdminDashboard() {
                   </div>
                   <div style={{ display: 'flex', gap: 8 }}>
                     
-                    {/* 🌟 BOTÓN DE INTELIGENCIA ARTIFICIAL AQUÍ */}
+                    {/* BOTÓN MANUAL DE IA */}
                     <button 
                       onClick={dispararInteligenciaArtificial} 
                       disabled={procesandoIA}

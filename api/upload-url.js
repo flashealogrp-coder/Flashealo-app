@@ -1,7 +1,6 @@
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
-// 1. Configuramos el cliente con tus llaves secretas
 const s3Client = new S3Client({
   region: "auto",
   endpoint: process.env.R2_ENDPOINT,
@@ -11,29 +10,26 @@ const s3Client = new S3Client({
   },
 });
 
-// 2. Esta es la función mágica de Vercel
 export default async function handler(req, res) {
-  // Solo permitimos peticiones POST
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Método no permitido' });
-  }
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Método no permitido' });
 
   try {
-    // 3. Recibimos el nombre y tipo de archivo desde tu web
-    const { fileName, fileType } = req.body;
+    const { fileName, fileType, carpetaR2 } = req.body;
 
-    // 4. Preparamos la orden para guardar la foto
+    // Limpiamos el nombre y armamos la ruta exacta (Ej. /boda-juan/ceremonia/foto1.jpg)
+    const cleanFileName = fileName.replace(/[^a-zA-Z0-9.\-_]/g, '');
+    const finalPath = `${carpetaR2}/${Date.now()}_${cleanFileName}`;
+
     const command = new PutObjectCommand({
       Bucket: process.env.R2_BUCKET_NAME,
-      Key: `test-eventos/${Date.now()}-${fileName}`, // Le pone la fecha para no pisar fotos con el mismo nombre
+      Key: finalPath,
       ContentType: fileType,
     });
 
-    // 5. Generamos el "Ticket de permiso" válido por 1 hora
     const url = await getSignedUrl(s3Client, command, { expiresIn: 3600 });
 
-    // 6. Le enviamos la URL lista a tu página web
-    return res.status(200).json({ url });
+    // Ahora devolvemos la URL de subida Y la ruta final para guardarla en Supabase
+    return res.status(200).json({ url, path: finalPath });
     
   } catch (error) {
     console.error("Error generando URL:", error);

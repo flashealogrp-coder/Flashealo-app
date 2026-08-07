@@ -16,14 +16,13 @@ const CREAM  = '#FDFCF8';
 const WHITE  = '#FFFFFF';
 const BORDER = 'rgba(0,0,0,0.06)';
 
-const DOMINIO_R2 = import.meta.env.VITE_R2_DOMINIO || 'https://pub-c4c062c3f8754b2d9ff6de40e9d6d713.r2.dev';
+const DOMINIO_R2 = import.meta.env.VITE_R2_DOMINIO || 'https://pub-c4c062c3f8754b2d9ff6de40e9d6d713.r2.dev'; 
 
 // Resuelve URLs para Portadas
 const getUrlCompleta = (ruta) => {
   if (!ruta) return null;
   if (ruta.includes('http')) return ruta;
   
-  // Si la portada quedó en Supabase por legado
   if (ruta.includes('/portadas/') || ruta.includes('/logos/')) {
     return `https://muvzhnnsdnztlhynuipd.supabase.co/storage/v1/object/public/assets/${ruta}`;
   }
@@ -31,27 +30,18 @@ const getUrlCompleta = (ruta) => {
   return `${DOMINIO_R2}/${ruta}`;
 };
 
+// Arquitectura 100% R2 (Costo Cero)
 const resolverUrlFoto = (foto, altaResolucion = false) => {
   if (!foto) return '';
   
   let ruta = altaResolucion ? foto.url_original : (foto.url_watermark || foto.url_original);
   if (!ruta) return '';
 
-  // PARCHE ANTIFALLOS: Si la miniatura apunta al viejo Supabase, 
-  // la ignoramos y forzamos a que muestre la original nueva de R2.
-  if (ruta.includes('/watermarks/')) {
-    ruta = foto.url_original; 
-  }
-
-  // Si de verdad es una original que nunca se migró
-  if (ruta.includes('/originales/')) {
+  if (ruta.includes('/originales/') || ruta.includes('/watermarks/')) {
     return `https://muvzhnnsdnztlhynuipd.supabase.co/storage/v1/object/public/fotos/${ruta}`;
   }
 
-  // Si el dominio no está cargando, evitamos el "undefined"
-  const baseR2 = typeof DOMINIO_R2 !== 'undefined' ? DOMINIO_R2 : 'https://pub-c4c062c3f8754b2d9ff6de40e9d6d713.r2.dev';
-
-  return `${baseR2}/${ruta}`;
+  return `${DOMINIO_R2}/${ruta}`;
 };
 
 export default function AdminDashboard() {
@@ -79,6 +69,9 @@ export default function AdminDashboard() {
   const [archivosUploader, setArchivosUploader] = useState([]);
   const [estadoSubida, setEstadoSubida] = useState({ activa: false, progreso: 0, total: 0 });
   const fileInputRef = useRef(null);
+
+  // 🌟 NUEVO ESTADO: Para el botón de IA
+  const [procesandoIA, setProcesandoIA] = useState(false);
 
   useEffect(() => { cargarEventos(); }, []);
   useEffect(() => { setSidebarOpen(vista !== 'dashboard'); }, [vista]);
@@ -177,6 +170,35 @@ export default function AdminDashboard() {
     setEstadoSubida({ activa: false, progreso: 0, total: 0 });
     setMostrarUploader(false);
     setMensaje({ tipo: 'exito', texto: `${subidasExitosas} fotografías procesadas.` });
+  };
+
+  // 🌟 NUEVA FUNCIÓN: Disparar la Inteligencia Artificial en Modal
+  const dispararInteligenciaArtificial = async () => {
+    if (!eventoActivo) return;
+    setProcesandoIA(true);
+    setMensaje({ tipo: 'info', texto: 'Iniciando servidores GPU en la nube...' });
+    
+    try {
+      // Este es el enlace que Modal nos dará cuando creemos la cuenta y subamos el código.
+      const res = await fetch("TU_URL_DE_MODAL_AQUI", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ evento_id: eventoActivo.id })
+      });
+      
+      if (!res.ok) throw new Error("Fallo en Modal");
+      
+      const data = await res.json();
+      setMensaje({ tipo: 'exito', texto: `¡IA Finalizada! ${data.procesadas} fotos optimizadas e indexadas.` });
+      
+      // Recargamos para ver las miniaturas nuevas
+      const { data: fotosNuevas } = await supabase.from('fotografias').select('*').eq('evento_id', eventoActivo.id);
+      if (fotosNuevas) setFotosEvento(fotosNuevas);
+      
+    } catch (error) {
+      setMensaje({ tipo: 'error', texto: 'Error al conectar con el motor IA. (Configura Modal primero)' });
+    }
+    setProcesandoIA(false);
   };
 
   const toggleFotoSeleccion = (fotoId, e) => {
@@ -320,6 +342,17 @@ export default function AdminDashboard() {
                     <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: 11, margin: 0 }}>{eventoActivo.fecha_evento || 'Sin fecha'}</p>
                   </div>
                   <div style={{ display: 'flex', gap: 8 }}>
+                    
+                    {/* 🌟 BOTÓN DE INTELIGENCIA ARTIFICIAL AQUÍ */}
+                    <button 
+                      onClick={dispararInteligenciaArtificial} 
+                      disabled={procesandoIA}
+                      style={{ background: SAND, color: INK, border: 'none', padding: '8px 14px', borderRadius: 4, cursor: procesandoIA ? 'wait' : 'pointer', fontSize: 11, display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600 }}
+                    >
+                      {procesandoIA ? <Loader2 size={13} className="animate-spin" /> : <Star size={13} />} 
+                      {procesandoIA ? 'Procesando IA...' : 'Ejecutar IA'}
+                    </button>
+
                     <button onClick={() => window.open(`/g/${eventoActivo.url_slug || eventoActivo.id}`, '_blank')} style={{ background: 'rgba(255,255,255,0.15)', color: WHITE, border: 'none', padding: '8px 14px', borderRadius: 4, cursor: 'pointer', fontSize: 11, display: 'flex', alignItems: 'center', gap: 6 }}><Eye size={13} /> Ver</button>
                     <button onClick={() => {setEventoEditandoId(eventoActivo.id); setFormData(eventoActivo); setVista('form');}} style={{ background: WHITE, color: INK, border: 'none', padding: '8px 14px', borderRadius: 4, cursor: 'pointer', fontSize: 11, display: 'flex', alignItems: 'center', gap: 6, fontWeight: 500 }}><Settings size={13} /> Ajustes</button>
                   </div>
@@ -421,7 +454,6 @@ export default function AdminDashboard() {
                             return (
                               <div key={foto.id} className="group" style={{ aspectRatio: '1', position: 'relative', borderRadius: 4, overflow: 'hidden', border: isSelected ? `3px solid ${SAND}` : '3px solid transparent', background: '#E8E4DE' }}>
                                 
-                                {/* 🌟 GRILLA: Le pedimos la versión miniatura (si existe) o la grande temporal */}
                                 <img src={resolverUrlFoto(foto, false)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                 
                                 <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => setLightboxIndex(index)} style={{ cursor: 'zoom-in' }}>
@@ -449,7 +481,6 @@ export default function AdminDashboard() {
             </div>
           )}
 
-          {/* LIGHTBOX */}
           <AnimatePresence>
             {lightboxIndex !== null && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.95)', display: 'flex', flexDirection: 'column' }}>
@@ -465,7 +496,6 @@ export default function AdminDashboard() {
                 <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 24px' }}>
                   <button onClick={() => setLightboxIndex(prev => (prev === 0 ? fotosActuales.length - 1 : prev - 1))} style={{ background: 'none', border: 'none', color: WHITE, cursor: 'pointer', padding: 20 }}><ChevronLeft size={36} strokeWidth={1} /></button>
                   <div style={{ flex: 1, height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 12 }}>
-                    {/* 🌟 VISOR AMPLIADO: Le pedimos la versión en alta resolución pasando 'true' */}
                     <img src={resolverUrlFoto(fotosActuales[lightboxIndex], true)} alt="" style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain' }} />
                   </div>
                   <button onClick={() => setLightboxIndex(prev => (prev === fotosActuales.length - 1 ? 0 : prev + 1))} style={{ background: 'none', border: 'none', color: WHITE, cursor: 'pointer', padding: 20 }}><ChevronRightIcon size={36} strokeWidth={1} /></button>

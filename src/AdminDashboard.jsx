@@ -16,7 +16,7 @@ const CREAM  = '#FDFCF8';
 const WHITE  = '#FFFFFF';
 const BORDER = 'rgba(0,0,0,0.06)';
 // Asegúrate de cambiar esto por el dominio real que conectaste a tu R2 en Cloudflare
-const DOMINIO_R2 = 'https://pub-tu-codigo-r2.r2.dev'; 
+const DOMINIO_R2 = import.meta.env.VITE_R2_DOMINIO;
 
 export default function AdminDashboard() {
   const [sidebarTab, setSidebarTab] = useState('colecciones'); 

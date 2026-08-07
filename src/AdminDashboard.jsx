@@ -16,7 +16,7 @@ const CREAM  = '#FDFCF8';
 const WHITE  = '#FFFFFF';
 const BORDER = 'rgba(0,0,0,0.06)';
 
-const DOMINIO_R2 = import.meta.env.VITE_DOMINIO_R2; 
+const DOMINIO_R2 = import.meta.env.VITE_R2_DOMINIO || 'https://pub-c4c062c3f8754b2d9ff6de40e9d6d713.r2.dev';
 
 // Resuelve URLs para Portadas
 const getUrlCompleta = (ruta) => {

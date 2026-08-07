@@ -26,11 +26,18 @@ const getUrlCompleta = (ruta) => {
   return `https://muvzhnnsdnztlhynuipd.supabase.co/storage/v1/object/public/fotos/${ruta}`;
 };
 
-// 🌟 NUEVA FUNCIÓN: Resuelve fotos mezcladas (Viejas de Supabase vs Nuevas de R2)
+// NUEVA FUNCIÓN: Identifica inteligentemente dónde está alojada la foto
 const resolverUrlFoto = (ruta) => {
   if (!ruta) return '';
-  if (ruta.includes('http')) return ruta; // Si ya tiene HTTP, es de Supabase. La mostramos tal cual.
-  return `${DOMINIO_R2}/${ruta}`; // Si no, es una ruta limpia de Cloudflare R2
+  if (ruta.includes('http')) return ruta; 
+  
+  // Como vimos en el diagnóstico, tus fotos viejas tienen la palabra "originales" o "watermarks"
+  if (ruta.includes('/originales/') || ruta.includes('/watermarks/')) {
+    return `https://muvzhnnsdnztlhynuipd.supabase.co/storage/v1/object/public/fotos/${ruta}`;
+  }
+  
+  // Las fotos nuevas que subas desde el panel no tendrán esa palabra, irán directo a R2
+  return `${DOMINIO_R2}/${ruta}`;
 };
 
 export default function AdminDashboard() {

@@ -49,6 +49,7 @@ const fotoUrlAux = (path, esWatermark = true) => {
   return `${DOMINIO_R2}/${ruta}`;
 };
 
+// 🌟 FUNCIÓN ANTIBALAS PARA COORDENADAS
 const getBboxCoords = (bbox) => {
   if (!bbox) return null;
   try {
@@ -62,6 +63,27 @@ const getBboxCoords = (bbox) => {
     }
   } catch (e) { return null; }
   return null;
+};
+
+// 🌟 MAGIA: EXPANDE EL CUADRO DE LA CARA PARA ABARCAR EL CUERPO
+const expandBbox = (originalBox) => {
+  if (!originalBox) return null;
+  
+  // Expandimos 2.5x el ancho y 4x el alto (hacia abajo para agarrar el cuerpo)
+  let nw = originalBox.w * 2.5;
+  let nh = originalBox.h * 4.0;
+  
+  // Centramos el ancho, y subimos solo un poquito para el cabello
+  let nx = originalBox.x - (nw - originalBox.w) / 2;
+  let ny = originalBox.y - (originalBox.h * 0.5); 
+
+  // Limitadores para no salirnos del 100% de la foto
+  nx = Math.max(0, nx);
+  ny = Math.max(0, ny);
+  if (nx + nw > 100) nw = 100 - nx;
+  if (ny + nh > 100) nh = 100 - ny;
+
+  return { x: nx, y: ny, w: nw, h: nh };
 };
 
 const BoundingBox = ({ bbox, color, label, esCuerpo }) => {
@@ -201,17 +223,14 @@ export default function AdminDashboard() {
     try {
       if (portadaFile) {
         const fileName = `${Date.now()}_portada.${portadaFile.name.split('.').pop()}`;
-        const { error: errP } = await supabase.storage.from('assets').upload(`portadas/${fileName}`, portadaFile);
-        if (errP) throw errP;
+        await supabase.storage.from('assets').upload(`portadas/${fileName}`, portadaFile);
         finalPortadaUrl = `portadas/${fileName}`;
       }
       if (logoFile) {
         const fileName = `${Date.now()}_logo.${logoFile.name.split('.').pop()}`;
-        const { error: errL } = await supabase.storage.from('assets').upload(`logos/${fileName}`, logoFile);
-        if (errL) throw errL;
+        await supabase.storage.from('assets').upload(`logos/${fileName}`, logoFile);
         finalLogoUrl = `logos/${fileName}`;
       }
-
       const datosGuardar = { ...formData, portada_url: finalPortadaUrl, logo_url: finalLogoUrl };
       
       Object.keys(datosGuardar).forEach(key => {
@@ -220,15 +239,12 @@ export default function AdminDashboard() {
       if (!eventoEditandoId) delete datosGuardar.id; 
 
       if (eventoEditandoId) {
-        const { error } = await supabase.from('eventos').update(datosGuardar).eq('id', eventoEditandoId);
-        if (error) throw error;
+        await supabase.from('eventos').update(datosGuardar).eq('id', eventoEditandoId);
         setMensaje({ tipo: 'exito', texto: 'Colección actualizada' });
       } else {
-        const { error } = await supabase.from('eventos').insert([datosGuardar]);
-        if (error) throw error;
+        await supabase.from('eventos').insert([datosGuardar]);
         setMensaje({ tipo: 'exito', texto: 'Colección creada exitosamente' });
       }
-
       await cargarEventos(); setVista('grid'); setPortadaFile(null); setLogoFile(null); setEventoEditandoId(null);
     } catch (error) { 
       setMensaje({ tipo: 'error', texto: `Error en Base de Datos: ${error.message || 'No se pudo guardar.'}` }); 
@@ -241,9 +257,7 @@ export default function AdminDashboard() {
     setCargando(true);
     try {
       const prefijoCarpeta = formData.url_slug || formData.id; 
-      const { error } = await supabase.from('eventos').delete().eq('id', eventoEditandoId);
-      if (error) throw error;
-
+      await supabase.from('eventos').delete().eq('id', eventoEditandoId);
       try { await fetch(MODAL_API_URL, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ accion: "eliminar_coleccion", prefijo: prefijoCarpeta }) }); } catch (err) { }
       setMensaje({ tipo: 'exito', texto: 'Colección e imágenes eliminadas permanentemente.' });
       setVista('grid'); setEventoEditandoId(null); setMostrarConfirmacionBorrar(false); setTextoConfirmacion(''); await cargarEventos();
@@ -530,6 +544,7 @@ export default function AdminDashboard() {
 
         <main style={{ flex: 1, overflowY: 'auto' }}>
           
+          {/* VISTA 1: GRID DE COLECCIONES */}
           {vista === 'grid' && (
             <div style={{ maxWidth: 1200, margin: '0 auto', padding: '28px 32px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
@@ -572,6 +587,7 @@ export default function AdminDashboard() {
             </div>
           )}
 
+          {/* VISTA 2: FORMULARIO DE EDICIÓN / CREACIÓN */}
           {vista === 'form' && (
             <div style={{ maxWidth: 900, margin: '0 auto', padding: '40px 32px 80px' }}>
               <h1 className="text-3xl font-serif mb-8 text-[#1C1C1C]">Ajustes del Evento</h1>
@@ -609,9 +625,11 @@ export default function AdminDashboard() {
             </div>
           )}
 
+          {/* VISTA 3: DASHBOARD DEL EVENTO ACTIVO */}
           {vista === 'dashboard' && eventoActivo && (
             <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
               
+              {/* BANNER SUPERIOR DEL EVENTO */}
               <div style={{ height: 180, position: 'relative', background: INK, display: 'flex', alignItems: 'flex-end', padding: '0 32px 24px', flexShrink: 0 }}>
                 <img src={getUrlCompleta(eventoActivo.portada_url) || "https://images.unsplash.com/photo-1541534741688?w=1200"} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.4 }} />
                 <div style={{ position: 'relative', zIndex: 10, width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
@@ -631,7 +649,10 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
+              {/* PANEL INFERIOR (SIDEBAR LATERAL + DERECHA) */}
               <div style={{ display: 'flex', flex: 1, minHeight: 450 }}>
+                
+                {/* 🌟 BARRA LATERAL DEL EVENTO 🌟 */}
                 <div style={{ width: 240, background: WHITE, borderRight: `1px solid ${BORDER}`, padding: '20px 0', flexShrink: 0, display: 'flex', flexDirection: 'column' }}>
                   
                   <div className="mb-6">
@@ -663,7 +684,7 @@ export default function AdminDashboard() {
 
                     <button 
                       onClick={() => setSeccionDashboard('ia')} 
-                      className={`w-full flex items-center justify-between px-4 py-3 transition-colors text-left border-l-3 ${seccionDashboard === 'ia' ? 'bg-[#F5F5F5] border-black font-semibold' : 'border-transparent text-gray-700 hover:bg-gray-50'}`}
+                      className={`w-full flex items-center justify-between px-4 py-3 transition-colors text-left border-l-[3px] ${seccionDashboard === 'ia' ? 'bg-[#F5F5F5] border-black font-semibold' : 'border-transparent text-gray-700 hover:bg-gray-50'}`}
                     >
                       <div className="flex items-center gap-2.5">
                         <ScanFace size={16} className={seccionDashboard === 'ia' ? 'text-black' : 'text-gray-400'} />
@@ -674,8 +695,10 @@ export default function AdminDashboard() {
                   </div>
                 </div>
 
+                {/* 🌟 PANTALLA DE LA DERECHA (CAMBIA SEGÚN LA SECCIÓN SELECCIONADA) 🌟 */}
                 <div style={{ flex: 1, padding: seccionDashboard === 'ia' ? 0 : 28, background: seccionDashboard === 'ia' ? '#FAFAFA' : '#FAFAFA', position: 'relative', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
                   
+                  {/* CASO A: MODO FOTOS (VER CARPETAS Y SUBIR IMÁGENES) */}
                   {seccionDashboard === 'fotos' && (
                     <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
                       <AnimatePresence>
@@ -989,15 +1012,31 @@ export default function AdminDashboard() {
                                       <div className="relative inline-block leading-none max-w-full shadow-md overflow-hidden">
                                         
                                         {(() => {
-                                          const box = getBboxCoords(fotoDudosa.bbox);
+                                          const rawBox = getBboxCoords(fotoDudosa.bbox);
                                           
                                           // Si la base de datos SÍ tiene coordenadas (IA nueva)
-                                          if (box) {
+                                          if (rawBox) {
+                                            const box = expandBbox(rawBox); // Magia que agranda el cuadro al cuerpo
+
                                             return (
                                               <>
-                                                <img src={fotoUrlAux(fotoDudosa.photo_url, true)} className="max-h-[50vh] w-auto max-w-full block opacity-40 blur-[2px]" alt="Contexto"/>
-                                                <div className="absolute border-[3px] border-[#E74C3C] z-10 shadow-[0_0_0_9999px_rgba(255,255,255,0.75)] pointer-events-none" 
-                                                     style={{ left: `${box.x}%`, top: `${box.y}%`, width: `${box.w}%`, height: `${box.h}%` }} />
+                                                {/* Capa base con Blur */}
+                                                <img src={fotoUrlAux(fotoDudosa.photo_url, true)} className="max-h-[50vh] w-auto max-w-full block opacity-60 blur-sm" alt="Contexto"/>
+                                                
+                                                {/* Capa Sniper (El cuadro nítido) */}
+                                                <div className="absolute border-[2px] border-[#E74C3C] shadow-[0_0_0_9999px_rgba(0,0,0,0.5)] z-10 overflow-hidden" 
+                                                     style={{ left: `${box.x}%`, top: `${box.y}%`, width: `${box.w}%`, height: `${box.h}%` }}>
+                                                  <img src={fotoUrlAux(fotoDudosa.photo_url, true)} className="absolute max-w-none block" 
+                                                       style={{ 
+                                                         left: `-${(box.x / box.w) * 100}%`, 
+                                                         top: `-${(box.y / box.h) * 100}%`, 
+                                                         width: `${(100 / box.w) * 100}%` 
+                                                       }} alt="Rostro"/>
+                                                  
+                                                  <div className="absolute top-1 left-1 bg-[#E74C3C] text-white text-[8px] uppercase tracking-widest font-bold px-1.5 py-0.5 rounded-sm">
+                                                    ¿Quién es?
+                                                  </div>
+                                                </div>
                                               </>
                                             );
                                           } else {
@@ -1076,7 +1115,7 @@ export default function AdminDashboard() {
             )}
           </AnimatePresence>
 
-          {/* LUPA MÁGICA DE DETECCIONES DE IA */}
+          {/* 🌟 LUPA MÁGICA DE DETECCIONES DE IA 🌟 */}
           <AnimatePresence>
             {zoomCara && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm" onClick={() => setZoomCara(null)}>
@@ -1085,8 +1124,9 @@ export default function AdminDashboard() {
                   <div className="relative inline-block leading-none max-w-full cursor-zoom-out shadow-md overflow-hidden" onClick={() => setZoomCara(null)}>
                     <img src={fotoUrlAux(zoomCara.photo_url, true)} className="max-h-[80vh] w-auto max-w-full block" alt="Zoom AI" draggable={false} />
                     {(() => {
-                      const box = getBboxCoords(zoomCara.bbox);
-                      if (box) {
+                      const rawBox = getBboxCoords(zoomCara.bbox);
+                      if (rawBox) {
+                        const box = expandBbox(rawBox); // También expande el cuadro al darle clic para inspeccionar
                         return <div className="absolute border-[3px] border-[#C8B99A] z-10 shadow-[0_0_0_9999px_rgba(0,0,0,0.75)] transition-all pointer-events-none" style={{ left: `${box.x}%`, top: `${box.y}%`, width: `${box.w}%`, height: `${box.h}%` }} />;
                       }
                       return null;

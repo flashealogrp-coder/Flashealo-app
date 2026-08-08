@@ -37,14 +37,13 @@ const resolverUrlFoto = (foto, altaResolucion = false) => {
 export default function AdminDashboard() {
   const [sidebarTab, setSidebarTab] = useState('colecciones'); 
   const [sidebarOpen, setSidebarOpen] = useState(true); 
-  const [vista, setVista] = useState('grid'); // 'grid', 'dashboard', 'form'
+  const [vista, setVista] = useState('grid'); 
   const [filtroGrid, setFiltroGrid] = useState('social'); 
 
   const [listaEventos, setListaEventos] = useState([]);
   const [cargando, setCargando] = useState(false);
   const [mensaje, setMensaje] = useState({ tipo: '', texto: '' });
   
-  // ESTADOS DEL FORMULARIO DE CREACIÓN/EDICIÓN
   const [eventoEditandoId, setEventoEditandoId] = useState(null);
   const [formData, setFormData] = useState({ nombre: '', url_slug: '', tipo_reconocimiento: 'hibrido', password_cliente: '', fecha_evento: '', ubicacion: '', titulo_about: '', descripcion: '' });
   const [seccionAbierta, setSeccionAbierta] = useState('datos');
@@ -62,6 +61,7 @@ export default function AdminDashboard() {
   const [mostrarUploader, setMostrarUploader] = useState(false);
   const [archivosUploader, setArchivosUploader] = useState([]);
   const [estadoSubida, setEstadoSubida] = useState({ activa: false, progreso: 0, total: 0 });
+  const [arrastrando, setArrastrando] = useState(false);
   const fileInputRef = useRef(null);
   const [procesandoIA, setProcesandoIA] = useState(false);
 
@@ -81,7 +81,6 @@ export default function AdminDashboard() {
     setCargando(false);
   };
 
-  // 🌟 FUNCIÓN PARA GUARDAR O ACTUALIZAR EL EVENTO (Restaurada)
   const guardarEvento = async (e) => {
     e.preventDefault();
     setCargando(true);
@@ -89,7 +88,6 @@ export default function AdminDashboard() {
     let finalLogoUrl = formData.logo_url;
 
     try {
-      // Subir Portada si hay una nueva
       if (portadaFile) {
         const fileExt = portadaFile.name.split('.').pop();
         const fileName = `${Date.now()}_portada.${fileExt}`;
@@ -98,7 +96,6 @@ export default function AdminDashboard() {
         finalPortadaUrl = `portadas/${fileName}`;
       }
 
-      // Subir Logo si hay uno nuevo
       if (logoFile) {
         const fileExt = logoFile.name.split('.').pop();
         const fileName = `${Date.now()}_logo.${fileExt}`;
@@ -110,19 +107,17 @@ export default function AdminDashboard() {
       const datosGuardar = { ...formData, portada_url: finalPortadaUrl, logo_url: finalLogoUrl };
 
       if (eventoEditandoId) {
-        // Actualizar
         const { error } = await supabase.from('eventos').update(datosGuardar).eq('id', eventoEditandoId);
         if (error) throw error;
         setMensaje({ tipo: 'exito', texto: 'Colección actualizada con éxito' });
       } else {
-        // Crear nuevo
         const { error } = await supabase.from('eventos').insert([datosGuardar]);
         if (error) throw error;
         setMensaje({ tipo: 'exito', texto: 'Colección creada con éxito' });
       }
 
       await cargarEventos();
-      setVista('grid'); // Volver a la lista
+      setVista('grid'); 
       setPortadaFile(null);
       setLogoFile(null);
       setFormData({ nombre: '', url_slug: '', tipo_reconocimiento: 'hibrido', password_cliente: '', fecha_evento: '', ubicacion: '', titulo_about: '', descripcion: '' });
@@ -168,6 +163,60 @@ export default function AdminDashboard() {
     setArchivosUploader(prev => [...prev, ...files]);
   };
 
+  // 🌟 MAGIA DE ARRASTRAR Y SOLTAR (Soporta Carpetas) 🌟
+  const prevenirDefault = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const procesarEntry = (entry, filesArray) => {
+    return new Promise((resolve) => {
+      if (entry.isFile) {
+        entry.file(file => {
+          if (file.type.startsWith('image/')) filesArray.push(file);
+          resolve();
+        });
+      } else if (entry.isDirectory) {
+        const dirReader = entry.createReader();
+        dirReader.readEntries(async (entries) => {
+          for (let i = 0; i < entries.length; i++) {
+            await procesarEntry(entries[i], filesArray);
+          }
+          resolve();
+        });
+      } else {
+        resolve();
+      }
+    });
+  };
+
+  const manejarDrop = async (e) => {
+    prevenirDefault(e);
+    setArrastrando(false);
+    
+    const items = e.dataTransfer.items;
+    let nuevosArchivos = [];
+
+    if (items) {
+      // Navegamos por las carpetas y archivos arrastrados
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        if (item.kind === 'file') {
+          const entry = item.webkitGetAsEntry();
+          if (entry) await procesarEntry(entry, nuevosArchivos);
+        }
+      }
+    } else {
+      // Fallback para navegadores antiguos
+      const files = Array.from(e.dataTransfer.files);
+      nuevosArchivos = files.filter(file => file.type.startsWith('image/'));
+    }
+    
+    if(nuevosArchivos.length > 0) {
+      setArchivosUploader(prev => [...prev, ...nuevosArchivos]);
+    }
+  };
+
   const iniciarSubidaMasiva = async () => {
     if (archivosUploader.length === 0 || !carpetaActiva) return;
     
@@ -204,7 +253,6 @@ export default function AdminDashboard() {
     setEstadoSubida({ activa: false, progreso: 0, total: 0 });
     setMostrarUploader(false);
 
-    // INICIAR MINIATURAS EN SEGUNDO PLANO
     setMensaje({ tipo: 'exito', texto: `${subidasExitosas} fotos subidas. Creando versiones web en segundo plano...` });
     try {
       await fetch(MODAL_API_URL, {
@@ -379,7 +427,6 @@ export default function AdminDashboard() {
             </div>
           )}
 
-          {/* 🌟 VISTA: FORMULARIO (RESTUARADA Y FUNCIONAL) */}
           {vista === 'form' && (
             <div style={{ maxWidth: 900, margin: '0 auto', padding: '40px 32px 80px' }}>
               <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
@@ -410,7 +457,6 @@ export default function AdminDashboard() {
                       <motion.div variants={accordionVariant} initial="hidden" animate="visible" exit="hidden">
                         <form onSubmit={guardarEvento} style={{ padding: '32px 40px' }}>
                           
-                          {/* IDENTIDAD */}
                           <h3 style={{ fontSize: 10, letterSpacing: '0.2em', textTransform: 'uppercase', color: TAUPE, marginBottom: 24, borderBottom: '1px solid rgba(0,0,0,0.06)', paddingBottom: 12 }}>Identidad Pública</h3>
                           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 32, marginBottom: 40 }}>
                             <div>
@@ -424,7 +470,6 @@ export default function AdminDashboard() {
                             </div>
                           </div>
 
-                          {/* LOGÍSTICA & ABOUT */}
                           <h3 style={{ fontSize: 10, letterSpacing: '0.2em', textTransform: 'uppercase', color: TAUPE, marginBottom: 24, borderBottom: '1px solid rgba(0,0,0,0.06)', paddingBottom: 12 }}>Logística y Narrativa</h3>
                           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 32, marginBottom: 24 }}>
                             <div>
@@ -446,10 +491,8 @@ export default function AdminDashboard() {
                             <textarea rows="4" value={formData.descripcion || ''} onChange={e => setFormData({...formData, descripcion: e.target.value})} placeholder="Historia del evento..." style={{ width: '100%', padding: '12px 16px', background: CREAM, border: 'none', borderRadius: 4, fontSize: 13, outline: 'none', color: INK, resize: 'none' }} />
                           </div>
 
-                          {/* IMÁGENES */}
                           <h3 style={{ fontSize: 10, letterSpacing: '0.2em', textTransform: 'uppercase', color: TAUPE, marginBottom: 24, borderBottom: '1px solid rgba(0,0,0,0.06)', paddingBottom: 12 }}>Dirección de Arte</h3>
                           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginBottom: 40 }}>
-                            {/* LOGO */}
                             <div style={{ padding: 20, border: `1px dashed ${BORDER}`, borderRadius: 6, textAlign: 'center', background: '#FAFAFA' }}>
                               {formData.logo_url && !logoFile ? (
                                 <img src={getUrlCompleta(formData.logo_url)} alt="Logo" style={{ width: '100%', height: 120, objectFit: 'contain', margin: '0 auto 12px', background: WHITE, borderRadius: 4 }} />
@@ -462,7 +505,6 @@ export default function AdminDashboard() {
                               <input type="file" accept="image/*" onChange={e => setLogoFile(e.target.files[0])} style={{ fontSize: 11, color: TAUPE, width: '100%' }} />
                             </div>
 
-                            {/* PORTADA */}
                             <div style={{ padding: 20, border: `1px dashed ${BORDER}`, borderRadius: 6, textAlign: 'center', background: '#FAFAFA' }}>
                               {formData.portada_url && !portadaFile ? (
                                 <img src={getUrlCompleta(formData.portada_url)} alt="Portada" style={{ width: '100%', height: 120, objectFit: 'cover', margin: '0 auto 12px', borderRadius: 4 }} />
@@ -476,7 +518,6 @@ export default function AdminDashboard() {
                             </div>
                           </div>
 
-                          {/* MOTORES Y SEGURIDAD */}
                           <h3 style={{ fontSize: 10, letterSpacing: '0.2em', textTransform: 'uppercase', color: TAUPE, marginBottom: 24, borderBottom: '1px solid rgba(0,0,0,0.06)', paddingBottom: 12 }}>Configuración de Software</h3>
                           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 32, marginBottom: 40 }}>
                             <div>
@@ -493,7 +534,6 @@ export default function AdminDashboard() {
                             </div>
                           </div>
 
-                          {/* BOTÓN GUARDAR */}
                           <button disabled={cargando} style={{ width: '100%', padding: 18, background: INK, color: WHITE, border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 12, letterSpacing: '0.1em', textTransform: 'uppercase', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, transition: 'background 0.3s' }}>
                             {cargando ? <><Loader2 size={16} className="animate-spin"/> Procesando...</> : <><CheckCircle size={16}/> {eventoEditandoId ? 'Guardar Cambios' : 'Crear Colección'}</>}
                           </button>
@@ -506,7 +546,6 @@ export default function AdminDashboard() {
             </div>
           )}
 
-          {/* VISTA: DASHBOARD DEL EVENTO */}
           {vista === 'dashboard' && eventoActivo && (
             <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
               
@@ -518,8 +557,6 @@ export default function AdminDashboard() {
                     <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: 11, margin: 0 }}>{eventoActivo.fecha_evento || 'Sin fecha'}</p>
                   </div>
                   <div style={{ display: 'flex', gap: 8 }}>
-                    
-                    {/* BOTÓN MANUAL DE IA */}
                     <button 
                       onClick={dispararInteligenciaArtificial} 
                       disabled={procesandoIA}
@@ -528,10 +565,7 @@ export default function AdminDashboard() {
                       {procesandoIA ? <Loader2 size={13} className="animate-spin" /> : <Star size={13} />} 
                       {procesandoIA ? 'Procesando IA...' : 'Ejecutar IA'}
                     </button>
-
                     <button onClick={() => window.open(`/g/${eventoActivo.url_slug || eventoActivo.id}`, '_blank')} style={{ background: 'rgba(255,255,255,0.15)', color: WHITE, border: 'none', padding: '8px 14px', borderRadius: 4, cursor: 'pointer', fontSize: 11, display: 'flex', alignItems: 'center', gap: 6 }}><Eye size={13} /> Ver</button>
-                    
-                    {/* 🌟 BOTÓN DE AJUSTES (Conectado a la vista 'form') */}
                     <button onClick={() => {
                       setEventoEditandoId(eventoActivo.id); 
                       setFormData(eventoActivo); 
@@ -582,9 +616,16 @@ export default function AdminDashboard() {
                             </div>
                           </div>
                         ) : (
-                          <div style={{ flex: 1, border: `2px dashed ${TAUPE}`, borderRadius: 8, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: WHITE }}>
-                            <UploadCloud size={40} color={TAUPE} style={{ marginBottom: 16 }} />
-                            <p style={{ fontSize: 14, color: INK, marginBottom: 8, fontWeight: 500 }}>Arrastra tus fotografías aquí</p>
+                          // 🌟 LA ZONA DE CAÍDA (DROPZONE) PROTEGIDA 🌟
+                          <div 
+                            onDrop={manejarDrop}
+                            onDragOver={(e) => { prevenirDefault(e); setArrastrando(true); }}
+                            onDragEnter={(e) => { prevenirDefault(e); setArrastrando(true); }}
+                            onDragLeave={(e) => { prevenirDefault(e); setArrastrando(false); }}
+                            style={{ flex: 1, border: `2px dashed ${arrastrando ? SAND : TAUPE}`, borderRadius: 8, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: arrastrando ? 'rgba(200, 185, 154, 0.05)' : WHITE, transition: 'all 0.2s' }}
+                          >
+                            <UploadCloud size={40} color={arrastrando ? SAND : TAUPE} style={{ marginBottom: 16 }} />
+                            <p style={{ fontSize: 14, color: INK, marginBottom: 8, fontWeight: 500 }}>{arrastrando ? '¡Suelta para añadir!' : 'Arrastra tus fotografías o carpetas aquí'}</p>
                             <input type="file" multiple accept="image/*" ref={fileInputRef} onChange={manejarSeleccionArchivos} style={{ display: 'none' }} />
                             <button onClick={() => fileInputRef.current?.click()} style={{ padding: '10px 24px', background: WHITE, border: `1px solid ${BORDER}`, borderRadius: 4, fontSize: 12, cursor: 'pointer' }}>Explorar Archivos</button>
                             

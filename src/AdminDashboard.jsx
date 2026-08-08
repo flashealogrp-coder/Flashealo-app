@@ -17,7 +17,7 @@ const WHITE  = '#FFFFFF';
 const BORDER = 'rgba(0,0,0,0.06)';
 
 const DOMINIO_R2 = import.meta.env.VITE_R2_DOMINIO || 'https://pub-c4c062c3f8754b2d9ff6de40e9d6d713.r2.dev'; 
-const MODAL_API_URL = "https://flashealogrp-coder--flashealo-sport-ia-procesar-fotografias.modal.run";
+const MODAL_API_URL = "https://flashealogrp-coder--flashealo-ia-produccion-webhook-react.modal.run";
 
 const getUrlCompleta = (ruta) => {
   if (!ruta) return null;

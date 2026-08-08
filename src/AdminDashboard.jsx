@@ -5,7 +5,7 @@ import {
   Loader2, Plus, Calendar, Settings, Image as ImageIcon, Trash2, CheckCircle, 
   Lock, Unlock, Grid, Folder, Star, Home, ChevronRight, ArrowLeft, 
   FolderInput, CheckCircle2, ChevronLeft, ChevronRight as ChevronRightIcon, 
-  Eye, Heart, Maximize2, X, PanelLeftClose, PanelLeft, UploadCloud, ChevronDown, ChevronUp, MapPin
+  Eye, Heart, Maximize2, X, PanelLeftClose, PanelLeft, UploadCloud, ChevronDown, ChevronUp, MapPin, AlertTriangle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -49,6 +49,10 @@ export default function AdminDashboard() {
   const [seccionAbierta, setSeccionAbierta] = useState('datos');
   const [portadaFile, setPortadaFile] = useState(null);
   const [logoFile, setLogoFile] = useState(null);
+
+  // 🚨 NUEVOS ESTADOS: ZONA DE PELIGRO (BORRAR COLECCIÓN)
+  const [mostrarConfirmacionBorrar, setMostrarConfirmacionBorrar] = useState(false);
+  const [textoConfirmacion, setTextoConfirmacion] = useState('');
 
   const [eventoActivo, setEventoActivo] = useState(null);
   const [carpetas, setCarpetas] = useState([]);
@@ -129,6 +133,34 @@ export default function AdminDashboard() {
     setCargando(false);
   };
 
+  // 🚨 FUNCIÓN PARA ELIMINAR COLECCIÓN COMPLETA
+  const eliminarColeccionCompleta = async () => {
+    if (textoConfirmacion !== formData.nombre) return;
+    
+    setCargando(true);
+    try {
+      // PROXIMO PASO ARQUITECTÓNICO: 
+      // Aquí enviaremos un Webhook a Modal para que vaya a Cloudflare R2 y borre 
+      // físicamente la carpeta del evento para no dejar archivos huérfanos.
+
+      // Por ahora, borramos el evento de Supabase (Asegúrate de que en Supabase la tabla 'fotografias' tenga la clave foránea configurada como ON DELETE CASCADE)
+      const { error } = await supabase.from('eventos').delete().eq('id', eventoEditandoId);
+      if (error) throw error;
+
+      setMensaje({ tipo: 'exito', texto: 'Colección eliminada permanentemente.' });
+      setVista('grid');
+      setEventoEditandoId(null);
+      setMostrarConfirmacionBorrar(false);
+      setTextoConfirmacion('');
+      await cargarEventos();
+
+    } catch (error) {
+      console.error(error);
+      setMensaje({ tipo: 'error', texto: 'Error al eliminar la colección.' });
+    }
+    setCargando(false);
+  };
+
   const entrarAlEvento = async (ev) => {
     setEventoActivo(ev);
     setFotosSeleccionadas([]);
@@ -163,7 +195,6 @@ export default function AdminDashboard() {
     setArchivosUploader(prev => [...prev, ...files]);
   };
 
-  // 🌟 MAGIA DE ARRASTRAR Y SOLTAR (Soporta Carpetas) 🌟
   const prevenirDefault = (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -198,7 +229,6 @@ export default function AdminDashboard() {
     let nuevosArchivos = [];
 
     if (items) {
-      // Navegamos por las carpetas y archivos arrastrados
       for (let i = 0; i < items.length; i++) {
         const item = items[i];
         if (item.kind === 'file') {
@@ -207,7 +237,6 @@ export default function AdminDashboard() {
         }
       }
     } else {
-      // Fallback para navegadores antiguos
       const files = Array.from(e.dataTransfer.files);
       nuevosArchivos = files.filter(file => file.type.startsWith('image/'));
     }
@@ -427,6 +456,9 @@ export default function AdminDashboard() {
             </div>
           )}
 
+          {/* ========================================================
+              VISTA DE FORMULARIO (AJUSTES / NUEVA COLECCIÓN) 
+              ======================================================== */}
           {vista === 'form' && (
             <div style={{ maxWidth: 900, margin: '0 auto', padding: '40px 32px 80px' }}>
               <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
@@ -542,6 +574,54 @@ export default function AdminDashboard() {
                     )}
                   </AnimatePresence>
                 </div>
+
+                {/* 🚨 ZONA DE PELIGRO: SOLO VISIBLE AL EDITAR UN EVENTO 🚨 */}
+                {eventoEditandoId && (
+                  <div style={{ marginTop: 40, background: '#FDEDEC', border: '1px solid #F5B7B1', borderRadius: 8, padding: 32 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+                      <AlertTriangle size={20} color="#E74C3C" />
+                      <h3 style={{ margin: 0, color: '#E74C3C', fontSize: 16 }}>Zona de Peligro</h3>
+                    </div>
+                    <p style={{ fontSize: 13, color: '#C0392B', marginBottom: 24, lineHeight: 1.5 }}>
+                      Al eliminar esta colección, se borrarán todos los datos y fotografías asociadas en la base de datos de Supabase. Esta acción no se puede deshacer.
+                    </p>
+                    
+                    {!mostrarConfirmacionBorrar ? (
+                      <button 
+                        onClick={() => setMostrarConfirmacionBorrar(true)}
+                        style={{ background: 'transparent', border: '1px solid #E74C3C', color: '#E74C3C', padding: '10px 20px', borderRadius: 4, cursor: 'pointer', fontSize: 12, fontWeight: 600 }}
+                      >
+                        Eliminar Colección
+                      </button>
+                    ) : (
+                      <div style={{ background: WHITE, padding: 20, borderRadius: 6, border: '1px solid #F5B7B1' }}>
+                        <p style={{ fontSize: 12, color: INK, marginBottom: 12 }}>Por seguridad, escribe el nombre de la colección (<strong>{formData.nombre}</strong>) para confirmar:</p>
+                        <input 
+                          type="text" 
+                          value={textoConfirmacion} 
+                          onChange={(e) => setTextoConfirmacion(e.target.value)}
+                          placeholder="Nombre de la colección..."
+                          style={{ width: '100%', padding: 12, background: CREAM, border: 'none', borderRadius: 4, marginBottom: 16, outline: 'none' }}
+                        />
+                        <div style={{ display: 'flex', gap: 12 }}>
+                          <button 
+                            onClick={eliminarColeccionCompleta}
+                            disabled={textoConfirmacion !== formData.nombre || cargando}
+                            style={{ background: '#E74C3C', color: WHITE, border: 'none', padding: '10px 20px', borderRadius: 4, cursor: (textoConfirmacion === formData.nombre && !cargando) ? 'pointer' : 'not-allowed', fontSize: 12, fontWeight: 600, opacity: textoConfirmacion === formData.nombre ? 1 : 0.5 }}
+                          >
+                            Sí, eliminar permanentemente
+                          </button>
+                          <button 
+                            onClick={() => { setMostrarConfirmacionBorrar(false); setTextoConfirmacion(''); }}
+                            style={{ background: 'transparent', border: 'none', color: TAUPE, cursor: 'pointer', fontSize: 12 }}
+                          >
+                            Cancelar
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </motion.div>
             </div>
           )}
@@ -616,7 +696,6 @@ export default function AdminDashboard() {
                             </div>
                           </div>
                         ) : (
-                          // 🌟 LA ZONA DE CAÍDA (DROPZONE) PROTEGIDA 🌟
                           <div 
                             onDrop={manejarDrop}
                             onDragOver={(e) => { prevenirDefault(e); setArrastrando(true); }}

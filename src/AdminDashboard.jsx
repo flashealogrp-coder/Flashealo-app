@@ -49,11 +49,15 @@ const fotoUrlAux = (path, esWatermark = true) => {
   return `${DOMINIO_R2}/${ruta}`;
 };
 
-// 🌟 FUNCIÓN ANTIBALAS PARA COORDENADAS
+// 🌟 ESCUDO ANTI-CRASH PARA BBOX (Soporta errores de formato de Python) 🌟
 const getBboxCoords = (bbox) => {
   if (!bbox) return null;
   try {
-    let parsed = typeof bbox === 'string' ? JSON.parse(bbox) : bbox;
+    let parsed = bbox;
+    if (typeof bbox === 'string') {
+      const jsonString = bbox.replace(/'/g, '"');
+      parsed = JSON.parse(jsonString);
+    }
     if (Array.isArray(parsed) && parsed.length >= 4) {
       return { x: parsed[0], y: parsed[1], w: parsed[2], h: parsed[3] };
     }
@@ -65,24 +69,19 @@ const getBboxCoords = (bbox) => {
   return null;
 };
 
-// 🌟 MAGIA: EXPANDE EL CUADRO DE LA CARA PARA ABARCAR EL CUERPO
+// 🌟 MAGIA: Expande el cuadro del rostro para capturar el cuerpo 🌟
 const expandBbox = (originalBox) => {
   if (!originalBox) return null;
-  
-  // Expandimos 2.5x el ancho y 4x el alto (hacia abajo para agarrar el cuerpo)
-  let nw = originalBox.w * 2.5;
-  let nh = originalBox.h * 4.0;
-  
-  // Centramos el ancho, y subimos solo un poquito para el cabello
+  let nw = originalBox.w * 2.2; 
+  let nh = originalBox.h * 3.8; 
   let nx = originalBox.x - (nw - originalBox.w) / 2;
-  let ny = originalBox.y - (originalBox.h * 0.5); 
-
-  // Limitadores para no salirnos del 100% de la foto
+  let ny = originalBox.y - (originalBox.h * 0.4); 
+  
   nx = Math.max(0, nx);
   ny = Math.max(0, ny);
   if (nx + nw > 100) nw = 100 - nx;
   if (ny + nh > 100) nh = 100 - ny;
-
+  
   return { x: nx, y: ny, w: nw, h: nh };
 };
 
@@ -587,7 +586,7 @@ export default function AdminDashboard() {
             </div>
           )}
 
-          {/* VISTA 2: FORMULARIO DE EDICIÓN / CREACIÓN */}
+          {/* VISTA FORMULARIO (AJUSTES) */}
           {vista === 'form' && (
             <div style={{ maxWidth: 900, margin: '0 auto', padding: '40px 32px 80px' }}>
               <h1 className="text-3xl font-serif mb-8 text-[#1C1C1C]">Ajustes del Evento</h1>
@@ -625,11 +624,10 @@ export default function AdminDashboard() {
             </div>
           )}
 
-          {/* VISTA 3: DASHBOARD DEL EVENTO ACTIVO */}
+          {/* VISTA DASHBOARD (EVENTO ACTIVO) */}
           {vista === 'dashboard' && eventoActivo && (
             <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
               
-              {/* BANNER SUPERIOR DEL EVENTO */}
               <div style={{ height: 180, position: 'relative', background: INK, display: 'flex', alignItems: 'flex-end', padding: '0 32px 24px', flexShrink: 0 }}>
                 <img src={getUrlCompleta(eventoActivo.portada_url) || "https://images.unsplash.com/photo-1541534741688?w=1200"} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.4 }} />
                 <div style={{ position: 'relative', zIndex: 10, width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
@@ -649,10 +647,7 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              {/* PANEL INFERIOR (SIDEBAR LATERAL + DERECHA) */}
               <div style={{ display: 'flex', flex: 1, minHeight: 450 }}>
-                
-                {/* 🌟 BARRA LATERAL DEL EVENTO 🌟 */}
                 <div style={{ width: 240, background: WHITE, borderRight: `1px solid ${BORDER}`, padding: '20px 0', flexShrink: 0, display: 'flex', flexDirection: 'column' }}>
                   
                   <div className="mb-6">
@@ -684,7 +679,7 @@ export default function AdminDashboard() {
 
                     <button 
                       onClick={() => setSeccionDashboard('ia')} 
-                      className={`w-full flex items-center justify-between px-4 py-3 transition-colors text-left border-l-[3px] ${seccionDashboard === 'ia' ? 'bg-[#F5F5F5] border-black font-semibold' : 'border-transparent text-gray-700 hover:bg-gray-50'}`}
+                      className={`w-full flex items-center justify-between px-4 py-3 transition-colors text-left border-l-3 ${seccionDashboard === 'ia' ? 'bg-[#F5F5F5] border-black font-semibold' : 'border-transparent text-gray-700 hover:bg-gray-50'}`}
                     >
                       <div className="flex items-center gap-2.5">
                         <ScanFace size={16} className={seccionDashboard === 'ia' ? 'text-black' : 'text-gray-400'} />
@@ -695,10 +690,8 @@ export default function AdminDashboard() {
                   </div>
                 </div>
 
-                {/* 🌟 PANTALLA DE LA DERECHA (CAMBIA SEGÚN LA SECCIÓN SELECCIONADA) 🌟 */}
                 <div style={{ flex: 1, padding: seccionDashboard === 'ia' ? 0 : 28, background: seccionDashboard === 'ia' ? '#FAFAFA' : '#FAFAFA', position: 'relative', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
                   
-                  {/* CASO A: MODO FOTOS (VER CARPETAS Y SUBIR IMÁGENES) */}
                   {seccionDashboard === 'fotos' && (
                     <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
                       <AnimatePresence>
@@ -807,7 +800,6 @@ export default function AdminDashboard() {
                   {seccionDashboard === 'ia' && (
                     <div className="flex-1 flex flex-col h-full bg-[#FAFAFA] overflow-hidden">
                       
-                      {/* HEADER DERECHO DE IA */}
                       <div className="p-8 border-b border-[#EAEAEA] flex items-center justify-between bg-white shrink-0">
                         <div>
                           <h2 className="text-2xl font-serif text-[#1C1C1C] m-0">Motor de Inteligencia Artificial</h2>
@@ -1007,40 +999,42 @@ export default function AdminDashboard() {
                                 <div className="flex flex-col md:flex-row gap-8 bg-white p-6 border border-[#EAEAEA] rounded-sm shadow-sm max-w-5xl mx-auto">
                                   <div className="w-full md:w-1/2 flex flex-col items-center">
                                     
-                                    {/* 🌟 EL EFECTO SNIPER MEJORADO Y A PRUEBA DE FALLOS 🌟 */}
+                                    {/* 🌟 EL EFECTO SNIPER Y BBOX CON CLIP-PATH 🌟 */}
                                     <div className="w-full bg-[#FAFAFA] border border-[#EAEAEA] rounded-sm mb-4 flex items-center justify-center p-4 min-h-[300px]">
                                       <div className="relative inline-block leading-none max-w-full shadow-md overflow-hidden">
                                         
                                         {(() => {
                                           const rawBox = getBboxCoords(fotoDudosa.bbox);
                                           
-                                          // Si la base de datos SÍ tiene coordenadas (IA nueva)
                                           if (rawBox) {
-                                            const box = expandBbox(rawBox); // Magia que agranda el cuadro al cuerpo
-
+                                            const box = expandBbox(rawBox);
+                                            // Calcula los bordes para recortar la imagen (Clip Path)
+                                            const insetTop = box.y;
+                                            const insetRight = 100 - (box.x + box.w);
+                                            const insetBottom = 100 - (box.y + box.h);
+                                            const insetLeft = box.x;
+                                            
                                             return (
                                               <>
-                                                {/* Capa base con Blur */}
-                                                <img src={fotoUrlAux(fotoDudosa.photo_url, true)} className="max-h-[50vh] w-auto max-w-full block opacity-60 blur-sm" alt="Contexto"/>
+                                                {/* Capa Base: Fondo borroso */}
+                                                <img src={fotoUrlAux(fotoDudosa.photo_url, true)} className="max-h-[50vh] w-auto max-w-full block opacity-50 blur-[3px]" alt="Contexto"/>
                                                 
-                                                {/* Capa Sniper (El cuadro nítido) */}
-                                                <div className="absolute border-[2px] border-[#E74C3C] shadow-[0_0_0_9999px_rgba(0,0,0,0.5)] z-10 overflow-hidden" 
+                                                {/* Capa Media: Recorte Nítido Exacto */}
+                                                <img src={fotoUrlAux(fotoDudosa.photo_url, true)} 
+                                                     className="absolute inset-0 max-h-[50vh] w-auto max-w-full block" 
+                                                     style={{ clipPath: `inset(${insetTop}% ${insetRight}% ${insetBottom}% ${insetLeft}%)` }} 
+                                                     alt="Rostro"/>
+                                                
+                                                {/* Capa Superior: Cuadro Rojo y Etiqueta */}
+                                                <div className="absolute border-[2px] border-[#E74C3C] shadow-[0_0_15px_rgba(0,0,0,0.4)] z-10 pointer-events-none" 
                                                      style={{ left: `${box.x}%`, top: `${box.y}%`, width: `${box.w}%`, height: `${box.h}%` }}>
-                                                  <img src={fotoUrlAux(fotoDudosa.photo_url, true)} className="absolute max-w-none block" 
-                                                       style={{ 
-                                                         left: `-${(box.x / box.w) * 100}%`, 
-                                                         top: `-${(box.y / box.h) * 100}%`, 
-                                                         width: `${(100 / box.w) * 100}%` 
-                                                       }} alt="Rostro"/>
-                                                  
-                                                  <div className="absolute top-1 left-1 bg-[#E74C3C] text-white text-[8px] uppercase tracking-widest font-bold px-1.5 py-0.5 rounded-sm">
+                                                  <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-[#E74C3C] text-white text-[9px] uppercase tracking-widest font-bold px-2 py-0.5 rounded-sm whitespace-nowrap">
                                                     ¿Quién es?
                                                   </div>
                                                 </div>
                                               </>
                                             );
                                           } else {
-                                            // FALLBACK: Si es un registro viejo sin coordenadas, mostramos la foto normal sin blur
                                             return (
                                               <>
                                                 <img src={fotoUrlAux(fotoDudosa.photo_url, true)} className="max-h-[50vh] w-auto max-w-full block" alt="Contexto"/>
@@ -1115,7 +1109,7 @@ export default function AdminDashboard() {
             )}
           </AnimatePresence>
 
-          {/* 🌟 LUPA MÁGICA DE DETECCIONES DE IA 🌟 */}
+          {/* LUPA MÁGICA DE DETECCIONES DE IA */}
           <AnimatePresence>
             {zoomCara && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm" onClick={() => setZoomCara(null)}>
@@ -1126,7 +1120,7 @@ export default function AdminDashboard() {
                     {(() => {
                       const rawBox = getBboxCoords(zoomCara.bbox);
                       if (rawBox) {
-                        const box = expandBbox(rawBox); // También expande el cuadro al darle clic para inspeccionar
+                        const box = expandBbox(rawBox);
                         return <div className="absolute border-[3px] border-[#C8B99A] z-10 shadow-[0_0_0_9999px_rgba(0,0,0,0.75)] transition-all pointer-events-none" style={{ left: `${box.x}%`, top: `${box.y}%`, width: `${box.w}%`, height: `${box.h}%` }} />;
                       }
                       return null;

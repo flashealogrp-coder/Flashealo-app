@@ -28,7 +28,6 @@ const getUrlCompleta = (ruta) => {
   return `${DOMINIO_R2}/${ruta}`;
 };
 
-// 🌟 RENDERIZADORES DE PORTADA CENTRADOS POR DEFECTO 🌟
 const renderCoverUrl = (urlStr) => {
   if (!urlStr) return null;
   const [rawUrl] = urlStr.split('@');
@@ -36,7 +35,7 @@ const renderCoverUrl = (urlStr) => {
 };
 
 const renderCoverPosition = (urlStr) => {
-  if (!urlStr || !urlStr.includes('@')) return '50% 50%'; // 🌟 Centrado perfecto por defecto
+  if (!urlStr || !urlStr.includes('@')) return '50% 50%'; 
   const [, pos] = urlStr.split('@');
   return `${pos.split(',')[0]}% ${pos.split(',')[1]}%`;
 };
@@ -202,6 +201,22 @@ export default function AdminDashboard() {
       return () => clearTimeout(timer); 
     }
   }, [mensaje]);
+
+  // 🌟 FIX DEL SCROLL PEGADIZO: Escucha global al soltar el mouse 🌟
+  useEffect(() => {
+    const handleGlobalPointerUp = () => {
+      setIsDraggingPortada(false);
+      dragStart.current = null;
+    };
+    if (isDraggingPortada) {
+      window.addEventListener('pointerup', handleGlobalPointerUp);
+      window.addEventListener('pointercancel', handleGlobalPointerUp);
+      return () => {
+        window.removeEventListener('pointerup', handleGlobalPointerUp);
+        window.removeEventListener('pointercancel', handleGlobalPointerUp);
+      };
+    }
+  }, [isDraggingPortada]);
 
   const iniciarSesion = async (e) => {
     e.preventDefault(); setCargandoLogin(true);
@@ -477,14 +492,10 @@ export default function AdminDashboard() {
     setMensaje({ tipo: 'exito', texto: `Fotografías movidas correctamente.` });
   };
 
-  // 🌟 GUARDAR LA PORTADA CON ENCUADRE DE LA LUPA 🌟
   const hacerPortada = async (url) => {
     await supabase.from('eventos').update({ portada_url: url }).eq('id', eventoActivo.id);
     setEventoActivo(prev => ({ ...prev, portada_url: url }));
-    
-    // Actualizamos la lista de eventos principal para que el Grid también refleje el nuevo recorte
     setListaEventos(prev => prev.map(ev => ev.id === eventoActivo.id ? { ...ev, portada_url: url } : ev));
-    
     setMensaje({ tipo: 'exito', texto: 'Portada actualizada con su nuevo encuadre.' });
   };
 
@@ -496,7 +507,6 @@ export default function AdminDashboard() {
     }
   };
 
-  // 🌟 EVENTOS DE ARRASTRE PARA EL CROPPER (ANTI-STICKY FIX) 🌟
   const handlePointerDown = (e) => {
     setIsDraggingPortada(true);
     dragStart.current = { x: e.clientX, y: e.clientY };
@@ -510,17 +520,9 @@ export default function AdminDashboard() {
     dragStart.current = { x: e.clientX, y: e.clientY };
 
     setPortadaPos(prev => ({
-      x: Math.min(100, Math.max(0, prev.x - (dx * 0.2))),
-      y: Math.min(100, Math.max(0, prev.y - (dy * 0.2)))
+      x: Math.min(100, Math.max(0, prev.x - (dx * 0.15))),
+      y: Math.min(100, Math.max(0, prev.y - (dy * 0.15)))
     }));
-  };
-
-  const handlePointerUp = (e) => {
-    setIsDraggingPortada(false);
-    dragStart.current = null;
-    if (e.target.hasPointerCapture(e.pointerId)) {
-      e.target.releasePointerCapture(e.pointerId);
-    }
   };
 
   if (cargandoLogin) return <div className="h-screen w-full flex items-center justify-center bg-[#FDFCF8]"><Loader2 className="animate-spin text-[#9A8F82]" size={32}/></div>;
@@ -545,7 +547,6 @@ export default function AdminDashboard() {
   return (
     <div style={{ display: 'flex', height: '100vh', background: CREAM, color: INK, fontFamily: 'system-ui, sans-serif', overflow: 'hidden' }}>
       
-      {/* ─── BARRA LATERAL PRINCIPAL ─── */}
       <aside style={{ width: sidebarOpen ? 240 : 64, background: WHITE, borderRight: `1px solid ${BORDER}`, display: 'flex', flexDirection: 'column', zIndex: 50, flexShrink: 0, transition: 'width 0.25s ease' }}>
         <div style={{ padding: sidebarOpen ? '0 16px 0 20px' : '0', height: 64, display: 'flex', alignItems: 'center', justifyContent: sidebarOpen ? 'space-between' : 'center', borderBottom: `1px solid ${BORDER}`, overflow: 'hidden' }}>
           {sidebarOpen ? (
@@ -573,10 +574,8 @@ export default function AdminDashboard() {
         </div>
       </aside>
 
-      {/* ─── ÁREA DE CONTENIDO ─── */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden' }}>
         
-        {/* CABECERA GLOBAL SUPERIOR */}
         <header style={{ height: vista === 'dashboard' ? 48 : 64, flexShrink: 0, background: WHITE, borderBottom: `1px solid ${BORDER}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 24px', zIndex: 40, transition: 'height 0.3s ease' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             {(vista === 'form' || vista === 'dashboard') && (
@@ -594,7 +593,6 @@ export default function AdminDashboard() {
           </AnimatePresence>
         </header>
 
-        {/* CONTENEDOR CON SCROLL GLOBAL */}
         <main onScroll={handleMainScroll} style={{ flex: 1, overflowY: 'auto', background: '#FAFAFA' }} className="custom-scrollbar">
           
           {vista === 'grid' && (
@@ -639,7 +637,6 @@ export default function AdminDashboard() {
             </div>
           )}
 
-          {/* VISTA 2: FORMULARIO DE EDICIÓN / CREACIÓN */}
           {vista === 'form' && (
             <div style={{ maxWidth: 900, margin: '0 auto', padding: '40px 32px 80px' }}>
               <h1 className="text-3xl font-serif mb-8 text-[#1C1C1C]">Ajustes del Evento</h1>
@@ -677,37 +674,31 @@ export default function AdminDashboard() {
             </div>
           )}
 
-          {/* VISTA 3: DASHBOARD DEL EVENTO ACTIVO */}
           {vista === 'dashboard' && eventoActivo && (
             <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
               
-              {/* BANNER SUPERIOR DEL EVENTO */}
-              <div style={{ height: 180, position: 'relative', background: INK, display: 'flex', alignItems: 'flex-end', padding: '0 32px 24px', flexShrink: 0 }}>
+              <div style={{ height: 220, position: 'relative', background: INK, display: 'flex', alignItems: 'center', padding: '0 40px', flexShrink: 0 }}>
                 <img src={renderCoverUrl(eventoActivo.portada_url) || "https://images.unsplash.com/photo-1541534741688?w=1200"} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: renderCoverPosition(eventoActivo.portada_url), opacity: 0.4 }} />
-                <div style={{ position: 'relative', zIndex: 10, width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+                <div style={{ position: 'relative', zIndex: 10, width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div>
-                    <h1 style={{ fontSize: 28, fontFamily: 'Georgia, serif', color: WHITE, margin: '0 0 4px 0' }}>{eventoActivo.nombre}</h1>
-                    <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: 11, margin: 0 }}>{eventoActivo.fecha_evento || 'Sin fecha'}</p>
+                    <h1 style={{ fontSize: 32, fontFamily: 'Georgia, serif', color: WHITE, margin: '0 0 8px 0', textShadow: '0 2px 10px rgba(0,0,0,0.5)' }}>{eventoActivo.nombre}</h1>
+                    <p style={{ color: 'rgba(255,255,255,0.9)', fontSize: 12, margin: 0, textTransform: 'uppercase', letterSpacing: '0.1em' }}>{eventoActivo.fecha_evento || 'Sin fecha'}</p>
                   </div>
                   <div style={{ display: 'flex', gap: 8 }}>
-                    <button onClick={copiarEnlacePublico} style={{ background: SAND, color: INK, border: 'none', padding: '8px 14px', borderRadius: 4, cursor: 'pointer', fontSize: 11, display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600 }}>
+                    <button onClick={copiarEnlacePublico} style={{ background: SAND, color: INK, border: 'none', padding: '10px 18px', borderRadius: 4, cursor: 'pointer', fontSize: 11, display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600 }}>
                       <Share2 size={13} /> Copiar Enlace
                     </button>
-                    <button onClick={() => window.open(`/g/${eventoActivo.url_slug || eventoActivo.id}`, '_blank')} style={{ background: 'rgba(255,255,255,0.15)', color: WHITE, border: 'none', padding: '8px 14px', borderRadius: 4, cursor: 'pointer', fontSize: 11, display: 'flex', alignItems: 'center', gap: 6 }}><Eye size={13} /> Ver Público</button>
+                    <button onClick={() => window.open(`/g/${eventoActivo.url_slug || eventoActivo.id}`, '_blank')} style={{ background: 'rgba(255,255,255,0.15)', color: WHITE, border: 'none', padding: '10px 18px', borderRadius: 4, cursor: 'pointer', fontSize: 11, display: 'flex', alignItems: 'center', gap: 6 }}><Eye size={13} /> Ver Público</button>
                     <button onClick={() => {
                       setEventoEditandoId(eventoActivo.id); setFormData(eventoActivo); setVista('form');
-                    }} style={{ background: WHITE, color: INK, border: 'none', padding: '8px 14px', borderRadius: 4, cursor: 'pointer', fontSize: 11, display: 'flex', alignItems: 'center', gap: 6, fontWeight: 500 }}><Settings size={13} /> Ajustes</button>
+                    }} style={{ background: WHITE, color: INK, border: 'none', padding: '10px 18px', borderRadius: 4, cursor: 'pointer', fontSize: 11, display: 'flex', alignItems: 'center', gap: 6, fontWeight: 500 }}><Settings size={13} /> Ajustes</button>
                   </div>
                 </div>
               </div>
 
-              {/* PANEL INFERIOR (SIDEBAR LATERAL + DERECHA) */}
               <div style={{ display: 'flex', alignItems: 'flex-start', flex: 1 }}>
-                
-                {/* BARRA LATERAL DEL EVENTO (STICKY NATIVA) */}
                 <div style={{ width: 240, background: WHITE, borderRight: `1px solid ${BORDER}`, flexShrink: 0, position: 'sticky', top: 0, height: 'calc(100vh - 64px)', display: 'flex', flexDirection: 'column' }}>
                   
-                  {/* CUADRO MAGICO DE LA PORTADA AL HACER SCROLL */}
                   <div style={{ height: scrolledPastBanner ? 240 : 0, opacity: scrolledPastBanner ? 1 : 0, overflow: 'hidden', transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', flexShrink: 0 }}>
                     <img src={renderCoverUrl(eventoActivo.portada_url)} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: renderCoverPosition(eventoActivo.portada_url) }} />
                   </div>
@@ -753,13 +744,10 @@ export default function AdminDashboard() {
                   </div>
                 </div>
 
-                {/* AREA DERECHA (LA QUE DEJAMOS SCROLLEAR NORMALMENTE) */}
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 'calc(100vh - 64px)' }}>
                   
-                  {/* CASO A: MODO FOTOS */}
                   {seccionDashboard === 'fotos' && (
                     <>
-                      {/* HEADER STICKY (HIGHLIGHTS) */}
                       <div style={{ position: 'sticky', top: 0, zIndex: 40, background: '#FAFAFA', padding: '20px 28px', borderBottom: `1px solid ${BORDER}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: scrolledPastBanner ? '0 4px 20px rgba(0,0,0,0.03)' : 'none', transition: 'box-shadow 0.3s' }}>
                         <h2 style={{ fontSize: 18, margin: 0, fontWeight: 500 }}>{carpetaActiva?.nombre}</h2>
                         <button onClick={() => setMostrarUploader(true)} style={{ background: INK, color: WHITE, border: 'none', padding: '9px 18px', borderRadius: 4, cursor: 'pointer', fontSize: 12, fontWeight: 500, display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -767,7 +755,6 @@ export default function AdminDashboard() {
                         </button>
                       </div>
 
-                      {/* AREA DE UPLOAD / FOTOS */}
                       <div style={{ padding: 28, flex: 1, position: 'relative' }}>
                         <AnimatePresence>
                           {mostrarUploader && (
@@ -864,10 +851,10 @@ export default function AdminDashboard() {
                     </>
                   )}
 
-                  {/* 🌟 CASO B: MODO MOTOR IA 🌟 */}
+                  {/* CASO B: MODO MOTOR IA */}
                   {seccionDashboard === 'ia' && (
-                    <>
-                      {/* HEADER STICKY (MOTOR IA) */}
+                    <div className="flex-1 flex flex-col relative h-full">
+                      
                       <div style={{ position: 'sticky', top: 0, zIndex: 40, background: '#FAFAFA', padding: '20px 28px', borderBottom: `1px solid ${BORDER}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: scrolledPastBanner ? '0 4px 20px rgba(0,0,0,0.03)' : 'none', transition: 'box-shadow 0.3s' }}>
                         <div>
                           <h2 className="text-xl font-serif text-[#1C1C1C] m-0">Centro de Control IA</h2>
@@ -882,8 +869,7 @@ export default function AdminDashboard() {
                         </button>
                       </div>
 
-                      <div className="p-8 flex-1 flex flex-col relative">
-                        {/* RESUMEN ESTADÍSTICO */}
+                      <div className="p-8 flex-1 flex flex-col">
                         {iaEjecutada ? (
                           <div className="flex gap-4 mb-6">
                             {eventoActivo.tipo_reconocimiento !== 'ocr' && (
@@ -917,7 +903,6 @@ export default function AdminDashboard() {
                           </div>
                         )}
 
-                        {/* SUB-TABS (Sticky) */}
                         {iaEjecutada && (
                           <div className="flex border-b border-[#EAEAEA] mb-6">
                             {eventoActivo.tipo_reconocimiento !== 'ocr' && (
@@ -939,14 +924,12 @@ export default function AdminDashboard() {
                           </div>
                         )}
 
-                        {/* SUB-CONTENIDOS DE IA */}
                         {iaEjecutada && (
                           <div className="flex-1 pb-8">
                             
                             {/* 1. IDENTIDADES */}
                             {subTabIA === 'identidades' && (
                               <div className="flex gap-8 items-start">
-                                {/* 🌟 LISTA IZQUIERDA COMPACTA Y STICKY 🌟 */}
                                 <div className="w-64 shrink-0 bg-white border border-[#EAEAEA] rounded-sm p-2 sticky top-[100px] max-h-[calc(100vh-140px)] overflow-y-auto custom-scrollbar shadow-sm">
                                   {listaJugadores.length === 0 ? <p className="text-xs text-[#9A8F82] p-4 text-center">No hay identidades.</p> : 
                                     listaJugadores.map(j => (
@@ -999,7 +982,7 @@ export default function AdminDashboard() {
                                         </div>
                                       )}
 
-                                      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
+                                      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 pb-8">
                                         {fotosDelJugador.map((foto, idx) => (
                                           <div key={idx} className="aspect-square bg-[#EAEAEA] relative group overflow-hidden cursor-zoom-in rounded-sm" onClick={() => setZoomCara({ photo_url: foto.photo_url, bbox: foto.detecciones[0]?.bbox })}>
                                             <img src={fotoUrlAux(foto.photo_url, true)} className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity" alt="" />
@@ -1040,7 +1023,7 @@ export default function AdminDashboard() {
                                         <Hash size={20} className="text-[#9A8F82]"/>
                                         <input type="text" value={dorsalTemporal} onChange={e=>setDorsalTemporal(e.target.value)} onBlur={guardarDorsalGlobal} className="text-3xl font-serif bg-transparent text-[#1C1C1C] outline-none uppercase w-full" placeholder="NÚMERO" />
                                       </div>
-                                      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
+                                      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 pb-8">
                                         {fotosDelCorredor.map((f, idx) => (
                                           <div key={idx} className="aspect-square bg-[#EAEAEA] relative cursor-zoom-in rounded-sm overflow-hidden" onClick={() => setZoomCara({ photo_url: f.photo_url, bbox: f.bbox })}>
                                             <img src={fotoUrlAux(f.photo_url, true)} className="w-full h-full object-cover" alt="" />
@@ -1064,33 +1047,38 @@ export default function AdminDashboard() {
                                     <p className="text-xs text-[#9A8F82] uppercase tracking-widest mt-2">No hay rostros huérfanos pendientes.</p>
                                   </div>
                                 ) : (
-                                  <div className="flex flex-col md:flex-row gap-8 bg-white p-6 border border-[#EAEAEA] rounded-sm shadow-sm max-w-5xl mx-auto">
-                                    <div className="w-full md:w-1/2 flex flex-col items-center">
+                                  <div className="flex flex-col xl:flex-row gap-8 bg-white p-6 border border-[#EAEAEA] rounded-sm shadow-sm max-w-5xl mx-auto">
+                                    <div className="w-full xl:w-1/2 flex flex-col items-center">
                                       
-                                      {/* 🌟 EL EFECTO SNIPER PERFECTO 🌟 */}
+                                      <div className="flex items-center gap-2 mb-6 uppercase tracking-[0.3em] text-[9px] border px-4 py-1.5" style={{ background: '#FFFDF5', color: '#D4AF37', borderColor: '#F5E6B3' }}>
+                                        <AlertTriangle size={12} /> Rostro sin identificar
+                                      </div>
+
+                                      {/* EFECTO SNIPER Y BBOX CON CLIP-PATH */}
                                       <div className="w-full bg-[#111] relative overflow-hidden rounded-sm flex items-center justify-center p-4 min-h-[300px]">
                                         <div className="relative inline-block leading-none max-w-full shadow-lg">
-                                          
                                           {(() => {
                                             const rawBox = getBboxCoords(fotoDudosa.bbox);
                                             
                                             if (rawBox) {
-                                              const box = expandBbox(rawBox); 
+                                              const box = expandBbox(rawBox);
+                                              const insetTop = box.y;
+                                              const insetRight = 100 - (box.x + box.w);
+                                              const insetBottom = 100 - (box.y + box.h);
+                                              const insetLeft = box.x;
+                                              
                                               return (
                                                 <>
-                                                  {/* Fondo Borroso */}
-                                                  <img src={fotoUrlAux(fotoDudosa.photo_url, true)} className="max-h-[50vh] w-auto max-w-full block opacity-40 blur-[2px]" alt="Contexto"/>
+                                                  <img src={fotoUrlAux(fotoDudosa.photo_url, true)} className="max-h-[50vh] w-auto max-w-full block opacity-50 blur-[3px]" alt="Contexto"/>
                                                   
-                                                  {/* Hueco Nítido Recortado usando CLIP-PATH para evitar sombra infinita buggeada */}
                                                   <img src={fotoUrlAux(fotoDudosa.photo_url, true)} 
                                                        className="absolute inset-0 max-h-[50vh] w-auto max-w-full block" 
-                                                       style={{ clipPath: `inset(${box.y}% ${100 - (box.x + box.w)}% ${100 - (box.y + box.h)}% ${box.x}%)` }} 
+                                                       style={{ clipPath: `inset(${insetTop}% ${insetRight}% ${insetBottom}% ${insetLeft}%)` }} 
                                                        alt="Rostro"/>
-
-                                                  {/* Cuadro Rojo Físico */}
-                                                  <div className="absolute border-[2px] border-[#E74C3C] shadow-[0_0_15px_rgba(0,0,0,0.5)] z-10 pointer-events-none" 
+                                                  
+                                                  <div className="absolute border-[2px] border-[#E74C3C] shadow-[0_0_15px_rgba(0,0,0,0.4)] z-10 pointer-events-none" 
                                                        style={{ left: `${box.x}%`, top: `${box.y}%`, width: `${box.w}%`, height: `${box.h}%` }}>
-                                                    <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-[#E74C3C] text-white text-[9px] uppercase tracking-widest font-bold px-1.5 py-0.5 rounded-sm whitespace-nowrap">
+                                                    <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-[#E74C3C] text-white text-[9px] uppercase tracking-widest font-bold px-2 py-0.5 rounded-sm whitespace-nowrap">
                                                       ¿Quién es?
                                                     </div>
                                                   </div>
@@ -1107,7 +1095,6 @@ export default function AdminDashboard() {
                                               );
                                             }
                                           })()}
-
                                         </div>
                                       </div>
 
@@ -1115,7 +1102,7 @@ export default function AdminDashboard() {
                                         <Trash2 size={16}/> Descartar Rostro Falso
                                       </button>
                                     </div>
-                                    <div className="w-full md:w-1/2 flex flex-col justify-center">
+                                    <div className="w-full xl:w-1/2 flex flex-col justify-center">
                                       <h3 className="text-3xl font-serif text-[#1C1C1C] mb-2">¿De quién es este rostro?</h3>
                                       <p className="text-xs text-[#9A8F82] mb-6">La Inteligencia Artificial encontró coincidencias, pero no está 100% segura. Elige la identidad correcta.</p>
                                       
@@ -1140,7 +1127,7 @@ export default function AdminDashboard() {
                         )}
 
                       </div>
-                    </>
+                    </div>
                   )}
 
                 </div>
@@ -1148,7 +1135,7 @@ export default function AdminDashboard() {
             </div>
           )}
 
-          {/* 🌟 LUPA MAGNIFICADORA GENERAL (LIGHTBOX) 🌟 */}
+          {/* LIGHTBOX MAGNIFICADOR */}
           <AnimatePresence>
             {lightboxIndex !== null && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.95)', display: 'flex', flexDirection: 'column' }}>
@@ -1157,7 +1144,6 @@ export default function AdminDashboard() {
                   <div style={{ display: 'flex', gap: 24, alignItems: 'center' }}>
                     <button onClick={() => toggleFavorito(fotosActuales[lightboxIndex].id)} style={{ background: 'none', border: 'none', color: WHITE, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}><Heart size={15} fill={fotosActuales[lightboxIndex].es_favorita ? '#E74C3C' : 'none'} color={fotosActuales[lightboxIndex].es_favorita ? '#E74C3C' : WHITE}/> Favorita</button>
                     
-                    {/* BOTÓN PARA ABRIR MODAL DE PORTADA */}
                     <button onClick={() => {
                       setPortadaPos({ x: 50, y: 50 });
                       setModalPortada({ url: fotosActuales[lightboxIndex].url_original });
@@ -1197,11 +1183,9 @@ export default function AdminDashboard() {
                   <div className="p-8 flex items-center justify-center bg-[#050505] relative select-none">
                     
                     <div 
-                      className="relative w-full aspect-video border-2 border-blue-500/50 shadow-[0_0_20px_rgba(59,130,246,0.15)] overflow-hidden cursor-move touch-none bg-black"
+                      className="relative w-full h-[220px] sm:h-[260px] border-2 border-blue-500/50 shadow-[0_0_20px_rgba(59,130,246,0.15)] overflow-hidden cursor-move touch-none bg-black"
                       onPointerDown={handlePointerDown}
                       onPointerMove={handlePointerMove}
-                      onPointerUp={handlePointerUp}
-                      onPointerCancel={handlePointerUp}
                     >
                       <img 
                         src={resolverUrlFoto({ url_original: modalPortada.url }, false)} 
@@ -1212,12 +1196,12 @@ export default function AdminDashboard() {
                       />
 
                       <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-                         <div className="h-full aspect-[9/16] border-2 border-dashed border-[#D4AF37] shadow-[0_0_15px_rgba(212,175,55,0.2)] flex flex-col justify-between p-2">
-                           <span className="text-[#D4AF37] text-[10px] font-bold uppercase tracking-widest bg-black/60 px-2 py-0.5 rounded-sm self-center">Móvil</span>
+                         <div className="h-full aspect-[2/1] border-2 border-dashed border-[#D4AF37] shadow-[0_0_15px_rgba(212,175,55,0.2)] flex flex-col justify-end p-2">
+                           <span className="text-[#D4AF37] text-[10px] font-bold uppercase tracking-widest bg-black/60 px-2 py-0.5 rounded-sm self-center">Zona Móvil</span>
                          </div>
                       </div>
                       <div className="absolute top-2 left-2 pointer-events-none">
-                         <span className="text-blue-400 text-[10px] font-bold uppercase tracking-widest bg-black/60 px-2 py-0.5 rounded-sm">PC / Desktop</span>
+                         <span className="text-blue-400 text-[10px] font-bold uppercase tracking-widest bg-black/60 px-2 py-0.5 rounded-sm">Banner PC / Desktop</span>
                       </div>
                     </div>
                   </div>

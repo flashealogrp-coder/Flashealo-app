@@ -28,7 +28,7 @@ const getUrlCompleta = (ruta) => {
   return `${DOMINIO_R2}/${ruta}`;
 };
 
-// 🌟 MAGIA: Renderizadores Inteligentes para leer las Coordenadas de la Portada
+// 🌟 RENDERIZADORES DE PORTADA CENTRADOS POR DEFECTO 🌟
 const renderCoverUrl = (urlStr) => {
   if (!urlStr) return null;
   const [rawUrl] = urlStr.split('@');
@@ -36,7 +36,7 @@ const renderCoverUrl = (urlStr) => {
 };
 
 const renderCoverPosition = (urlStr) => {
-  if (!urlStr || !urlStr.includes('@')) return 'center';
+  if (!urlStr || !urlStr.includes('@')) return '50% 50%'; // 🌟 Centrado perfecto por defecto
   const [, pos] = urlStr.split('@');
   return `${pos.split(',')[0]}% ${pos.split(',')[1]}%`;
 };
@@ -142,7 +142,7 @@ export default function AdminDashboard() {
   const [lightboxIndex, setLightboxIndex] = useState(null);
   const [mostrarModalMover, setMostrarModalMover] = useState(false);
 
-  // 🌟 ESTADOS NUEVOS PARA EL CROPPER DE PORTADA 🌟
+  // 🌟 ESTADOS PARA EL CROPPER DE PORTADA 🌟
   const [modalPortada, setModalPortada] = useState(null); 
   const [portadaPos, setPortadaPos] = useState({ x: 50, y: 50 });
   const [isDraggingPortada, setIsDraggingPortada] = useState(false);
@@ -255,7 +255,9 @@ export default function AdminDashboard() {
         setMensaje({ tipo: 'exito', texto: 'Colección creada exitosamente' });
       }
       await cargarEventos(); setVista('grid'); setPortadaFile(null); setLogoFile(null); setEventoEditandoId(null);
-    } catch (error) { setMensaje({ tipo: 'error', texto: `Error: ${error.message}` }); }
+    } catch (error) { 
+      setMensaje({ tipo: 'error', texto: `Error en Base de Datos: ${error.message || 'No se pudo guardar.'}` }); 
+    }
     setCargando(false);
   };
 
@@ -479,6 +481,10 @@ export default function AdminDashboard() {
   const hacerPortada = async (url) => {
     await supabase.from('eventos').update({ portada_url: url }).eq('id', eventoActivo.id);
     setEventoActivo(prev => ({ ...prev, portada_url: url }));
+    
+    // Actualizamos la lista de eventos principal para que el Grid también refleje el nuevo recorte
+    setListaEventos(prev => prev.map(ev => ev.id === eventoActivo.id ? { ...ev, portada_url: url } : ev));
+    
     setMensaje({ tipo: 'exito', texto: 'Portada actualizada con su nuevo encuadre.' });
   };
 
@@ -490,7 +496,7 @@ export default function AdminDashboard() {
     }
   };
 
-  // 🌟 EVENTOS DE ARRASTRE (DRAG) PARA EL ENCUADRE DE PORTADA 🌟
+  // 🌟 EVENTOS DE ARRASTRE PARA EL CROPPER (ANTI-STICKY FIX) 🌟
   const handlePointerDown = (e) => {
     setIsDraggingPortada(true);
     dragStart.current = { x: e.clientX, y: e.clientY };
@@ -512,8 +518,10 @@ export default function AdminDashboard() {
   const handlePointerUp = (e) => {
     setIsDraggingPortada(false);
     dragStart.current = null;
+    if (e.target.hasPointerCapture(e.pointerId)) {
+      e.target.releasePointerCapture(e.pointerId);
+    }
   };
-
 
   if (cargandoLogin) return <div className="h-screen w-full flex items-center justify-center bg-[#FDFCF8]"><Loader2 className="animate-spin text-[#9A8F82]" size={32}/></div>;
   if (!session) {
@@ -537,6 +545,7 @@ export default function AdminDashboard() {
   return (
     <div style={{ display: 'flex', height: '100vh', background: CREAM, color: INK, fontFamily: 'system-ui, sans-serif', overflow: 'hidden' }}>
       
+      {/* ─── BARRA LATERAL PRINCIPAL ─── */}
       <aside style={{ width: sidebarOpen ? 240 : 64, background: WHITE, borderRight: `1px solid ${BORDER}`, display: 'flex', flexDirection: 'column', zIndex: 50, flexShrink: 0, transition: 'width 0.25s ease' }}>
         <div style={{ padding: sidebarOpen ? '0 16px 0 20px' : '0', height: 64, display: 'flex', alignItems: 'center', justifyContent: sidebarOpen ? 'space-between' : 'center', borderBottom: `1px solid ${BORDER}`, overflow: 'hidden' }}>
           {sidebarOpen ? (
@@ -564,8 +573,10 @@ export default function AdminDashboard() {
         </div>
       </aside>
 
+      {/* ─── ÁREA DE CONTENIDO ─── */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden' }}>
         
+        {/* CABECERA GLOBAL SUPERIOR */}
         <header style={{ height: vista === 'dashboard' ? 48 : 64, flexShrink: 0, background: WHITE, borderBottom: `1px solid ${BORDER}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 24px', zIndex: 40, transition: 'height 0.3s ease' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             {(vista === 'form' || vista === 'dashboard') && (
@@ -583,6 +594,7 @@ export default function AdminDashboard() {
           </AnimatePresence>
         </header>
 
+        {/* CONTENEDOR CON SCROLL GLOBAL */}
         <main onScroll={handleMainScroll} style={{ flex: 1, overflowY: 'auto', background: '#FAFAFA' }} className="custom-scrollbar">
           
           {vista === 'grid' && (
@@ -627,6 +639,7 @@ export default function AdminDashboard() {
             </div>
           )}
 
+          {/* VISTA 2: FORMULARIO DE EDICIÓN / CREACIÓN */}
           {vista === 'form' && (
             <div style={{ maxWidth: 900, margin: '0 auto', padding: '40px 32px 80px' }}>
               <h1 className="text-3xl font-serif mb-8 text-[#1C1C1C]">Ajustes del Evento</h1>
@@ -664,9 +677,11 @@ export default function AdminDashboard() {
             </div>
           )}
 
+          {/* VISTA 3: DASHBOARD DEL EVENTO ACTIVO */}
           {vista === 'dashboard' && eventoActivo && (
             <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
               
+              {/* BANNER SUPERIOR DEL EVENTO */}
               <div style={{ height: 180, position: 'relative', background: INK, display: 'flex', alignItems: 'flex-end', padding: '0 32px 24px', flexShrink: 0 }}>
                 <img src={renderCoverUrl(eventoActivo.portada_url) || "https://images.unsplash.com/photo-1541534741688?w=1200"} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: renderCoverPosition(eventoActivo.portada_url), opacity: 0.4 }} />
                 <div style={{ position: 'relative', zIndex: 10, width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
@@ -686,9 +701,13 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
+              {/* PANEL INFERIOR (SIDEBAR LATERAL + DERECHA) */}
               <div style={{ display: 'flex', alignItems: 'flex-start', flex: 1 }}>
+                
+                {/* BARRA LATERAL DEL EVENTO (STICKY NATIVA) */}
                 <div style={{ width: 240, background: WHITE, borderRight: `1px solid ${BORDER}`, flexShrink: 0, position: 'sticky', top: 0, height: 'calc(100vh - 64px)', display: 'flex', flexDirection: 'column' }}>
                   
+                  {/* CUADRO MAGICO DE LA PORTADA AL HACER SCROLL */}
                   <div style={{ height: scrolledPastBanner ? 240 : 0, opacity: scrolledPastBanner ? 1 : 0, overflow: 'hidden', transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', flexShrink: 0 }}>
                     <img src={renderCoverUrl(eventoActivo.portada_url)} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: renderCoverPosition(eventoActivo.portada_url) }} />
                   </div>
@@ -734,10 +753,13 @@ export default function AdminDashboard() {
                   </div>
                 </div>
 
+                {/* AREA DERECHA (LA QUE DEJAMOS SCROLLEAR NORMALMENTE) */}
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 'calc(100vh - 64px)' }}>
                   
+                  {/* CASO A: MODO FOTOS */}
                   {seccionDashboard === 'fotos' && (
                     <>
+                      {/* HEADER STICKY (HIGHLIGHTS) */}
                       <div style={{ position: 'sticky', top: 0, zIndex: 40, background: '#FAFAFA', padding: '20px 28px', borderBottom: `1px solid ${BORDER}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: scrolledPastBanner ? '0 4px 20px rgba(0,0,0,0.03)' : 'none', transition: 'box-shadow 0.3s' }}>
                         <h2 style={{ fontSize: 18, margin: 0, fontWeight: 500 }}>{carpetaActiva?.nombre}</h2>
                         <button onClick={() => setMostrarUploader(true)} style={{ background: INK, color: WHITE, border: 'none', padding: '9px 18px', borderRadius: 4, cursor: 'pointer', fontSize: 12, fontWeight: 500, display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -745,6 +767,7 @@ export default function AdminDashboard() {
                         </button>
                       </div>
 
+                      {/* AREA DE UPLOAD / FOTOS */}
                       <div style={{ padding: 28, flex: 1, position: 'relative' }}>
                         <AnimatePresence>
                           {mostrarUploader && (
@@ -841,10 +864,10 @@ export default function AdminDashboard() {
                     </>
                   )}
 
-                  {/* CASO B: MODO MOTOR IA */}
+                  {/* 🌟 CASO B: MODO MOTOR IA 🌟 */}
                   {seccionDashboard === 'ia' && (
-                    <div className="flex-1 flex flex-col relative h-full">
-                      
+                    <>
+                      {/* HEADER STICKY (MOTOR IA) */}
                       <div style={{ position: 'sticky', top: 0, zIndex: 40, background: '#FAFAFA', padding: '20px 28px', borderBottom: `1px solid ${BORDER}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: scrolledPastBanner ? '0 4px 20px rgba(0,0,0,0.03)' : 'none', transition: 'box-shadow 0.3s' }}>
                         <div>
                           <h2 className="text-xl font-serif text-[#1C1C1C] m-0">Centro de Control IA</h2>
@@ -859,7 +882,8 @@ export default function AdminDashboard() {
                         </button>
                       </div>
 
-                      <div className="p-8 flex-1 flex flex-col">
+                      <div className="p-8 flex-1 flex flex-col relative">
+                        {/* RESUMEN ESTADÍSTICO */}
                         {iaEjecutada ? (
                           <div className="flex gap-4 mb-6">
                             {eventoActivo.tipo_reconocimiento !== 'ocr' && (
@@ -893,6 +917,7 @@ export default function AdminDashboard() {
                           </div>
                         )}
 
+                        {/* SUB-TABS (Sticky) */}
                         {iaEjecutada && (
                           <div className="flex border-b border-[#EAEAEA] mb-6">
                             {eventoActivo.tipo_reconocimiento !== 'ocr' && (
@@ -914,13 +939,14 @@ export default function AdminDashboard() {
                           </div>
                         )}
 
+                        {/* SUB-CONTENIDOS DE IA */}
                         {iaEjecutada && (
                           <div className="flex-1 pb-8">
                             
                             {/* 1. IDENTIDADES */}
                             {subTabIA === 'identidades' && (
                               <div className="flex gap-8 items-start">
-                                {/* LISTA IZQUIERDA COMPACTA Y STICKY */}
+                                {/* 🌟 LISTA IZQUIERDA COMPACTA Y STICKY 🌟 */}
                                 <div className="w-64 shrink-0 bg-white border border-[#EAEAEA] rounded-sm p-2 sticky top-[100px] max-h-[calc(100vh-140px)] overflow-y-auto custom-scrollbar shadow-sm">
                                   {listaJugadores.length === 0 ? <p className="text-xs text-[#9A8F82] p-4 text-center">No hay identidades.</p> : 
                                     listaJugadores.map(j => (
@@ -973,7 +999,7 @@ export default function AdminDashboard() {
                                         </div>
                                       )}
 
-                                      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 pb-8">
+                                      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
                                         {fotosDelJugador.map((foto, idx) => (
                                           <div key={idx} className="aspect-square bg-[#EAEAEA] relative group overflow-hidden cursor-zoom-in rounded-sm" onClick={() => setZoomCara({ photo_url: foto.photo_url, bbox: foto.detecciones[0]?.bbox })}>
                                             <img src={fotoUrlAux(foto.photo_url, true)} className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity" alt="" />
@@ -1014,7 +1040,7 @@ export default function AdminDashboard() {
                                         <Hash size={20} className="text-[#9A8F82]"/>
                                         <input type="text" value={dorsalTemporal} onChange={e=>setDorsalTemporal(e.target.value)} onBlur={guardarDorsalGlobal} className="text-3xl font-serif bg-transparent text-[#1C1C1C] outline-none uppercase w-full" placeholder="NÚMERO" />
                                       </div>
-                                      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 pb-8">
+                                      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
                                         {fotosDelCorredor.map((f, idx) => (
                                           <div key={idx} className="aspect-square bg-[#EAEAEA] relative cursor-zoom-in rounded-sm overflow-hidden" onClick={() => setZoomCara({ photo_url: f.photo_url, bbox: f.bbox })}>
                                             <img src={fotoUrlAux(f.photo_url, true)} className="w-full h-full object-cover" alt="" />
@@ -1041,28 +1067,32 @@ export default function AdminDashboard() {
                                   <div className="flex flex-col md:flex-row gap-8 bg-white p-6 border border-[#EAEAEA] rounded-sm shadow-sm max-w-5xl mx-auto">
                                     <div className="w-full md:w-1/2 flex flex-col items-center">
                                       
-                                      <div className="flex items-center gap-2 mb-6 uppercase tracking-[0.3em] text-[9px] border px-4 py-1.5" style={{ background: '#FFFDF5', color: '#D4AF37', borderColor: '#F5E6B3' }}>
-                                        <AlertTriangle size={12} /> Rostro sin identificar
-                                      </div>
-
-                                      {/* 🌟 EL EFECTO SNIPER PERFECTO (CLIP-PATH EN TEMA CLARO) 🌟 */}
+                                      {/* 🌟 EL EFECTO SNIPER PERFECTO 🌟 */}
                                       <div className="w-full bg-[#111] relative overflow-hidden rounded-sm flex items-center justify-center p-4 min-h-[300px]">
                                         <div className="relative inline-block leading-none max-w-full shadow-lg">
+                                          
                                           {(() => {
                                             const rawBox = getBboxCoords(fotoDudosa.bbox);
                                             
                                             if (rawBox) {
-                                              const box = expandBbox(rawBox); // Expandimos para agarrar el cuerpo
+                                              const box = expandBbox(rawBox); 
                                               return (
                                                 <>
                                                   {/* Fondo Borroso */}
                                                   <img src={fotoUrlAux(fotoDudosa.photo_url, true)} className="max-h-[50vh] w-auto max-w-full block opacity-40 blur-[2px]" alt="Contexto"/>
                                                   
-                                                  {/* Hueco Nítido Recortado */}
-                                                  <div className="absolute border-[2px] border-[#E74C3C] z-10 shadow-[0_0_0_9999px_rgba(0,0,0,0.5)] overflow-hidden" 
+                                                  {/* Hueco Nítido Recortado usando CLIP-PATH para evitar sombra infinita buggeada */}
+                                                  <img src={fotoUrlAux(fotoDudosa.photo_url, true)} 
+                                                       className="absolute inset-0 max-h-[50vh] w-auto max-w-full block" 
+                                                       style={{ clipPath: `inset(${box.y}% ${100 - (box.x + box.w)}% ${100 - (box.y + box.h)}% ${box.x}%)` }} 
+                                                       alt="Rostro"/>
+
+                                                  {/* Cuadro Rojo Físico */}
+                                                  <div className="absolute border-[2px] border-[#E74C3C] shadow-[0_0_15px_rgba(0,0,0,0.5)] z-10 pointer-events-none" 
                                                        style={{ left: `${box.x}%`, top: `${box.y}%`, width: `${box.w}%`, height: `${box.h}%` }}>
-                                                    <img src={fotoUrlAux(fotoDudosa.photo_url, true)} className="absolute max-w-none block" 
-                                                         style={{ left: `-${(box.x / box.w) * 100}%`, top: `-${(box.y / box.h) * 100}%`, width: `${(100 / box.w) * 100}%` }} alt="Rostro"/>
+                                                    <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-[#E74C3C] text-white text-[9px] uppercase tracking-widest font-bold px-1.5 py-0.5 rounded-sm whitespace-nowrap">
+                                                      ¿Quién es?
+                                                    </div>
                                                   </div>
                                                 </>
                                               );
@@ -1077,6 +1107,7 @@ export default function AdminDashboard() {
                                               );
                                             }
                                           })()}
+
                                         </div>
                                       </div>
 
@@ -1109,7 +1140,7 @@ export default function AdminDashboard() {
                         )}
 
                       </div>
-                    </div>
+                    </>
                   )}
 
                 </div>

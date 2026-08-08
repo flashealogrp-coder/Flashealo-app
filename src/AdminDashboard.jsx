@@ -28,6 +28,19 @@ const getUrlCompleta = (ruta) => {
   return `${DOMINIO_R2}/${ruta}`;
 };
 
+// 🌟 MAGIA: Renderizadores Inteligentes para leer las Coordenadas de la Portada
+const renderCoverUrl = (urlStr) => {
+  if (!urlStr) return null;
+  const [rawUrl] = urlStr.split('@');
+  return getUrlCompleta(rawUrl);
+};
+
+const renderCoverPosition = (urlStr) => {
+  if (!urlStr || !urlStr.includes('@')) return 'center';
+  const [, pos] = urlStr.split('@');
+  return `${pos.split(',')[0]}% ${pos.split(',')[1]}%`;
+};
+
 const resolverUrlFoto = (foto, altaResolucion = false) => {
   if (!foto) return '';
   let ruta = altaResolucion ? foto.url_original : (foto.url_watermark || foto.url_original);
@@ -49,7 +62,6 @@ const fotoUrlAux = (path, esWatermark = true) => {
   return `${DOMINIO_R2}/${ruta}`;
 };
 
-// 🌟 ESCUDO ANTI-CRASH PARA BBOX 🌟
 const getBboxCoords = (bbox) => {
   if (!bbox) return null;
   try {
@@ -69,7 +81,6 @@ const getBboxCoords = (bbox) => {
   return null;
 };
 
-// 🌟 MAGIA: Expande el cuadro de la carita para atrapar TODO EL CUERPO 🌟
 const expandBbox = (originalBox) => {
   if (!originalBox) return null;
   let nw = originalBox.w * 2.2; 
@@ -131,6 +142,12 @@ export default function AdminDashboard() {
   const [lightboxIndex, setLightboxIndex] = useState(null);
   const [mostrarModalMover, setMostrarModalMover] = useState(false);
 
+  // 🌟 ESTADOS NUEVOS PARA EL CROPPER DE PORTADA 🌟
+  const [modalPortada, setModalPortada] = useState(null); 
+  const [portadaPos, setPortadaPos] = useState({ x: 50, y: 50 });
+  const [isDraggingPortada, setIsDraggingPortada] = useState(false);
+  const dragStart = useRef(null);
+
   const [mostrarUploader, setMostrarUploader] = useState(false);
   const [archivosUploader, setArchivosUploader] = useState([]);
   const [estadoSubida, setEstadoSubida] = useState({ activa: false, progreso: 0, total: 0 });
@@ -138,14 +155,10 @@ export default function AdminDashboard() {
   const fileInputRef = useRef(null);
   const [procesandoIA, setProcesandoIA] = useState(false);
 
-  // Navegación en el Dashboard
   const [seccionDashboard, setSeccionDashboard] = useState('fotos'); 
   const [subTabIA, setSubTabIA] = useState('identidades'); 
-
-  // 🌟 ESTADO DE SCROLL GLOBAL 🌟
   const [scrolledPastBanner, setScrolledPastBanner] = useState(false);
 
-  // Estados Datos IA
   const [statsIA, setStatsIA] = useState({ caras: 0, dorsales: 0, dudas: 0, cargando: false });
   const [listaJugadores, setListaJugadores] = useState([]);
   const [jugadorSeleccionado, setJugadorSeleccionado] = useState(null);
@@ -231,9 +244,7 @@ export default function AdminDashboard() {
       }
       const datosGuardar = { ...formData, portada_url: finalPortadaUrl, logo_url: finalLogoUrl };
       
-      Object.keys(datosGuardar).forEach(key => {
-        if (datosGuardar[key] === '') datosGuardar[key] = null;
-      });
+      Object.keys(datosGuardar).forEach(key => { if (datosGuardar[key] === '') datosGuardar[key] = null; });
       if (!eventoEditandoId) delete datosGuardar.id; 
 
       if (eventoEditandoId) {
@@ -244,9 +255,7 @@ export default function AdminDashboard() {
         setMensaje({ tipo: 'exito', texto: 'Colección creada exitosamente' });
       }
       await cargarEventos(); setVista('grid'); setPortadaFile(null); setLogoFile(null); setEventoEditandoId(null);
-    } catch (error) { 
-      setMensaje({ tipo: 'error', texto: `Error en Base de Datos: ${error.message || 'No se pudo guardar.'}` }); 
-    }
+    } catch (error) { setMensaje({ tipo: 'error', texto: `Error: ${error.message}` }); }
     setCargando(false);
   };
 
@@ -257,9 +266,9 @@ export default function AdminDashboard() {
       const prefijoCarpeta = formData.url_slug || formData.id; 
       await supabase.from('eventos').delete().eq('id', eventoEditandoId);
       try { await fetch(MODAL_API_URL, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ accion: "eliminar_coleccion", prefijo: prefijoCarpeta }) }); } catch (err) { }
-      setMensaje({ tipo: 'exito', texto: 'Colección e imágenes eliminadas permanentemente.' });
+      setMensaje({ tipo: 'exito', texto: 'Colección e imágenes eliminadas.' });
       setVista('grid'); setEventoEditandoId(null); setMostrarConfirmacionBorrar(false); setTextoConfirmacion(''); await cargarEventos();
-    } catch (error) { setMensaje({ tipo: 'error', texto: `Error al eliminar: ${error.message}` }); }
+    } catch (error) { setMensaje({ tipo: 'error', texto: `Error: ${error.message}` }); }
     setCargando(false);
   };
 
@@ -466,13 +475,13 @@ export default function AdminDashboard() {
     setMensaje({ tipo: 'exito', texto: `Fotografías movidas correctamente.` });
   };
 
+  // 🌟 GUARDAR LA PORTADA CON ENCUADRE DE LA LUPA 🌟
   const hacerPortada = async (url) => {
     await supabase.from('eventos').update({ portada_url: url }).eq('id', eventoActivo.id);
     setEventoActivo(prev => ({ ...prev, portada_url: url }));
-    setMensaje({ tipo: 'exito', texto: 'Portada actualizada.' });
+    setMensaje({ tipo: 'exito', texto: 'Portada actualizada con su nuevo encuadre.' });
   };
 
-  // 🌟 MAGIA: ESCUCHADOR DE SCROLL PARA HEADER STICKY 🌟
   const handleMainScroll = (e) => {
     if (e.target.scrollTop > 160) {
       if (!scrolledPastBanner) setScrolledPastBanner(true);
@@ -480,6 +489,31 @@ export default function AdminDashboard() {
       if (scrolledPastBanner) setScrolledPastBanner(false);
     }
   };
+
+  // 🌟 EVENTOS DE ARRASTRE (DRAG) PARA EL ENCUADRE DE PORTADA 🌟
+  const handlePointerDown = (e) => {
+    setIsDraggingPortada(true);
+    dragStart.current = { x: e.clientX, y: e.clientY };
+    e.target.setPointerCapture(e.pointerId);
+  };
+
+  const handlePointerMove = (e) => {
+    if (!isDraggingPortada || !dragStart.current) return;
+    const dx = e.clientX - dragStart.current.x;
+    const dy = e.clientY - dragStart.current.y;
+    dragStart.current = { x: e.clientX, y: e.clientY };
+
+    setPortadaPos(prev => ({
+      x: Math.min(100, Math.max(0, prev.x - (dx * 0.2))),
+      y: Math.min(100, Math.max(0, prev.y - (dy * 0.2)))
+    }));
+  };
+
+  const handlePointerUp = (e) => {
+    setIsDraggingPortada(false);
+    dragStart.current = null;
+  };
+
 
   if (cargandoLogin) return <div className="h-screen w-full flex items-center justify-center bg-[#FDFCF8]"><Loader2 className="animate-spin text-[#9A8F82]" size={32}/></div>;
   if (!session) {
@@ -503,7 +537,6 @@ export default function AdminDashboard() {
   return (
     <div style={{ display: 'flex', height: '100vh', background: CREAM, color: INK, fontFamily: 'system-ui, sans-serif', overflow: 'hidden' }}>
       
-      {/* ─── BARRA LATERAL PRINCIPAL ─── */}
       <aside style={{ width: sidebarOpen ? 240 : 64, background: WHITE, borderRight: `1px solid ${BORDER}`, display: 'flex', flexDirection: 'column', zIndex: 50, flexShrink: 0, transition: 'width 0.25s ease' }}>
         <div style={{ padding: sidebarOpen ? '0 16px 0 20px' : '0', height: 64, display: 'flex', alignItems: 'center', justifyContent: sidebarOpen ? 'space-between' : 'center', borderBottom: `1px solid ${BORDER}`, overflow: 'hidden' }}>
           {sidebarOpen ? (
@@ -531,10 +564,8 @@ export default function AdminDashboard() {
         </div>
       </aside>
 
-      {/* ─── ÁREA DE CONTENIDO ─── */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden' }}>
         
-        {/* CABECERA GLOBAL SUPERIOR */}
         <header style={{ height: vista === 'dashboard' ? 48 : 64, flexShrink: 0, background: WHITE, borderBottom: `1px solid ${BORDER}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 24px', zIndex: 40, transition: 'height 0.3s ease' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             {(vista === 'form' || vista === 'dashboard') && (
@@ -552,7 +583,6 @@ export default function AdminDashboard() {
           </AnimatePresence>
         </header>
 
-        {/* CONTENEDOR CON SCROLL GLOBAL */}
         <main onScroll={handleMainScroll} style={{ flex: 1, overflowY: 'auto', background: '#FAFAFA' }} className="custom-scrollbar">
           
           {vista === 'grid' && (
@@ -580,7 +610,7 @@ export default function AdminDashboard() {
                     return (
                       <div key={ev.id} onClick={() => entrarAlEvento(ev)} style={{ background: WHITE, borderRadius: 6, overflow: 'hidden', cursor: 'pointer', border: `1px solid ${BORDER}`, display: 'flex', flexDirection: 'column' }}>
                         <div style={{ height: 160, position: 'relative', background: '#E8E4DE' }}>
-                          <img src={getUrlCompleta(ev.portada_url) || "https://images.unsplash.com/photo-1541534741688?w=800"} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          <img src={renderCoverUrl(ev.portada_url) || "https://images.unsplash.com/photo-1541534741688?w=800"} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: renderCoverPosition(ev.portada_url) }} />
                           <div style={{ position: 'absolute', top: 10, right: 10, background: esPrivado ? 'rgba(28,28,28,0.85)' : 'rgba(255,255,255,0.92)', color: esPrivado ? WHITE : INK, padding: '3px 8px', borderRadius: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
                             {esPrivado ? <Lock size={10} color={SAND} /> : <Unlock size={10} color={TAUPE} />}
                             <span style={{ fontSize: 8, textTransform: 'uppercase', fontWeight: 600 }}>{esPrivado ? 'Privada' : 'Pública'}</span>
@@ -637,9 +667,8 @@ export default function AdminDashboard() {
           {vista === 'dashboard' && eventoActivo && (
             <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
               
-              {/* 🌟 BANNER SUPERIOR 🌟 */}
               <div style={{ height: 180, position: 'relative', background: INK, display: 'flex', alignItems: 'flex-end', padding: '0 32px 24px', flexShrink: 0 }}>
-                <img src={getUrlCompleta(eventoActivo.portada_url) || "https://images.unsplash.com/photo-1541534741688?w=1200"} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.4 }} />
+                <img src={renderCoverUrl(eventoActivo.portada_url) || "https://images.unsplash.com/photo-1541534741688?w=1200"} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: renderCoverPosition(eventoActivo.portada_url), opacity: 0.4 }} />
                 <div style={{ position: 'relative', zIndex: 10, width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
                   <div>
                     <h1 style={{ fontSize: 28, fontFamily: 'Georgia, serif', color: WHITE, margin: '0 0 4px 0' }}>{eventoActivo.nombre}</h1>
@@ -657,15 +686,11 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              {/* 🌟 LAYOUT INFERIOR (SIDEBAR Y CONTENIDO) 🌟 */}
               <div style={{ display: 'flex', alignItems: 'flex-start', flex: 1 }}>
-                
-                {/* BARRA LATERAL DEL EVENTO (STICKY NATIVA) */}
                 <div style={{ width: 240, background: WHITE, borderRight: `1px solid ${BORDER}`, flexShrink: 0, position: 'sticky', top: 0, height: 'calc(100vh - 64px)', display: 'flex', flexDirection: 'column' }}>
                   
-                  {/* CUADRO MAGICO DE LA PORTADA AL HACER SCROLL */}
                   <div style={{ height: scrolledPastBanner ? 240 : 0, opacity: scrolledPastBanner ? 1 : 0, overflow: 'hidden', transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', flexShrink: 0 }}>
-                    <img src={getUrlCompleta(eventoActivo.portada_url)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <img src={renderCoverUrl(eventoActivo.portada_url)} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: renderCoverPosition(eventoActivo.portada_url) }} />
                   </div>
 
                   <div style={{ flex: 1, overflowY: 'auto' }}>
@@ -709,13 +734,10 @@ export default function AdminDashboard() {
                   </div>
                 </div>
 
-                {/* AREA DERECHA (LA QUE DEJAMOS SCROLLEAR NORMALMENTE) */}
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 'calc(100vh - 64px)' }}>
                   
-                  {/* CASO A: MODO FOTOS */}
                   {seccionDashboard === 'fotos' && (
                     <>
-                      {/* HEADER STICKY (HIGHLIGHTS) */}
                       <div style={{ position: 'sticky', top: 0, zIndex: 40, background: '#FAFAFA', padding: '20px 28px', borderBottom: `1px solid ${BORDER}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: scrolledPastBanner ? '0 4px 20px rgba(0,0,0,0.03)' : 'none', transition: 'box-shadow 0.3s' }}>
                         <h2 style={{ fontSize: 18, margin: 0, fontWeight: 500 }}>{carpetaActiva?.nombre}</h2>
                         <button onClick={() => setMostrarUploader(true)} style={{ background: INK, color: WHITE, border: 'none', padding: '9px 18px', borderRadius: 4, cursor: 'pointer', fontSize: 12, fontWeight: 500, display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -723,7 +745,6 @@ export default function AdminDashboard() {
                         </button>
                       </div>
 
-                      {/* AREA DE UPLOAD / FOTOS */}
                       <div style={{ padding: 28, flex: 1, position: 'relative' }}>
                         <AnimatePresence>
                           {mostrarUploader && (
@@ -820,10 +841,10 @@ export default function AdminDashboard() {
                     </>
                   )}
 
-                  {/* 🌟 CASO B: MODO MOTOR IA 🌟 */}
+                  {/* CASO B: MODO MOTOR IA */}
                   {seccionDashboard === 'ia' && (
-                    <>
-                      {/* HEADER STICKY (MOTOR IA) */}
+                    <div className="flex-1 flex flex-col relative h-full">
+                      
                       <div style={{ position: 'sticky', top: 0, zIndex: 40, background: '#FAFAFA', padding: '20px 28px', borderBottom: `1px solid ${BORDER}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: scrolledPastBanner ? '0 4px 20px rgba(0,0,0,0.03)' : 'none', transition: 'box-shadow 0.3s' }}>
                         <div>
                           <h2 className="text-xl font-serif text-[#1C1C1C] m-0">Centro de Control IA</h2>
@@ -838,8 +859,7 @@ export default function AdminDashboard() {
                         </button>
                       </div>
 
-                      <div className="p-8 flex-1 flex flex-col relative">
-                        {/* RESUMEN ESTADÍSTICO */}
+                      <div className="p-8 flex-1 flex flex-col">
                         {iaEjecutada ? (
                           <div className="flex gap-4 mb-6">
                             {eventoActivo.tipo_reconocimiento !== 'ocr' && (
@@ -873,7 +893,6 @@ export default function AdminDashboard() {
                           </div>
                         )}
 
-                        {/* SUB-TABS (Sticky) */}
                         {iaEjecutada && (
                           <div className="flex border-b border-[#EAEAEA] mb-6">
                             {eventoActivo.tipo_reconocimiento !== 'ocr' && (
@@ -895,14 +914,13 @@ export default function AdminDashboard() {
                           </div>
                         )}
 
-                        {/* SUB-CONTENIDOS DE IA */}
                         {iaEjecutada && (
                           <div className="flex-1 pb-8">
                             
                             {/* 1. IDENTIDADES */}
                             {subTabIA === 'identidades' && (
                               <div className="flex gap-8 items-start">
-                                {/* 🌟 LISTA IZQUIERDA COMPACTA Y STICKY 🌟 */}
+                                {/* LISTA IZQUIERDA COMPACTA Y STICKY */}
                                 <div className="w-64 shrink-0 bg-white border border-[#EAEAEA] rounded-sm p-2 sticky top-[100px] max-h-[calc(100vh-140px)] overflow-y-auto custom-scrollbar shadow-sm">
                                   {listaJugadores.length === 0 ? <p className="text-xs text-[#9A8F82] p-4 text-center">No hay identidades.</p> : 
                                     listaJugadores.map(j => (
@@ -1027,16 +1045,14 @@ export default function AdminDashboard() {
                                         <AlertTriangle size={12} /> Rostro sin identificar
                                       </div>
 
-                                      {/* 🌟 EL EFECTO SNIPER PERFECTO 🌟 */}
+                                      {/* 🌟 EL EFECTO SNIPER PERFECTO (CLIP-PATH EN TEMA CLARO) 🌟 */}
                                       <div className="w-full bg-[#111] relative overflow-hidden rounded-sm flex items-center justify-center p-4 min-h-[300px]">
                                         <div className="relative inline-block leading-none max-w-full shadow-lg">
-                                          
                                           {(() => {
                                             const rawBox = getBboxCoords(fotoDudosa.bbox);
                                             
                                             if (rawBox) {
                                               const box = expandBbox(rawBox); // Expandimos para agarrar el cuerpo
-                                              const blurBox = getBboxCoords(fotoDudosa.bbox); // El cuadrito chiquito original
                                               return (
                                                 <>
                                                   {/* Fondo Borroso */}
@@ -1061,7 +1077,6 @@ export default function AdminDashboard() {
                                               );
                                             }
                                           })()}
-
                                         </div>
                                       </div>
 
@@ -1094,7 +1109,7 @@ export default function AdminDashboard() {
                         )}
 
                       </div>
-                    </>
+                    </div>
                   )}
 
                 </div>
@@ -1102,7 +1117,7 @@ export default function AdminDashboard() {
             </div>
           )}
 
-          {/* LIGHTBOX MAGNIFICADOR */}
+          {/* 🌟 LUPA MAGNIFICADORA GENERAL (LIGHTBOX) 🌟 */}
           <AnimatePresence>
             {lightboxIndex !== null && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.95)', display: 'flex', flexDirection: 'column' }}>
@@ -1110,7 +1125,15 @@ export default function AdminDashboard() {
                   <span style={{ fontSize: 12, letterSpacing: '0.1em' }}>{lightboxIndex + 1} / {fotosActuales.length}</span>
                   <div style={{ display: 'flex', gap: 24, alignItems: 'center' }}>
                     <button onClick={() => toggleFavorito(fotosActuales[lightboxIndex].id)} style={{ background: 'none', border: 'none', color: WHITE, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}><Heart size={15} fill={fotosActuales[lightboxIndex].es_favorita ? '#E74C3C' : 'none'} color={fotosActuales[lightboxIndex].es_favorita ? '#E74C3C' : WHITE}/> Favorita</button>
-                    <button onClick={() => hacerPortada(fotosActuales[lightboxIndex].url_original)} style={{ background: 'none', border: 'none', color: WHITE, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}><ImageIcon size={15} /> Usar como Portada</button>
+                    
+                    {/* BOTÓN PARA ABRIR MODAL DE PORTADA */}
+                    <button onClick={() => {
+                      setPortadaPos({ x: 50, y: 50 });
+                      setModalPortada({ url: fotosActuales[lightboxIndex].url_original });
+                    }} style={{ background: 'none', border: 'none', color: WHITE, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+                      <ImageIcon size={15} /> Usar como Portada
+                    </button>
+
                     <button onClick={() => borrarFotos([fotosActuales[lightboxIndex].id])} style={{ background: 'none', border: 'none', color: '#E74C3C', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}><Trash2 size={15} /> Borrar</button>
                     <button onClick={() => setLightboxIndex(null)} style={{ background: 'none', border: 'none', color: WHITE, cursor: 'pointer' }}><X size={22} /></button>
                   </div>
@@ -1121,6 +1144,64 @@ export default function AdminDashboard() {
                     <img src={resolverUrlFoto(fotosActuales[lightboxIndex], true)} alt="" style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain' }} />
                   </div>
                   <button onClick={() => setLightboxIndex(prev => (prev === fotosActuales.length - 1 ? 0 : prev + 1))} style={{ background: 'none', border: 'none', color: WHITE, cursor: 'pointer', padding: 20 }}><ChevronRightIcon size={36} strokeWidth={1} /></button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* 🌟 MODAL DE ENCUADRE DE PORTADA (DRAG & CROP) 🌟 */}
+          <AnimatePresence>
+            {modalPortada && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[2000] flex items-center justify-center p-4 bg-black/95 backdrop-blur-md">
+                <div className="bg-[#111] border border-[#333] w-full max-w-5xl shadow-2xl flex flex-col rounded-sm overflow-hidden" onClick={e => e.stopPropagation()}>
+                  
+                  <div className="p-4 border-b border-[#222] flex justify-between items-center bg-[#0A0A0A]">
+                    <div>
+                      <h3 className="text-white font-serif text-xl m-0">Encuadre de Portada</h3>
+                      <p className="text-[#9A8F82] text-[10px] uppercase tracking-widest mt-1 m-0">Arrastra la imagen para centrarla en las pantallas</p>
+                    </div>
+                    <button onClick={() => setModalPortada(null)} className="text-gray-400 hover:text-white"><X size={20}/></button>
+                  </div>
+
+                  <div className="p-8 flex items-center justify-center bg-[#050505] relative select-none">
+                    
+                    <div 
+                      className="relative w-full aspect-video border-2 border-blue-500/50 shadow-[0_0_20px_rgba(59,130,246,0.15)] overflow-hidden cursor-move touch-none bg-black"
+                      onPointerDown={handlePointerDown}
+                      onPointerMove={handlePointerMove}
+                      onPointerUp={handlePointerUp}
+                      onPointerCancel={handlePointerUp}
+                    >
+                      <img 
+                        src={resolverUrlFoto({ url_original: modalPortada.url }, false)} 
+                        className="w-full h-full pointer-events-none select-none" 
+                        style={{ objectFit: 'cover', objectPosition: `${portadaPos.x}% ${portadaPos.y}%` }}
+                        draggable={false}
+                        alt=""
+                      />
+
+                      <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+                         <div className="h-full aspect-[9/16] border-2 border-dashed border-[#D4AF37] shadow-[0_0_15px_rgba(212,175,55,0.2)] flex flex-col justify-between p-2">
+                           <span className="text-[#D4AF37] text-[10px] font-bold uppercase tracking-widest bg-black/60 px-2 py-0.5 rounded-sm self-center">Móvil</span>
+                         </div>
+                      </div>
+                      <div className="absolute top-2 left-2 pointer-events-none">
+                         <span className="text-blue-400 text-[10px] font-bold uppercase tracking-widest bg-black/60 px-2 py-0.5 rounded-sm">PC / Desktop</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="p-4 border-t border-[#222] bg-[#0A0A0A] flex justify-end gap-4">
+                    <button onClick={() => setModalPortada(null)} className="px-6 py-2 text-xs uppercase tracking-widest text-gray-400 hover:text-white transition-colors">Cancelar</button>
+                    <button onClick={() => {
+                      const finalUrl = `${modalPortada.url}@${Math.round(portadaPos.x)},${Math.round(portadaPos.y)}`;
+                      hacerPortada(finalUrl);
+                      setModalPortada(null);
+                      setLightboxIndex(null); // Opcional: cierra el visor grande
+                    }} className="px-6 py-2 bg-[#C8B99A] text-black hover:bg-white text-xs uppercase tracking-widest font-bold flex items-center gap-2 transition-colors rounded-sm shadow-sm">
+                      <Check size={14}/> Guardar Portada
+                    </button>
+                  </div>
                 </div>
               </motion.div>
             )}

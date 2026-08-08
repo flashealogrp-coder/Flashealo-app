@@ -139,15 +139,23 @@ export default function AdminDashboard() {
     
     setCargando(true);
     try {
-      // PROXIMO PASO ARQUITECTÓNICO: 
-      // Aquí enviaremos un Webhook a Modal para que vaya a Cloudflare R2 y borre 
-      // físicamente la carpeta del evento para no dejar archivos huérfanos.
+      // 1. Identificamos el nombre de la carpeta raíz de este evento en Cloudflare
+      const prefijoCarpeta = formData.url_slug || formData.id; 
 
-      // Por ahora, borramos el evento de Supabase (Asegúrate de que en Supabase la tabla 'fotografias' tenga la clave foránea configurada como ON DELETE CASCADE)
+      // 2. Destruimos la Colección en Supabase (Esto borra el Evento y en cascada sus registros de fotos)
       const { error } = await supabase.from('eventos').delete().eq('id', eventoEditandoId);
       if (error) throw error;
 
-      setMensaje({ tipo: 'exito', texto: 'Colección eliminada permanentemente.' });
+      // 3. Destruimos los archivos físicos pesados en Cloudflare R2
+      try {
+        await fetch(MODAL_API_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ accion: "eliminar_coleccion", prefijo: prefijoCarpeta })
+        });
+      } catch (err) { console.error("Error al limpiar colección en R2", err); }
+
+      setMensaje({ tipo: 'exito', texto: 'Colección e imágenes eliminadas permanentemente.' });
       setVista('grid');
       setEventoEditandoId(null);
       setMostrarConfirmacionBorrar(false);
@@ -328,12 +336,30 @@ export default function AdminDashboard() {
     await supabase.from('fotografias').update({ es_favorita: nuevoEstado }).eq('id', fotoId);
   };
 
-  const borrarFotos = async (ids) => {
+const borrarFotos = async (ids) => {
+    // 1. Antes de borrar, salvamos las URL de las fotos para decirle a R2 cuáles quemar
+    const fotosABorrar = fotosEvento.filter(f => ids.includes(f.id));
+    const rutasR2 = fotosABorrar.map(f => f.url_original);
+
+    // 2. Borramos de Supabase (Limpia la base de datos)
     await supabase.from('fotografias').delete().in('id', ids);
+    
+    // 3. Limpiamos la Pantalla Visualmente
     setFotosEvento(prev => prev.filter(f => !ids.includes(f.id)));
     setFotosSeleccionadas([]);
     setLightboxIndex(null);
-    setMensaje({ tipo: 'exito', texto: 'Fotografías eliminadas de la colección.' });
+    setMensaje({ tipo: 'exito', texto: 'Fotografías eliminadas permanentemente.' });
+
+    // 4. Mágia negra: Despachamos al camión de basura de Modal por detrás
+    if (rutasR2.length > 0) {
+      try {
+        await fetch(MODAL_API_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ accion: "eliminar_fotos", rutas: rutasR2 })
+        });
+      } catch (err) { console.error("Error al limpiar R2", err); }
+    }
   };
 
   const moverFotosASet = async (nuevaCarpetaId) => {

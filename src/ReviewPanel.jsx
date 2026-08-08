@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from './supabaseClient';
-import { UserMinus, Combine, Loader2, Hash, Trash2, Edit2, User, AlertTriangle, Check, X, Zap } from 'lucide-react';
+import { UserMinus, Combine, Loader2, Hash, Trash2, Edit2, User, AlertTriangle, Check, X, Zap, ArrowLeft, ScanFace, ScanLine } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://muvzhnnsdnztlhynuipd.supabase.co";
@@ -20,7 +20,6 @@ const SAND   = '#C8B99A';
 const TAUPE  = '#9A8F82';
 const INK    = '#1C1C1C';
 const CREAM  = '#FDFCF8';
-const WHITE  = '#FFFFFF';
 
 const BoundingBox = ({ bbox, color, label, esCuerpo }) => {
   if (!bbox) return null;
@@ -60,11 +59,13 @@ const InteractiveZoomImage = ({ zoomCara }) => {
   );
 };
 
-export default function ReviewPanel({ evento, onVolver }) {
+export default function ReviewPanel({ evento, onVolver, onEjecutarIA, procesandoIA }) {
   const isOCR = evento.tipo_reconocimiento === 'ocr';
   const [vista, setVista] = useState(isOCR ? 'corredores' : 'perfiles'); 
-  
   const [zoomCara, setZoomCara] = useState(null);
+
+  // 🌟 NUEVO: Estado para el Resumen (Header)
+  const [stats, setStats] = useState({ caras: 0, dorsales: 0, dudas: 0, cargando: true });
 
   // Estados Perfiles (Facial)
   const [listaJugadores, setListaJugadores] = useState([]);
@@ -89,7 +90,19 @@ export default function ReviewPanel({ evento, onVolver }) {
   const [candidatosDuda, setCandidatosDuda] = useState([]);
   const [cargandoDudas, setCargandoDudas] = useState(false);
 
-  // Cargar Corredores (OCR)
+  // 🌟 NUEVO: Función para cargar las estadísticas iniciales
+  const cargarStats = useCallback(async () => {
+    setStats(prev => ({ ...prev, cargando: true }));
+    const [resCaras, resDorsales, resDudas] = await Promise.all([
+      supabase.from('identities').select('id', { count: 'exact' }).eq('evento_id', evento.id),
+      supabase.from('etiquetas_fotos').select('id', { count: 'exact' }).eq('evento_id', evento.id),
+      supabase.from('face_detections').select('id', { count: 'exact' }).eq('evento_id', evento.id).is('identity_id', null)
+    ]);
+    setStats({ caras: resCaras.count || 0, dorsales: resDorsales.count || 0, dudas: resDudas.count || 0, cargando: false });
+  }, [evento.id]);
+
+  useEffect(() => { cargarStats(); }, [cargarStats]);
+
   const cargarCorredores = useCallback(async () => { 
     setCargandoCorredores(true);
     const { data } = await supabase.from('corredores').select('*').eq('evento_id', evento.id);
@@ -115,14 +128,10 @@ export default function ReviewPanel({ evento, onVolver }) {
     setListaCorredores(prev => prev.map(c => c.id === corredorSeleccionado.id ? { ...c, dorsal: num } : c)); 
   };
 
-  // Cargar Perfiles (Facial)
   const cargarJugadores = useCallback(async () => { 
     setCargandoPerfiles(true);
     const { data } = await supabase.from('identities').select('id, display_name, avatar_url, embedding_promedio').eq('evento_id', evento.id).order('display_name');
-    if (data) {
-      setListaJugadores(data); 
-      if (data.length > 0 && !jugadorSeleccionado) seleccionarJugador(data[0]);
-    }
+    if (data) { setListaJugadores(data); if (data.length > 0 && !jugadorSeleccionado) seleccionarJugador(data[0]); }
     setCargandoPerfiles(false);
   }, [evento.id, jugadorSeleccionado]);
 
@@ -160,16 +169,15 @@ export default function ReviewPanel({ evento, onVolver }) {
   const fusionarConJugador = async (idDestino) => {
     await supabase.from('face_detections').update({ identity_id: idDestino }).eq('identity_id', jugadorSeleccionado.id);
     await supabase.from('identities').delete().eq('id', jugadorSeleccionado.id);
-    setJugadorSeleccionado(null); cargarJugadores();
+    setJugadorSeleccionado(null); cargarJugadores(); cargarStats();
   };
 
   const destruirPerfilFalso = async () => {
     await supabase.from('face_detections').delete().eq('identity_id', jugadorSeleccionado.id);
     await supabase.from('identities').delete().eq('id', jugadorSeleccionado.id);
-    setJugadorSeleccionado(null); cargarJugadores();
+    setJugadorSeleccionado(null); cargarJugadores(); cargarStats();
   };
 
-  // Cargar Dudas
   const cargarDudas = useCallback(async () => { 
     setCargandoDudas(true);
     const { data } = await supabase.from('face_detections').select('*').eq('evento_id', evento.id).is('identity_id', null).limit(1);
@@ -187,48 +195,91 @@ export default function ReviewPanel({ evento, onVolver }) {
     else if (vista === 'dudas') cargarDudas();
   }, [vista, cargarJugadores, cargarCorredores, cargarDudas]);
 
+  const iaEjecutada = stats.caras > 0 || stats.dorsales > 0 || stats.dudas > 0;
+
   return (
     <div className="min-h-screen bg-[#0A0A0A] text-white font-sans flex flex-col relative overflow-hidden">
       
-      {/* ─── HEADER DEL AUDITOR ─── */}
-      <header className="border-b border-[#222] px-8 py-6 flex items-center justify-between bg-black/50 backdrop-blur-md shrink-0">
-        <div className="flex items-center gap-6">
-          <button onClick={onVolver} className="flex items-center gap-2 text-xs uppercase tracking-widest text-gray-400 hover:text-white transition-colors">
-            <ArrowLeft size={16} /> Salir del Auditor
-          </button>
-          <div className="w-[1px] h-8 bg-[#333]"></div>
-          <div>
-            <h1 className="text-2xl font-serif leading-none">{evento.nombre}</h1>
-            <p className="text-[9px] uppercase tracking-widest text-[#C8B99A] mt-1">Sala de Auditoría IA</p>
+      {/* ─── HEADER / CABECERA SUPERIOR ─── */}
+      <header className="border-b border-[#222] bg-black/50 backdrop-blur-md shrink-0">
+        <div className="px-8 py-6 flex items-center justify-between border-b border-[#222]">
+          <div className="flex items-center gap-6">
+            <button onClick={onVolver} className="flex items-center gap-2 text-xs uppercase tracking-widest text-gray-400 hover:text-white transition-colors">
+              <ArrowLeft size={16} /> Salir del Auditor
+            </button>
+            <div className="w-[1px] h-8 bg-[#333]"></div>
+            <div>
+              <h1 className="text-2xl font-serif leading-none">{evento.nombre}</h1>
+              <p className="text-[9px] uppercase tracking-widest text-[#C8B99A] mt-1">Sala de Control IA</p>
+            </div>
           </div>
         </div>
 
-        <nav className="flex gap-2 bg-[#111] p-1 border border-[#333]">
-          {isOCR ? (
-            <button onClick={() => setVista('corredores')} className="flex items-center gap-2 px-5 py-2 text-[10px] font-bold uppercase tracking-widest bg-[#222] text-white"><User size={14}/> Grupos OCR</button>
+        {/* 🌟 EL RESUMEN DINÁMICO (LA PARTE DE ARRIBA QUE PEDISTE) 🌟 */}
+        <div className="px-8 py-8 bg-[#111]">
+          {stats.cargando ? (
+             <div className="flex items-center gap-3 text-gray-400"><Loader2 className="animate-spin" size={16}/> Comprobando base de datos...</div>
+          ) : procesandoIA ? (
+            <div className="flex items-center gap-4 bg-amber-900/20 border border-amber-900/50 p-6">
+               <Loader2 className="animate-spin text-amber-500" size={32} />
+               <div>
+                  <h3 className="text-amber-500 font-serif text-xl">El Enjambre IA está trabajando...</h3>
+                  <p className="text-xs text-amber-200/50 uppercase tracking-widest mt-1">Los servidores GPU están indexando las fotos. Esto puede tomar unos minutos.</p>
+               </div>
+            </div>
+          ) : iaEjecutada ? (
+            <div className="flex flex-col md:flex-row gap-6 items-center justify-between">
+              <div className="flex gap-4 w-full md:w-auto">
+                 {/* Tarjetas de Resumen */}
+                 <div className="bg-[#1A1A1A] border border-[#333] p-5 w-40 flex flex-col justify-between">
+                    <span className="text-[10px] uppercase tracking-widest text-gray-500 mb-2 flex items-center gap-2"><ScanFace size={14}/> Personas</span>
+                    <span className="text-4xl font-serif">{stats.caras}</span>
+                 </div>
+                 <div className="bg-[#1A1A1A] border border-[#333] p-5 w-40 flex flex-col justify-between">
+                    <span className="text-[10px] uppercase tracking-widest text-gray-500 mb-2 flex items-center gap-2"><ScanLine size={14}/> Dorsales OCR</span>
+                    <span className="text-4xl font-serif">{stats.dorsales}</span>
+                 </div>
+                 <div className="bg-[#1A1A1A] border border-[#333] p-5 w-40 flex flex-col justify-between">
+                    <span className="text-[10px] uppercase tracking-widest text-gray-500 mb-2 flex items-center gap-2"><AlertTriangle size={14} className={stats.dudas > 0 ? "text-red-400" : ""}/> Dudas</span>
+                    <span className={`text-4xl font-serif ${stats.dudas > 0 ? 'text-red-400' : 'text-green-500'}`}>{stats.dudas}</span>
+                 </div>
+              </div>
+              <button onClick={() => { onEjecutarIA(); setTimeout(cargarStats, 5000); }} className="px-6 py-4 bg-[#222] border border-[#333] hover:bg-white hover:text-black transition-colors text-[10px] uppercase tracking-widest font-bold flex items-center gap-2">
+                 <Zap size={16}/> Forzar Re-escaneo IA
+              </button>
+            </div>
           ) : (
-            <>
-              <button onClick={() => setVista('perfiles')} className={`flex items-center gap-2 px-5 py-2 text-[10px] font-bold uppercase tracking-widest ${vista === 'perfiles' ? 'bg-white text-black' : 'text-gray-400 hover:text-white'}`}><User size={14}/> Perfiles ReID</button>
-              <button onClick={() => setVista('dudas')} className={`flex items-center gap-2 px-5 py-2 text-[10px] font-bold uppercase tracking-widest ${vista === 'dudas' ? 'bg-red-500 text-white' : 'text-gray-400 hover:text-white'}`}><AlertTriangle size={14}/> Dudas Huérfanas</button>
-            </>
+            <div className="flex flex-col items-start gap-4">
+              <p className="text-gray-400 text-sm">La inteligencia artificial aún no ha analizado esta colección.</p>
+              <button onClick={() => { onEjecutarIA(); setTimeout(cargarStats, 5000); }} className="px-8 py-4 bg-[#C8B99A] text-black hover:bg-white transition-colors text-xs uppercase tracking-widest font-bold flex items-center gap-2 shadow-[0_0_20px_rgba(200,185,154,0.3)]">
+                 <Zap size={18}/> Iniciar Reconocimiento IA Ahora
+              </button>
+            </div>
           )}
-        </nav>
+        </div>
       </header>
 
+      {/* ─── PESTAÑAS (TABS) ─── */}
+      <nav className="flex gap-2 bg-[#0A0A0A] p-2 border-b border-[#222]">
+        {isOCR ? (
+          <button onClick={() => setVista('corredores')} className="flex items-center gap-2 px-5 py-2 text-[10px] font-bold uppercase tracking-widest bg-[#222] text-white"><User size={14}/> Grupos OCR</button>
+        ) : (
+          <>
+            <button onClick={() => setVista('perfiles')} className={`flex items-center gap-2 px-6 py-3 text-[10px] font-bold uppercase tracking-widest transition-colors ${vista === 'perfiles' ? 'bg-white text-black' : 'text-gray-400 hover:text-white hover:bg-[#111]'}`}><User size={14}/> Identidades</button>
+            <button onClick={() => setVista('dudas')} className={`flex items-center gap-2 px-6 py-3 text-[10px] font-bold uppercase tracking-widest transition-colors ${vista === 'dudas' ? 'bg-red-500 text-white' : 'text-gray-400 hover:text-white hover:bg-[#111]'}`}>
+               <AlertTriangle size={14}/> Dudas Huérfanas
+               {stats.dudas > 0 && <span className="bg-white/20 px-2 py-0.5 rounded-full ml-1">{stats.dudas}</span>}
+            </button>
+          </>
+        )}
+      </nav>
+
+      {/* ─── CUERPO INFERIOR (SIDEBAR Y PANEL CENTRAL) ─── */}
       <div className="flex flex-1 overflow-hidden">
         
-        {/* ─── SIDEBAR LISTADO (PERFILES / CORREDORES) ─── */}
+        {/* SIDEBAR */}
         {vista !== 'dudas' && (
           <aside className="w-80 border-r border-[#222] bg-[#0A0A0A] flex flex-col shrink-0">
-            <div className="p-4 border-b border-[#222] flex justify-between items-center">
-              <span className="text-[10px] uppercase tracking-widest font-bold text-gray-500">
-                {vista === 'perfiles' ? 'Identidades' : 'Dorsales Detectados'}
-              </span>
-              <span className="bg-[#222] text-white px-2 py-0.5 text-xs">
-                {vista === 'perfiles' ? listaJugadores.length : listaCorredores.length}
-              </span>
-            </div>
-            
             <div className="flex-1 overflow-y-auto custom-scrollbar-dark p-2">
               {vista === 'perfiles' && listaJugadores.map(j => (
                 <button key={j.id} onClick={() => seleccionarJugador(j)} className={`w-full flex items-center gap-3 p-3 mb-1 transition-all ${jugadorSeleccionado?.id === j.id ? 'bg-[#222] text-white' : 'hover:bg-[#111] text-gray-400'}`}>
@@ -250,12 +301,12 @@ export default function ReviewPanel({ evento, onVolver }) {
           </aside>
         )}
 
-        {/* ─── PANEL CENTRAL DE EDICIÓN ─── */}
-        <main className="flex-1 bg-[#111] overflow-y-auto p-8 custom-scrollbar-dark">
+        {/* PANEL CENTRAL */}
+        <main className="flex-1 bg-[#111] overflow-y-auto p-8 custom-scrollbar-dark relative">
           
           {/* VISTA PERFILES */}
-          {vista === 'perfiles' && jugadorSeleccionado && (
-            <div className="max-w-5xl mx-auto">
+          {vista === 'perfiles' && jugadorSeleccionado ? (
+            <div className="max-w-5xl mx-auto pb-12">
               <div className="flex items-center justify-between border-b border-[#333] pb-6 mb-8">
                 <div className="flex items-center gap-6">
                   <img src={fotoUrl(jugadorSeleccionado.avatar_url)} className="w-24 h-24 rounded-full object-cover shadow-2xl border border-[#333]" alt="" />
@@ -302,12 +353,17 @@ export default function ReviewPanel({ evento, onVolver }) {
                     <img src={fotoUrl(foto.photo_url, true)} className="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity filter saturate-50 group-hover:saturate-100" alt=""/>
                     <div className="absolute top-2 right-2 bg-black/80 px-2 py-1 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                       {foto.detecciones.map(det => (
-                        <button key={det.id} onClick={(e) => { e.stopPropagation(); supabase.from('face_detections').update({identity_id:null}).eq('id',det.id).then(()=>seleccionarJugador(jugadorSeleccionado)); }} className="text-red-400 hover:text-red-500 text-[10px] uppercase font-bold flex items-center gap-1" title="Desvincular"><UserMinus size={12}/> Quitar</button>
+                        <button key={det.id} onClick={(e) => { e.stopPropagation(); supabase.from('face_detections').update({identity_id:null}).eq('id',det.id).then(()=>{seleccionarJugador(jugadorSeleccionado); cargarStats();}); }} className="text-red-400 hover:text-red-500 text-[10px] uppercase font-bold flex items-center gap-1" title="Desvincular"><UserMinus size={12}/> Quitar</button>
                       ))}
                     </div>
                   </div>
                 ))}
               </div>
+            </div>
+          ) : vista === 'perfiles' && (
+            <div className="h-full flex flex-col items-center justify-center opacity-30">
+              <User size={64} className="mb-4" />
+              <p className="font-serif text-xl">Selecciona un perfil en la barra lateral</p>
             </div>
           )}
 
@@ -325,14 +381,14 @@ export default function ReviewPanel({ evento, onVolver }) {
                         <img src={fotoUrl(fotoDudosa.photo_url, true)} className="absolute w-[9999%] max-w-none" style={{ left: `-${(fotoDudosa.bbox.x / fotoDudosa.bbox.w) * 100}%`, top: `-${(fotoDudosa.bbox.y / fotoDudosa.bbox.h) * 100}%`, width: `${(100 / fotoDudosa.bbox.w) * 100}%` }} alt=""/>
                       </div>
                     </div>
-                    <button onClick={async () => { await supabase.from('face_detections').delete().eq('id', fotoDudosa.id); cargarDudas(); }} className="text-red-500 hover:text-red-400 text-[10px] uppercase tracking-widest font-bold flex items-center gap-2"><Trash2 size={14}/> Descartar Rostro</button>
+                    <button onClick={async () => { await supabase.from('face_detections').delete().eq('id', fotoDudosa.id); cargarDudas(); cargarStats(); }} className="text-red-500 hover:text-red-400 text-[10px] uppercase tracking-widest font-bold flex items-center gap-2"><Trash2 size={14}/> Descartar Rostro</button>
                   </div>
                   <div className="flex-1">
                     <h2 className="text-3xl font-serif mb-2 text-white">¿Quién es?</h2>
                     <p className="text-[#9A8F82] text-xs uppercase tracking-widest mb-8">Asigna el rostro al perfil correcto</p>
                     <div className="flex flex-col gap-3">
                       {candidatosDuda.map(c => (
-                        <button key={c.id_identidad} onClick={async () => { await supabase.from('face_detections').update({identity_id: c.id_identidad}).eq('id', fotoDudosa.id); cargarDudas(); }} className="flex items-center gap-4 bg-[#222] hover:bg-white hover:text-black p-3 transition-colors group text-left">
+                        <button key={c.id_identidad} onClick={async () => { await supabase.from('face_detections').update({identity_id: c.id_identidad}).eq('id', fotoDudosa.id); cargarDudas(); cargarStats(); }} className="flex items-center gap-4 bg-[#222] hover:bg-white hover:text-black p-3 transition-colors group text-left">
                           <img src={fotoUrl(c.avatar)} className="w-12 h-12 rounded-full object-cover filter grayscale group-hover:grayscale-0" alt=""/>
                           <div className="flex-1">
                             <span className="font-serif block">{c.nombre_jugador}</span>
@@ -349,7 +405,7 @@ export default function ReviewPanel({ evento, onVolver }) {
 
           {/* VISTA CORREDORES OCR */}
           {vista === 'corredores' && corredorSeleccionado && (
-            <div className="max-w-5xl mx-auto">
+            <div className="max-w-5xl mx-auto pb-12">
               <div className="flex items-center gap-6 border-b border-[#333] pb-6 mb-8">
                 <img src={fotoUrl(corredorSeleccionado.avatar_url, true)} className="w-20 h-28 object-cover border border-[#333]" alt=""/>
                 <div>
@@ -383,7 +439,7 @@ export default function ReviewPanel({ evento, onVolver }) {
               {zoomCara.identidad && (
                 <div className="w-80 flex flex-col items-center">
                   <img src={fotoUrl(zoomCara.identidad.avatar_url)} className="w-32 h-32 rounded-full border border-[#333] object-cover mb-4" alt=""/>
-                  <input type="text" defaultValue={zoomCara.identidad.display_name} onBlur={e => { supabase.from('identities').update({display_name: e.target.value}).eq('id', zoomCara.identidad.id); }} onKeyDown={e=>e.key==='Enter'&&e.target.blur()} className="w-full text-center text-2xl font-serif bg-transparent border-b border-[#333] outline-none text-white focus:border-white pb-2" />
+                  <input type="text" defaultValue={zoomCara.identidad.display_name} onBlur={e => { supabase.from('identities').update({display_name: e.target.value}).eq('id', zoomCara.identidad.id).then(()=>cargarJugadores()); }} onKeyDown={e=>e.key==='Enter'&&e.target.blur()} className="w-full text-center text-2xl font-serif bg-transparent border-b border-[#333] outline-none text-white focus:border-white pb-2" />
                   <p className="text-[9px] uppercase tracking-widest text-[#9A8F82] mt-3">Editar Nombre y presionar Enter</p>
                 </div>
               )}

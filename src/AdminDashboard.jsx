@@ -6,7 +6,7 @@ import {
   ChevronLeft, ChevronRight as ChevronRightIcon, Eye, Heart, Maximize2, X, 
   PanelLeftClose, PanelLeft, UploadCloud, ChevronDown, ChevronUp, MapPin, 
   AlertTriangle, Zap, User, Copy, LogOut, Hash, UserMinus, Combine, Check, 
-  ScanFace, ScanLine, Share2, Edit2
+  ScanFace, ScanLine, Share2, Edit2, Columns, LayoutGrid, Square, Info, Camera, Sliders, HardDrive
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -139,9 +139,14 @@ export default function AdminDashboard() {
   const [fotosEvento, setFotosEvento] = useState([]);
   const [fotosSeleccionadas, setFotosSeleccionadas] = useState([]);
   const [lightboxIndex, setLightboxIndex] = useState(null);
+  const [mostrarExif, setMostrarExif] = useState(true); // Panel EXIF abierto por defecto
+  const [fotoHdCargada, setFotoHdCargada] = useState(false); // Control de carga progresiva
   const [mostrarModalMover, setMostrarModalMover] = useState(false);
 
-  // 🌟 ESTADOS PARA EL CROPPER DE PORTADA 🌟
+  // 🌟 ESTADOS PARA EL VISOR DE GALERÍA Y FILTROS 🌟
+  const [layoutModo, setLayoutModo] = useState('grid-small'); // 'masonry' | 'grid-small' | 'grid-big' | 'single'
+  const [separarFavoritas, setSepararFavoritas] = useState(false);
+
   const [modalPortada, setModalPortada] = useState(null); 
   const [portadaPos, setPortadaPos] = useState({ x: 50, y: 50 });
   const [isDraggingPortada, setIsDraggingPortada] = useState(false);
@@ -185,6 +190,25 @@ export default function AdminDashboard() {
   }, []);
 
   useEffect(() => {
+      const handleKeyDown = (e) => {
+        if (e.key === 'Escape') {
+          setLightboxIndex(null); // Cierra la foto gigante
+          setZoomCara(null);      // Cierra la lupa de IA si está abierta
+          // Agrega aquí cualquier otro estado de modal que quieras cerrar
+        }
+      };
+      window.addEventListener('keydown', handleKeyDown);
+      return () => window.removeEventListener('keydown', handleKeyDown);
+    }, []);
+
+  useEffect(() => {
+  setFotoHdCargada(false);
+  }, [lightboxIndex]);  
+
+
+
+
+  useEffect(() => {
     if (!eventoActivo) return;
     const canal = supabase.channel('cambios-fotos')
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'fotografias', filter: `evento_id=eq.${eventoActivo.id}` },
@@ -202,21 +226,21 @@ export default function AdminDashboard() {
     }
   }, [mensaje]);
 
-  // 🌟 FIX DEL SCROLL PEGADIZO: Escucha global al soltar el mouse 🌟
   useEffect(() => {
-    const handleGlobalPointerUp = () => {
-      setIsDraggingPortada(false);
-      dragStart.current = null;
-    };
+    const handleGlobalPointerUp = () => { setIsDraggingPortada(false); dragStart.current = null; };
     if (isDraggingPortada) {
-      window.addEventListener('pointerup', handleGlobalPointerUp);
-      window.addEventListener('pointercancel', handleGlobalPointerUp);
-      return () => {
-        window.removeEventListener('pointerup', handleGlobalPointerUp);
-        window.removeEventListener('pointercancel', handleGlobalPointerUp);
-      };
+      window.addEventListener('pointerup', handleGlobalPointerUp); window.addEventListener('pointercancel', handleGlobalPointerUp);
+      return () => { window.removeEventListener('pointerup', handleGlobalPointerUp); window.removeEventListener('pointercancel', handleGlobalPointerUp); };
     }
   }, [isDraggingPortada]);
+
+  // Si cambiamos de carpeta, desactivar la separación de favoritas si no hay
+  useEffect(() => {
+    const currentFolderPhotos = fotosEvento.filter(f => f.carpeta_id === carpetaActiva?.id);
+    if (!currentFolderPhotos.some(f => f.es_favorita)) {
+      setSepararFavoritas(false);
+    }
+  }, [carpetaActiva, fotosEvento]);
 
   const iniciarSesion = async (e) => {
     e.preventDefault(); setCargandoLogin(true);
@@ -285,7 +309,7 @@ export default function AdminDashboard() {
       try { await fetch(MODAL_API_URL, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ accion: "eliminar_coleccion", prefijo: prefijoCarpeta }) }); } catch (err) { }
       setMensaje({ tipo: 'exito', texto: 'Colección e imágenes eliminadas.' });
       setVista('grid'); setEventoEditandoId(null); setMostrarConfirmacionBorrar(false); setTextoConfirmacion(''); await cargarEventos();
-    } catch (error) { setMensaje({ tipo: 'error', texto: `Error: ${error.message}` }); }
+    } catch (error) { setMensaje({ tipo: 'error', texto: `Error al eliminar: ${error.message}` }); }
     setCargando(false);
   };
 
@@ -525,6 +549,85 @@ export default function AdminDashboard() {
     }));
   };
 
+  // 🌟 COMPONENTE RENDERIZADOR DE FOTO DINÁMICO 🌟
+  const RenderFotoItem = ({ foto, globalIdx }) => {
+    const isSelected = fotosSeleccionadas.includes(foto.id);
+    const procesandoMiniatura = !foto.url_watermark;
+
+    let containerClass = "group relative rounded-sm overflow-hidden bg-[#E8E4DE] transition-all ";
+    let imgClass = "transition-opacity duration-300 ";
+
+    if (layoutModo === 'masonry') {
+      containerClass += "mb-4 break-inside-avoid w-full block ";
+      imgClass += "w-full h-auto block ";
+    } else if (layoutModo === 'single') {
+      containerClass += "w-full bg-[#FAFAFA] flex items-center justify-center py-4 mb-8 ";
+      imgClass += "max-w-full max-h-[70vh] object-contain shadow-sm ";
+    } else {
+      // grid-small y grid-big (Mantienen el espacio sin deformar)
+      containerClass += "aspect-square flex items-center justify-center ";
+      imgClass += "max-w-full max-h-full object-contain ";
+    }
+
+    return (
+      <div 
+        key={foto.id} 
+        className="group relative rounded-none overflow-hidden bg-transparent" 
+        style={{ border: isSelected ? `3px solid ${SAND}` : '3px solid transparent' }}
+      >
+        <img 
+          src={resolverUrlFoto(foto, false)} 
+          alt="" 
+          className="w-full h-full object-contain transition-opacity duration-300" 
+        />
+        
+        {/* Capa de hover con cursor de dedito normal */}
+        <div 
+          className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer" 
+          onClick={() => setLightboxIndex(fotosActuales.findIndex(f => f.id === foto.id))}
+        >
+          {/* Botón de selección con opacidad baja (bg-white/40) */}
+          <div className="absolute top-2 left-2 z-10" onClick={(e) => toggleFotoSeleccion(foto.id, e)}>
+            <div className={`w-6 h-6 rounded-full flex items-center justify-center transition-all hover:bg-white ${isSelected ? 'bg-[#C8B99A]' : 'bg-white/40'}`}>
+              {isSelected && <Check size={14} color={WHITE} />}
+            </div>
+          </div>
+          
+          {/* Corazón con opacidad baja */}
+          <div className="absolute bottom-2 right-2 z-10" onClick={(e) => toggleFavorito(foto.id, e)}>
+            <div className="w-6 h-6 rounded-full flex items-center justify-center bg-white/40 hover:bg-white transition-all">
+                <Heart size={14} fill={foto.es_favorita ? '#E74C3C' : 'none'} color={foto.es_favorita ? '#E74C3C' : INK} />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // 🌟 FUNCIÓN PARA RENDERIZAR LA GALERÍA (CON O SIN SECCIÓN DE FAVORITAS) 🌟
+  const GalleryLayout = ({ fotos, title }) => {
+    if (fotos.length === 0) return null;
+
+    let gridClass = "";
+    if (layoutModo === 'masonry') gridClass = "columns-2 md:columns-3 lg:columns-5 gap-4";
+    else if (layoutModo === 'grid-small') gridClass = "grid grid-cols-3 md:grid-cols-5 lg:grid-cols-8 gap-3";
+    else if (layoutModo === 'grid-big') gridClass = "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6";
+    else if (layoutModo === 'single') gridClass = "flex flex-col items-center";
+
+    return (
+      <div className="mb-12">
+        {title && <h3 className="text-[10px] uppercase tracking-widest text-[#9A8F82] mb-6 font-bold flex items-center gap-2">{title} <span className="px-2 py-0.5 bg-[#E8E4DE] text-[#1C1C1C] rounded-sm">{fotos.length}</span></h3>}
+        <div className={gridClass}>
+          {fotos.map((foto) => {
+            const globalIdx = fotosActuales.findIndex(f => f.id === foto.id);
+            return <RenderFotoItem key={foto.id} foto={foto} globalIdx={globalIdx} />;
+          })}
+        </div>
+      </div>
+    );
+  };
+
+
   if (cargandoLogin) return <div className="h-screen w-full flex items-center justify-center bg-[#FDFCF8]"><Loader2 className="animate-spin text-[#9A8F82]" size={32}/></div>;
   if (!session) {
     return (
@@ -542,11 +645,15 @@ export default function AdminDashboard() {
   }
 
   const fotosActuales = carpetaActiva ? fotosEvento.filter(f => f.carpeta_id === carpetaActiva.id) : [];
+  const fotosFavoritas = fotosActuales.filter(f => f.es_favorita);
+  const fotosRestantes = fotosActuales.filter(f => !f.es_favorita);
+  
   const iaEjecutada = statsIA.caras > 0 || statsIA.dorsales > 0 || statsIA.dudas > 0;
 
   return (
     <div style={{ display: 'flex', height: '100vh', background: CREAM, color: INK, fontFamily: 'system-ui, sans-serif', overflow: 'hidden' }}>
       
+      {/* ─── BARRA LATERAL PRINCIPAL ─── */}
       <aside style={{ width: sidebarOpen ? 240 : 64, background: WHITE, borderRight: `1px solid ${BORDER}`, display: 'flex', flexDirection: 'column', zIndex: 50, flexShrink: 0, transition: 'width 0.25s ease' }}>
         <div style={{ padding: sidebarOpen ? '0 16px 0 20px' : '0', height: 64, display: 'flex', alignItems: 'center', justifyContent: sidebarOpen ? 'space-between' : 'center', borderBottom: `1px solid ${BORDER}`, overflow: 'hidden' }}>
           {sidebarOpen ? (
@@ -574,8 +681,10 @@ export default function AdminDashboard() {
         </div>
       </aside>
 
+      {/* ─── ÁREA DE CONTENIDO ─── */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden' }}>
         
+        {/* CABECERA GLOBAL SUPERIOR */}
         <header style={{ height: vista === 'dashboard' ? 48 : 64, flexShrink: 0, background: WHITE, borderBottom: `1px solid ${BORDER}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 24px', zIndex: 40, transition: 'height 0.3s ease' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             {(vista === 'form' || vista === 'dashboard') && (
@@ -593,6 +702,7 @@ export default function AdminDashboard() {
           </AnimatePresence>
         </header>
 
+        {/* CONTENEDOR CON SCROLL GLOBAL */}
         <main onScroll={handleMainScroll} style={{ flex: 1, overflowY: 'auto', background: '#FAFAFA' }} className="custom-scrollbar">
           
           {vista === 'grid' && (
@@ -746,15 +856,78 @@ export default function AdminDashboard() {
 
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 'calc(100vh - 64px)' }}>
                   
+                  {/* 🌟 CASO A: MODO FOTOS CON NUEVA BARRA DE HERRAMIENTAS 🌟 */}
                   {seccionDashboard === 'fotos' && (
                     <>
-                      <div style={{ position: 'sticky', top: 0, zIndex: 40, background: '#FAFAFA', padding: '20px 28px', borderBottom: `1px solid ${BORDER}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: scrolledPastBanner ? '0 4px 20px rgba(0,0,0,0.03)' : 'none', transition: 'box-shadow 0.3s' }}>
-                        <h2 style={{ fontSize: 18, margin: 0, fontWeight: 500 }}>{carpetaActiva?.nombre}</h2>
-                        <button onClick={() => setMostrarUploader(true)} style={{ background: INK, color: WHITE, border: 'none', padding: '9px 18px', borderRadius: 4, cursor: 'pointer', fontSize: 12, fontWeight: 500, display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <UploadCloud size={15} /> Añadir Fotos
-                        </button>
-                      </div>
+                      {/* HEADER STICKY (TOOLBAR) */}
+                      <div style={{ 
+                        position: 'sticky', 
+                        top: 0, 
+                        zIndex: 40, 
+                        background: 'rgba(250, 250, 250, 0.95)', 
+                        backdropFilter: 'blur(8px)',
+                        /* Padding súper reducido: 10px cuando scrolleas, 16px arriba */
+                        padding: scrolledPastBanner ? '10px 28px' : '16px 28px', 
+                        borderBottom: `1px solid ${BORDER}`, 
+                        display: 'flex', 
+                        justifyContent: 'space-between', 
+                        alignItems: 'center', 
+                        boxShadow: scrolledPastBanner ? '0 4px 20px rgba(0,0,0,0.03)' : 'none', 
+                        transition: 'all 0.3s ease' 
+                      }}>
+                        <h2 style={{ fontSize: scrolledPastBanner ? 16 : 18, margin: 0, fontWeight: 500, transition: 'font-size 0.3s ease' }}>
+                          {carpetaActiva?.nombre}
+                        </h2>
+                        
+                        {/* TODOS LOS BOTONES DENTRO DE LA BARRA */}
+                        <div className="flex items-center gap-4">
+                          
+                          {/* Botón Solo Favoritas */}
+                          <button 
+                            disabled={fotosActuales.filter(f => f.es_favorita).length === 0}
+                            onClick={() => setSepararFavoritas(!separarFavoritas)}
+                            className={`flex items-center gap-2 text-[10px] uppercase font-bold tracking-wider transition-colors ${fotosActuales.filter(f => f.es_favorita).length === 0 ? 'opacity-30 cursor-not-allowed' : 'hover:text-[#E74C3C]'} ${separarFavoritas ? 'text-[#E74C3C]' : 'text-gray-500'}`}
+                            title="Dividir Favoritas"
+                          >
+                            <Heart size={14} fill={separarFavoritas ? '#E74C3C' : 'none'} color={separarFavoritas ? '#E74C3C' : 'currentColor'} />
+                            Solo Favoritas
+                          </button>
 
+                          <div className="w-[1px] h-5 bg-gray-200 mx-1"></div>
+
+                          {/* Botones de Layout SIN el fondo de "bullet" gris */}
+                          <div className="flex gap-2">
+                            <button onClick={() => setLayoutModo('masonry')} className={`transition-transform hover:scale-110 p-1 ${layoutModo==='masonry'?'text-black':'text-gray-400 hover:text-black'}`} title="Mosaico"><Columns size={16}/></button>
+                            <button onClick={() => setLayoutModo('grid-small')} className={`transition-transform hover:scale-110 p-1 ${layoutModo==='grid-small'?'text-black':'text-gray-400 hover:text-black'}`} title="Grid Pequeño"><Grid size={16}/></button>
+                            <button onClick={() => setLayoutModo('grid-big')} className={`transition-transform hover:scale-110 p-1 ${layoutModo==='grid-big'?'text-black':'text-gray-400 hover:text-black'}`} title="Grid Grande"><LayoutGrid size={16}/></button>
+                            <button onClick={() => setLayoutModo('single')} className={`transition-transform hover:scale-110 p-1 ${layoutModo==='single'?'text-black':'text-gray-400 hover:text-black'}`} title="Pantalla Completa"><Square size={16}/></button>
+                          </div>
+
+                          <div className="w-[1px] h-5 bg-gray-200 mx-1"></div>
+
+                          {/* Botón de Añadir Fotos */}
+                          <button 
+                            onClick={() => setMostrarUploader(true)} 
+                            style={{ 
+                              background: INK, 
+                              color: WHITE, 
+                              border: 'none', 
+                              padding: scrolledPastBanner ? '7px 14px' : '9px 18px', 
+                              borderRadius: 4, 
+                              cursor: 'pointer', 
+                              fontSize: 11, 
+                              fontWeight: 500, 
+                              display: 'flex', 
+                              alignItems: 'center', 
+                              gap: 6, 
+                              transition: 'padding 0.3s ease' 
+                            }}>
+                            <UploadCloud size={15} /> Añadir Fotos
+                          </button>
+                        </div>
+                      </div>  
+
+                      {/* AREA DE FOTOS */}
                       <div style={{ padding: 28, flex: 1, position: 'relative' }}>
                         <AnimatePresence>
                           {mostrarUploader && (
@@ -817,33 +990,17 @@ export default function AdminDashboard() {
                             {fotosActuales.length === 0 ? (
                               <div style={{ textAlign: 'center', padding: '60px 0', color: TAUPE, fontStyle: 'italic', fontSize: 13 }}>La carpeta está vacía. ¡Sube las primeras fotos!</div>
                             ) : (
-                              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 16 }}>
-                                {fotosActuales.map((foto, index) => {
-                                  const isSelected = fotosSeleccionadas.includes(foto.id);
-                                  const procesandoMiniatura = !foto.url_watermark;
-                                  return (
-                                    <div key={foto.id} className="group relative aspect-square rounded-sm overflow-hidden bg-[#E8E4DE]" style={{ border: isSelected ? `3px solid ${SAND}` : '3px solid transparent' }}>
-                                      <img src={resolverUrlFoto(foto, false)} alt="" className={`w-full h-full object-cover transition-opacity duration-300 ${procesandoMiniatura ? 'opacity-40' : 'opacity-100'}`} />
-                                      {procesandoMiniatura && (
-                                        <div className="absolute inset-0 flex items-center justify-center bg-black/10">
-                                          <Loader2 size={24} className="animate-spin text-white" />
-                                        </div>
-                                      )}
-                                      <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity cursor-zoom-in" onClick={() => setLightboxIndex(index)}>
-                                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-white"><Maximize2 size={22} /></div>
-                                      </div>
-                                      <div className="absolute top-2 left-2 z-10" onClick={(e) => toggleFotoSeleccion(foto.id, e)}>
-                                        <div className={`w-5 h-5 rounded-full flex items-center justify-center cursor-pointer ${isSelected ? 'bg-[#C8B99A]' : 'bg-white/90 shadow-sm'}`}>
-                                          {isSelected && <CheckCircle2 size={11} className="text-white" />}
-                                        </div>
-                                      </div>
-                                      <div style={{ position: 'absolute', bottom: 6, right: 6, zIndex: 10 }} onClick={(e) => toggleFavorito(foto.id, e)}>
-                                        <Heart size={16} fill={foto.es_favorita ? '#E74C3C' : 'none'} color={foto.es_favorita ? '#E74C3C' : WHITE} style={{ cursor: 'pointer', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))' }} />
-                                      </div>
-                                    </div>
-                                  );
-                                })}
-                              </div>
+                              <>
+                                {separarFavoritas && fotosFavoritas.length > 0 ? (
+                                  <>
+                                    <GalleryLayout fotos={fotosFavoritas} title="Favoritas" />
+                                    <hr className="border-t border-dashed border-[#C8B99A] opacity-50 my-12" />
+                                    <GalleryLayout fotos={fotosRestantes} title="Resto de la colección" />
+                                  </>
+                                ) : (
+                                  <GalleryLayout fotos={fotosActuales} />
+                                )}
+                              </>
                             )}
                           </>
                         )}
@@ -1061,7 +1218,7 @@ export default function AdminDashboard() {
                                             const rawBox = getBboxCoords(fotoDudosa.bbox);
                                             
                                             if (rawBox) {
-                                              const box = expandBbox(rawBox);
+                                              const box = expandBbox(rawBox); // Expandimos para agarrar el cuerpo
                                               const insetTop = box.y;
                                               const insetRight = 100 - (box.x + box.w);
                                               const insetBottom = 100 - (box.y + box.h);
@@ -1069,13 +1226,16 @@ export default function AdminDashboard() {
                                               
                                               return (
                                                 <>
+                                                  {/* Capa Base: Fondo borroso */}
                                                   <img src={fotoUrlAux(fotoDudosa.photo_url, true)} className="max-h-[50vh] w-auto max-w-full block opacity-50 blur-[3px]" alt="Contexto"/>
                                                   
+                                                  {/* Capa Media: Recorte Nítido Exacto */}
                                                   <img src={fotoUrlAux(fotoDudosa.photo_url, true)} 
                                                        className="absolute inset-0 max-h-[50vh] w-auto max-w-full block" 
                                                        style={{ clipPath: `inset(${insetTop}% ${insetRight}% ${insetBottom}% ${insetLeft}%)` }} 
                                                        alt="Rostro"/>
                                                   
+                                                  {/* Capa Superior: Cuadro Rojo y Etiqueta */}
                                                   <div className="absolute border-[2px] border-[#E74C3C] shadow-[0_0_15px_rgba(0,0,0,0.4)] z-10 pointer-events-none" 
                                                        style={{ left: `${box.x}%`, top: `${box.y}%`, width: `${box.w}%`, height: `${box.h}%` }}>
                                                     <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-[#E74C3C] text-white text-[9px] uppercase tracking-widest font-bold px-2 py-0.5 rounded-sm whitespace-nowrap">
@@ -1102,7 +1262,7 @@ export default function AdminDashboard() {
                                         <Trash2 size={16}/> Descartar Rostro Falso
                                       </button>
                                     </div>
-                                    <div className="w-full xl:w-1/2 flex flex-col justify-center">
+                                    <div className="w-full md:w-1/2 flex flex-col justify-center">
                                       <h3 className="text-3xl font-serif text-[#1C1C1C] mb-2">¿De quién es este rostro?</h3>
                                       <p className="text-xs text-[#9A8F82] mb-6">La Inteligencia Artificial encontró coincidencias, pero no está 100% segura. Elige la identidad correcta.</p>
                                       
@@ -1135,91 +1295,236 @@ export default function AdminDashboard() {
             </div>
           )}
 
-          {/* LIGHTBOX MAGNIFICADOR */}
+          {/* LIGHTBOX MAGNIFICADOR CON CARGA PROGRESIVA Y PANEL EXIF */}
           <AnimatePresence>
-            {lightboxIndex !== null && (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.95)', display: 'flex', flexDirection: 'column' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 24px', color: WHITE }}>
-                  <span style={{ fontSize: 12, letterSpacing: '0.1em' }}>{lightboxIndex + 1} / {fotosActuales.length}</span>
-                  <div style={{ display: 'flex', gap: 24, alignItems: 'center' }}>
-                    <button onClick={() => toggleFavorito(fotosActuales[lightboxIndex].id)} style={{ background: 'none', border: 'none', color: WHITE, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}><Heart size={15} fill={fotosActuales[lightboxIndex].es_favorita ? '#E74C3C' : 'none'} color={fotosActuales[lightboxIndex].es_favorita ? '#E74C3C' : WHITE}/> Favorita</button>
+            {lightboxIndex !== null && fotosActuales[lightboxIndex] && (() => {
+              const fotoActual = fotosActuales[lightboxIndex];
+              
+              // Extracción de datos EXIF (con fallbacks elegantes si algún dato no está presente)
+              const exif = fotoActual.exif || fotoActual.metadata || {};
+              const camara = exif.camera || exif.camara || fotoActual.camara || 'No especificada';
+              const lente = exif.lens || exif.lente || 'Lente Estándar';
+              const iso = exif.iso ? `ISO ${exif.iso}` : 'ISO 100';
+              const apertura = exif.aperture || exif.f_number ? `f/${exif.aperture || exif.f_number}` : 'f/2.8';
+              const velocidad = exif.shutter_speed || exif.velocidad || '1/500s';
+              const focal = exif.focal_length ? `${exif.focal_length}mm` : '50mm';
+              const resolucion = fotoActual.ancho && fotoActual.alto ? `${fotoActual.ancho} x ${fotoActual.alto} px` : 'Alta Resolución';
+              const fecha = fotoActual.fecha_captura || fotoActual.created_at ? new Date(fotoActual.fecha_captura || fotoActual.created_at).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Reciente';
+
+              return (
+                <motion.div 
+                  initial={{ opacity: 0 }} 
+                  animate={{ opacity: 1 }} 
+                  exit={{ opacity: 0 }} 
+                  style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(5, 5, 5, 0.96)', display: 'flex', flexDirection: 'column', backdropFilter: 'blur(12px)' }}
+                >
+                  {/* BARRA SUPERIOR DEL LIGHTBOX */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 24px', borderBottom: '1px solid rgba(255,255,255,0.08)', color: WHITE }}>
+                    <span style={{ fontSize: 12, letterSpacing: '0.1em', fontWeight: 600, color: '#A0A0A0' }}>
+                      {lightboxIndex + 1} / {fotosActuales.length}
+                    </span>
+
+                    <div style={{ display: 'flex', gap: 20, alignItems: 'center' }}>
+                      {/* Botón para alternar el Panel EXIF */}
+                      <button 
+                        onClick={() => setMostrarExif(!mostrarExif)} 
+                        title={mostrarExif ? "Ocultar Datos EXIF" : "Ver Datos EXIF"}
+                        style={{ 
+                          background: mostrarExif ? 'rgba(255,255,255,0.2)' : 'none', 
+                          border: '1px solid rgba(255,255,255,0.2)', 
+                          color: WHITE, 
+                          borderRadius: '50%',
+                          width: 32,
+                          height: 32,
+                          cursor: 'pointer', 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          justifyContent: 'center',
+                          transition: 'all 0.2s'
+                        }}
+                      >
+                        <Info size={16} />
+                      </button>
+
+                      <button onClick={() => toggleFavorito(fotoActual.id)} style={{ background: 'none', border: 'none', color: WHITE, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+                        <Heart size={15} fill={fotoActual.es_favorita ? '#E74C3C' : 'none'} color={fotoActual.es_favorita ? '#E74C3C' : WHITE}/> Favorita
+                      </button>
+                      
+                      <button onClick={() => {
+                        setPortadaPos({ x: 50, y: 50 });
+                        setModalPortada({ url: fotoActual.url_original });
+                      }} style={{ background: 'none', border: 'none', color: WHITE, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+                        <ImageIcon size={15} /> Usar como Portada
+                      </button>
+
+                      <button onClick={() => borrarFotos([fotoActual.id])} style={{ background: 'none', border: 'none', color: '#E74C3C', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+                        <Trash2 size={15} /> Borrar
+                      </button>
+
+                      <div style={{ width: 1, height: 18, background: 'rgba(255,255,255,0.2)' }}></div>
+
+                      <button onClick={() => setLightboxIndex(null)} style={{ background: 'none', border: 'none', color: WHITE, cursor: 'pointer' }}>
+                        <X size={22} />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* ÁREA PRINCIPAL: FLECHAS + VISOR DE FOTO + PANEL EXIF */}
+                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', overflow: 'hidden', position: 'relative' }}>
                     
-                    <button onClick={() => {
-                      setPortadaPos({ x: 50, y: 50 });
-                      setModalPortada({ url: fotosActuales[lightboxIndex].url_original });
-                    }} style={{ background: 'none', border: 'none', color: WHITE, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
-                      <ImageIcon size={15} /> Usar como Portada
+                    {/* Flecha Izquierda */}
+                    <button 
+                      onClick={() => setLightboxIndex(prev => (prev === 0 ? fotosActuales.length - 1 : prev - 1))} 
+                      style={{ background: 'none', border: 'none', color: WHITE, cursor: 'pointer', padding: '0 20px', zIndex: 10 }}
+                    >
+                      <ChevronLeft size={38} strokeWidth={1.5} />
                     </button>
 
-                    <button onClick={() => borrarFotos([fotosActuales[lightboxIndex].id])} style={{ background: 'none', border: 'none', color: '#E74C3C', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}><Trash2 size={15} /> Borrar</button>
-                    <button onClick={() => setLightboxIndex(null)} style={{ background: 'none', border: 'none', color: WHITE, cursor: 'pointer' }}><X size={22} /></button>
-                  </div>
-                </div>
-                <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 24px' }}>
-                  <button onClick={() => setLightboxIndex(prev => (prev === 0 ? fotosActuales.length - 1 : prev - 1))} style={{ background: 'none', border: 'none', color: WHITE, cursor: 'pointer', padding: 20 }}><ChevronLeft size={36} strokeWidth={1} /></button>
-                  <div style={{ flex: 1, height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 12 }}>
-                    <img src={resolverUrlFoto(fotosActuales[lightboxIndex], true)} alt="" style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain' }} />
-                  </div>
-                  <button onClick={() => setLightboxIndex(prev => (prev === fotosActuales.length - 1 ? 0 : prev + 1))} style={{ background: 'none', border: 'none', color: WHITE, cursor: 'pointer', padding: 20 }}><ChevronRightIcon size={36} strokeWidth={1} /></button>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* 🌟 MODAL DE ENCUADRE DE PORTADA (DRAG & CROP) 🌟 */}
-          <AnimatePresence>
-            {modalPortada && (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[2000] flex items-center justify-center p-4 bg-black/95 backdrop-blur-md">
-                <div className="bg-[#111] border border-[#333] w-full max-w-5xl shadow-2xl flex flex-col rounded-sm overflow-hidden" onClick={e => e.stopPropagation()}>
-                  
-                  <div className="p-4 border-b border-[#222] flex justify-between items-center bg-[#0A0A0A]">
-                    <div>
-                      <h3 className="text-white font-serif text-xl m-0">Encuadre de Portada</h3>
-                      <p className="text-[#9A8F82] text-[10px] uppercase tracking-widest mt-1 m-0">Arrastra la imagen para centrarla en las pantallas</p>
-                    </div>
-                    <button onClick={() => setModalPortada(null)} className="text-gray-400 hover:text-white"><X size={20}/></button>
-                  </div>
-
-                  <div className="p-8 flex items-center justify-center bg-[#050505] relative select-none">
-                    
-                    <div 
-                      className="relative w-full h-[220px] sm:h-[260px] border-2 border-blue-500/50 shadow-[0_0_20px_rgba(59,130,246,0.15)] overflow-hidden cursor-move touch-none bg-black"
-                      onPointerDown={handlePointerDown}
-                      onPointerMove={handlePointerMove}
-                    >
+                    {/* CONTENEDOR DE LA FOTO CON CARGA PROGRESIVA (ESTILO STREAMING) */}
+                    {/* CONTENEDOR DE LA FOTO CON CARGA PROGRESIVA (SIN BLUR) */}
+                    <div style={{ flex: 1, height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+                      
+                      {/* 1. IMAGEN LIGERA (Baja calidad, carga instantánea, se muestra tal cual es) */}
                       <img 
-                        src={resolverUrlFoto({ url_original: modalPortada.url }, false)} 
-                        className="w-full h-full pointer-events-none select-none" 
-                        style={{ objectFit: 'cover', objectPosition: `${portadaPos.x}% ${portadaPos.y}%` }}
-                        draggable={false}
-                        alt=""
+                        src={resolverUrlFoto(fotoActual, false)} 
+                        alt="Vista Previa" 
+                        style={{ 
+                          position: 'absolute',
+                          maxWidth: '90vw', 
+                          maxHeight: '82vh', 
+                          objectFit: 'contain',
+                          zIndex: 1
+                        }} 
                       />
 
-                      <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-                         <div className="h-full aspect-[2/1] border-2 border-dashed border-[#D4AF37] shadow-[0_0_15px_rgba(212,175,55,0.2)] flex flex-col justify-end p-2">
-                           <span className="text-[#D4AF37] text-[10px] font-bold uppercase tracking-widest bg-black/60 px-2 py-0.5 rounded-sm self-center">Zona Móvil</span>
-                         </div>
-                      </div>
-                      <div className="absolute top-2 left-2 pointer-events-none">
-                         <span className="text-blue-400 text-[10px] font-bold uppercase tracking-widest bg-black/60 px-2 py-0.5 rounded-sm">Banner PC / Desktop</span>
-                      </div>
-                    </div>
-                  </div>
+                      {/* 2. IMAGEN PESADA (Alta calidad, carga en segundo plano) */}
+                      <img 
+                        src={resolverUrlFoto(fotoActual, true)} 
+                        alt={fotoActual.nombre || "Foto Full HD"} 
+                        onLoad={() => setFotoHdCargada(true)} // Avisa cuando ya descargó completa
+                        style={{ 
+                          position: 'relative',
+                          maxWidth: '90vw', 
+                          maxHeight: '82vh', 
+                          objectFit: 'contain',
+                          /* Se mantiene invisible hasta que descarga, luego aparece suavemente sobre la miniatura */
+                          opacity: fotoHdCargada ? 1 : 0, 
+                          transition: 'opacity 0.4s ease-in-out', /* Este es el tiempo del fundido */
+                          zIndex: 2,
+                          boxShadow: '0 20px 50px rgba(0,0,0,0.5)'
+                        }} 
+                      />
 
-                  <div className="p-4 border-t border-[#222] bg-[#0A0A0A] flex justify-end gap-4">
-                    <button onClick={() => setModalPortada(null)} className="px-6 py-2 text-xs uppercase tracking-widest text-gray-400 hover:text-white transition-colors">Cancelar</button>
-                    <button onClick={() => {
-                      const finalUrl = `${modalPortada.url}@${Math.round(portadaPos.x)},${Math.round(portadaPos.y)}`;
-                      hacerPortada(finalUrl);
-                      setModalPortada(null);
-                      setLightboxIndex(null); // Opcional: cierra el visor grande
-                    }} className="px-6 py-2 bg-[#C8B99A] text-black hover:bg-white text-xs uppercase tracking-widest font-bold flex items-center gap-2 transition-colors rounded-sm shadow-sm">
-                      <Check size={14}/> Guardar Portada
+                      {/* Indicador de carga súper sutil (Opcional) */}
+                      {!fotoHdCargada && (
+                        <div style={{ position: 'absolute', bottom: 30, zIndex: 10, background: 'rgba(0,0,0,0.6)', padding: '6px 14px', borderRadius: 20, color: '#DDD', fontSize: 11, backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#C8B99A', animation: 'pulse 1.5s infinite' }}></div>
+                          Cargando HD...
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Flecha Derecha */}
+                    <button 
+                      onClick={() => setLightboxIndex(prev => (prev === fotosActuales.length - 1 ? 0 : prev + 1))} 
+                      style={{ background: 'none', border: 'none', color: WHITE, cursor: 'pointer', padding: '0 20px', zIndex: 10 }}
+                    >
+                      <ChevronRightIcon size={38} strokeWidth={1.5} />
                     </button>
+
+                    {/* PANEL LATERAL DE DATOS EXIF */}
+                    <AnimatePresence>
+                      {mostrarExif && (
+                        <motion.div 
+                          initial={{ width: 0, opacity: 0 }} 
+                          animate={{ width: 310, opacity: 1 }} 
+                          exit={{ width: 0, opacity: 0 }} 
+                          transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                          style={{ 
+                            height: '100%', 
+                            background: 'rgba(18, 18, 18, 0.95)', 
+                            borderLeft: '1px solid rgba(255,255,255,0.1)', 
+                            padding: '24px 20px', 
+                            color: WHITE, 
+                            display: 'flex', 
+                            flexDirection: 'column', 
+                            gap: 20,
+                            overflowY: 'auto',
+                            flexShrink: 0
+                          }}
+                        >
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: 12 }}>
+                            <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#C8B99A' }}>
+                              Información EXIF
+                            </span>
+                            <button onClick={() => setMostrarExif(false)} style={{ background: 'none', border: 'none', color: '#888', cursor: 'pointer' }}>
+                              <X size={16} />
+                            </button>
+                          </div>
+
+                          {/* Lista de Metadatos */}
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 16, fontSize: 12 }}>
+                            
+                            {/* Cámara */}
+                            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                              <Camera size={16} style={{ color: '#C8B99A', marginTop: 2 }} />
+                              <div>
+                                <div style={{ color: '#888', fontSize: 10, textTransform: 'uppercase' }}>Cámara</div>
+                                <div style={{ fontWeight: 500, color: WHITE }}>{camara}</div>
+                                <div style={{ color: '#A0A0A0', fontSize: 11 }}>{lente}</div>
+                              </div>
+                            </div>
+
+                            {/* Ajustes de Disparo */}
+                            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                              <Sliders size={16} style={{ color: '#C8B99A', marginTop: 2 }} />
+                              <div style={{ flex: 1 }}>
+                                <div style={{ color: '#888', fontSize: 10, textTransform: 'uppercase', marginBottom: 4 }}>Parámetros</div>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, background: 'rgba(255,255,255,0.04)', padding: 10, borderRadius: 6 }}>
+                                  <div><span style={{ color: '#888' }}>ISO:</span> {iso}</div>
+                                  <div><span style={{ color: '#888' }}>Apertura:</span> {apertura}</div>
+                                  <div><span style={{ color: '#888' }}>Velocidad:</span> {velocidad}</div>
+                                  <div><span style={{ color: '#888' }}>Focal:</span> {focal}</div>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Dimensión y Resolución */}
+                            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                              <Maximize2 size={16} style={{ color: '#C8B99A', marginTop: 2 }} />
+                              <div>
+                                <div style={{ color: '#888', fontSize: 10, textTransform: 'uppercase' }}>Dimensiones</div>
+                                <div style={{ fontWeight: 500, color: WHITE }}>{resolucion}</div>
+                              </div>
+                            </div>
+
+                            {/* Fecha de Captura */}
+                            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                              <Calendar size={16} style={{ color: '#C8B99A', marginTop: 2 }} />
+                              <div>
+                                <div style={{ color: '#888', fontSize: 10, textTransform: 'uppercase' }}>Capturada El</div>
+                                <div style={{ fontWeight: 500, color: WHITE }}>{fecha}</div>
+                              </div>
+                            </div>
+
+                            {/* Nombre de Archivo */}
+                            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                              <HardDrive size={16} style={{ color: '#C8B99A', marginTop: 2 }} />
+                              <div style={{ wordBreak: 'break-all' }}>
+                                <div style={{ color: '#888', fontSize: 10, textTransform: 'uppercase' }}>Archivo</div>
+                                <div style={{ color: '#AAA', fontSize: 11 }}>{fotoActual.nombre_archivo || fotoActual.id || 'foto_original.jpg'}</div>
+                              </div>
+                            </div>
+
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
                   </div>
-                </div>
-              </motion.div>
-            )}
+                </motion.div>
+              );
+            })()}
           </AnimatePresence>
 
           {/* LUPA MÁGICA DE DETECCIONES DE IA */}

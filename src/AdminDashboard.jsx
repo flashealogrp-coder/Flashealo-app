@@ -55,8 +55,17 @@ const fotoUrlAux = (path, esWatermark = true) => {
   if (!path) return '';
   if (path.startsWith('http')) return path;
   let ruta = path;
-  if (esWatermark && ruta.includes('originales/')) {
-    ruta = ruta.replace('originales/', 'watermarks/');
+  
+  if (esWatermark) {
+    if (ruta.includes('originales/')) {
+      ruta = ruta.replace('originales/', 'watermarks/');
+    } else if (!ruta.includes('watermarks/')) {
+      // 🌟 MAGIA: Si la ruta es solo "evento/foto.jpg", la forzamos a "evento/watermarks/foto.jpg"
+      const partes = ruta.split('/');
+      if (partes.length === 2) {
+        ruta = `${partes[0]}/watermarks/${partes[1]}`;
+      }
+    }
   }
   return `${DOMINIO_R2}/${ruta}`;
 };
@@ -1008,15 +1017,46 @@ export default function AdminDashboard() {
                     </>
                   )}
 
-                  {/* CASO B: MODO MOTOR IA */}
+{/* CASO B: MODO MOTOR IA */}
                   {seccionDashboard === 'ia' && (
                     <div className="flex-1 flex flex-col relative h-full">
                       
-                      <div style={{ position: 'sticky', top: 0, zIndex: 40, background: '#FAFAFA', padding: '20px 28px', borderBottom: `1px solid ${BORDER}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: scrolledPastBanner ? '0 4px 20px rgba(0,0,0,0.03)' : 'none', transition: 'box-shadow 0.3s' }}>
-                        <div>
-                          <h2 className="text-xl font-serif text-[#1C1C1C] m-0">Centro de Control IA</h2>
-                          <p className="text-[10px] uppercase tracking-widest text-[#9A8F82] mt-1">Motor configurado: <span className="font-bold text-[#1C1C1C]">{eventoActivo.tipo_reconocimiento.toUpperCase()}</span></p>
+                      {/* 🌟 1. BARRA STICKY CON ESTADÍSTICAS INTEGRADAS (Fijada a 72px) 🌟 */}
+                      <div style={{ position: 'sticky', top: 0, height: 72, zIndex: 40, background: '#FAFAFA', padding: '0 28px', borderBottom: `1px solid ${BORDER}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: scrolledPastBanner ? '0 4px 20px rgba(0,0,0,0.03)' : 'none', transition: 'all 0.3s ease' }}>
+                        
+                        {/* Izquierda: Título + Stats */}
+                        <div className="flex items-center gap-6">
+                          <div>
+                            <h2 className="text-xl font-serif text-[#1C1C1C] m-0">Centro de Control IA</h2>
+                            <p className="text-[10px] uppercase tracking-widest text-[#9A8F82] mt-1">Motor configurado: <span className="font-bold text-[#1C1C1C]">{eventoActivo.tipo_reconocimiento.toUpperCase()}</span></p>
+                          </div>
+
+                          {/* Bloque de Estadísticas en la barra */}
+                          {iaEjecutada && (
+                            <div className="flex items-center gap-5 border-l border-[#EAEAEA] pl-6 h-8">
+                              {eventoActivo.tipo_reconocimiento !== 'ocr' && (
+                                <div className="flex items-center gap-2 text-[#1C1C1C]" title="Personas Detectadas">
+                                  <ScanFace size={16} className="text-[#9A8F82]" />
+                                  <span className="text-lg font-serif leading-none">{statsIA.cargando ? '...' : statsIA.caras}</span>
+                                </div>
+                              )}
+                              {eventoActivo.tipo_reconocimiento !== 'facial' && (
+                                <div className="flex items-center gap-2 text-[#1C1C1C]" title="Dorsales Detectados">
+                                  <ScanLine size={16} className="text-[#9A8F82]" />
+                                  <span className="text-lg font-serif leading-none">{statsIA.cargando ? '...' : statsIA.dorsales}</span>
+                                </div>
+                              )}
+                              {eventoActivo.tipo_reconocimiento !== 'ocr' && (
+                                <div className="flex items-center gap-2" title="Dudas / Huérfanas">
+                                  <AlertTriangle size={16} className={statsIA.dudas > 0 ? "text-[#E74C3C]" : "text-[#9A8F82]"} />
+                                  <span className={`text-lg font-serif leading-none ${statsIA.dudas > 0 ? 'text-[#E74C3C] font-bold' : 'text-[#1C1C1C]'}`}>{statsIA.cargando ? '...' : statsIA.dudas}</span>
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
+
+                        {/* Derecha: Botón de Ejecutar */}
                         <button 
                           onClick={dispararInteligenciaArtificial} disabled={procesandoIA}
                           className="bg-[#1C1C1C] text-white hover:bg-black px-5 py-2.5 text-xs uppercase tracking-widest font-bold flex items-center gap-2 transition-all disabled:opacity-50 rounded-sm shadow-sm"
@@ -1027,40 +1067,16 @@ export default function AdminDashboard() {
                       </div>
 
                       <div className="p-8 flex-1 flex flex-col">
-                        {iaEjecutada ? (
-                          <div className="flex gap-4 mb-6">
-                            {eventoActivo.tipo_reconocimiento !== 'ocr' && (
-                              <div className="bg-white border border-[#EAEAEA] p-5 min-w-[140px] rounded-sm shadow-sm relative">
-                                {statsIA.cargando && <Loader2 className="absolute top-4 right-4 animate-spin text-gray-300" size={14} />}
-                                <span className="text-[10px] uppercase tracking-widest text-[#9A8F82] block mb-2 flex items-center gap-2"><ScanFace size={14}/> Personas</span>
-                                <span className="text-3xl font-serif text-[#1C1C1C]">{statsIA.caras}</span>
-                              </div>
-                            )}
-                            {eventoActivo.tipo_reconocimiento !== 'facial' && (
-                              <div className="bg-white border border-[#EAEAEA] p-5 min-w-[140px] rounded-sm shadow-sm relative">
-                                {statsIA.cargando && <Loader2 className="absolute top-4 right-4 animate-spin text-gray-300" size={14} />}
-                                <span className="text-[10px] uppercase tracking-widest text-[#9A8F82] block mb-2 flex items-center gap-2"><ScanLine size={14}/> Dorsales</span>
-                                <span className="text-3xl font-serif text-[#1C1C1C]">{statsIA.dorsales}</span>
-                              </div>
-                            )}
-                            {eventoActivo.tipo_reconocimiento !== 'ocr' && (
-                              <div className="bg-white border border-[#EAEAEA] p-5 min-w-[140px] rounded-sm shadow-sm relative overflow-hidden">
-                                {statsIA.cargando && <Loader2 className="absolute top-4 right-4 animate-spin text-gray-300" size={14} />}
-                                <span className="text-[10px] uppercase tracking-widest text-[#9A8F82] block mb-2 flex items-center gap-2"><AlertTriangle size={14} className={statsIA.dudas > 0 ? "text-[#E74C3C]" : ""}/> Dudas</span>
-                                <span className={`text-3xl font-serif transition-colors ${statsIA.dudas > 0 ? 'text-[#E74C3C]' : 'text-[#2E7D32]'}`}>{statsIA.dudas}</span>
-                              </div>
-                            )}
-                          </div>
-                        ) : (
+                        
+                        {/* 🌟 2. ADIÓS TARJETAS GIGANTES, DIRECTO A LOS TABS 🌟 */}
+                        {!iaEjecutada ? (
                           <div className="p-6 border border-dashed border-[#C8B99A] bg-[#FDFCF8] rounded-sm mb-6">
                             <p className="text-sm text-[#1C1C1C] m-0 flex items-center gap-2">
                               <AlertTriangle size={16} className="text-[#C8B99A]" />
                               La inteligencia artificial aún no ha analizado esta colección. Presiona "Ejecutar Motor IA" arriba.
                             </p>
                           </div>
-                        )}
-
-                        {iaEjecutada && (
+                        ) : (
                           <div className="flex border-b border-[#EAEAEA] mb-6">
                             {eventoActivo.tipo_reconocimiento !== 'ocr' && (
                               <button onClick={() => setSubTabIA('identidades')} className={`px-6 py-3 text-xs uppercase tracking-widest font-bold border-b-2 transition-colors ${subTabIA === 'identidades' ? 'border-[#1C1C1C] text-[#1C1C1C]' : 'border-transparent text-[#9A8F82] hover:text-[#1C1C1C]'}`}>
@@ -1087,11 +1103,12 @@ export default function AdminDashboard() {
                             {/* 1. IDENTIDADES */}
                             {subTabIA === 'identidades' && (
                               <div className="flex gap-8 items-start">
-                                <div className="w-64 shrink-0 bg-white border border-[#EAEAEA] rounded-sm p-2 sticky top-[100px] max-h-[calc(100vh-140px)] overflow-y-auto custom-scrollbar shadow-sm">
+                                {/* BARRA LATERAL PEGADA A 72px */}
+                                <div className="w-64 shrink-0 bg-white border border-[#EAEAEA] rounded-sm p-2 sticky top-[72px] max-h-[calc(100vh-140px)] overflow-y-auto custom-scrollbar shadow-sm">
                                   {listaJugadores.length === 0 ? <p className="text-xs text-[#9A8F82] p-4 text-center">No hay identidades.</p> : 
                                     listaJugadores.map(j => (
                                       <button key={j.id} onClick={() => seleccionarJugador(j)} className={`w-full flex items-center gap-3 p-2.5 mb-1 transition-colors rounded-sm text-left ${jugadorSeleccionado?.id === j.id ? 'bg-[#1C1C1C] text-white' : 'hover:bg-gray-50 text-[#1C1C1C]'}`}>
-                                        <img src={fotoUrlAux(j.avatar_url)} className="w-8 h-8 rounded-full object-cover bg-gray-200" alt="" />
+                                        <img src={fotoUrlAux(j.avatar_url)} loading="lazy" className="w-8 h-8 rounded-full object-cover bg-gray-200" alt="" />
                                         <span className="font-serif text-xs truncate">{j.display_name}</span>
                                       </button>
                                     ))
@@ -1101,9 +1118,10 @@ export default function AdminDashboard() {
                                 <div className="flex-1">
                                   {jugadorSeleccionado ? (
                                     <>
-                                      <div className="flex justify-between items-center mb-6 bg-white p-4 border border-[#EAEAEA] rounded-sm shadow-sm sticky top-[84px] z-20">
+                                      {/* ENCABEZADO JUGADOR PEGADO A 72px */}
+                                      <div className="flex justify-between items-center mb-6 bg-white p-4 border border-[#EAEAEA] rounded-sm shadow-sm sticky top-[72px] z-20">
                                         <div className="flex items-center gap-4">
-                                          <img src={fotoUrlAux(jugadorSeleccionado.avatar_url)} className="w-12 h-12 rounded-full object-cover border border-gray-200" alt="" />
+                                          <img src={fotoUrlAux(jugadorSeleccionado.avatar_url)} loading="lazy" className="w-12 h-12 rounded-full object-cover border border-gray-200" alt="" />
                                           {editandoNombre ? (
                                             <div className="flex gap-2">
                                               <input type="text" value={nombreTemporal} onChange={e=>setNombreTemporal(e.target.value)} onKeyDown={e=>e.key==='Enter'&&guardarNombreJugador()} autoFocus className="bg-transparent border-b border-[#1C1C1C] text-xl font-serif text-[#1C1C1C] outline-none" />
@@ -1128,7 +1146,7 @@ export default function AdminDashboard() {
                                           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                                             {candidatosFusion.map(c => (
                                               <button key={c.id_identidad} onClick={() => fusionarConJugador(c.id_identidad)} className="p-3 bg-white border border-[#EAEAEA] hover:border-[#C8B99A] flex items-center gap-3 transition-colors rounded-sm text-left shadow-sm">
-                                                <img src={fotoUrlAux(c.avatar)} className="w-10 h-10 rounded-full object-cover" alt="" />
+                                                <img src={fotoUrlAux(c.avatar)} loading="lazy" className="w-10 h-10 rounded-full object-cover" alt="" />
                                                 <div>
                                                   <div className="text-sm font-serif text-[#1C1C1C] truncate">{c.nombre_jugador}</div>
                                                   <div className="text-[10px] font-bold text-[#2E7D32]">{Math.round(c.porcentaje_similitud * 100)}% Match</div>
@@ -1142,7 +1160,7 @@ export default function AdminDashboard() {
                                       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 pb-8">
                                         {fotosDelJugador.map((foto, idx) => (
                                           <div key={idx} className="aspect-square bg-[#EAEAEA] relative group overflow-hidden cursor-zoom-in rounded-sm" onClick={() => setZoomCara({ photo_url: foto.photo_url, bbox: foto.detecciones[0]?.bbox })}>
-                                            <img src={fotoUrlAux(foto.photo_url, true)} className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity" alt="" />
+                                            <img src={fotoUrlAux(foto.photo_url, true)} loading="lazy" className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity" alt="" />
                                             <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                               <button onClick={(e) => { e.stopPropagation(); supabase.from('face_detections').update({identity_id:null}).eq('id',foto.detecciones[0]?.id).then(()=>{seleccionarJugador(jugadorSeleccionado); cargarStatsIA(eventoActivo.id, true);}); }} className="bg-white/90 text-red-500 hover:bg-red-500 hover:text-white p-1.5 rounded-sm shadow-sm transition-colors" title="Desvincular"><UserMinus size={14}/></button>
                                             </div>
@@ -1163,11 +1181,12 @@ export default function AdminDashboard() {
                             {/* 2. CORREDORES OCR */}
                             {subTabIA === 'corredores' && (
                               <div className="flex gap-8 items-start">
-                                <div className="w-64 shrink-0 bg-white border border-[#EAEAEA] rounded-sm p-2 sticky top-[100px] max-h-[calc(100vh-140px)] overflow-y-auto custom-scrollbar shadow-sm">
+                                {/* BARRA LATERAL PEGADA A 72px */}
+                                <div className="w-64 shrink-0 bg-white border border-[#EAEAEA] rounded-sm p-2 sticky top-[72px] max-h-[calc(100vh-140px)] overflow-y-auto custom-scrollbar shadow-sm">
                                   {listaCorredores.length === 0 ? <p className="text-xs text-[#9A8F82] p-4 text-center">No hay dorsales detectados.</p> : 
                                     listaCorredores.map(c => (
                                       <button key={c.id} onClick={() => seleccionarCorredor(c)} className={`w-full flex items-center gap-3 p-2 mb-1 transition-colors rounded-sm text-left ${corredorSeleccionado?.id === c.id ? 'bg-[#1C1C1C] text-white' : 'hover:bg-gray-50 text-[#1C1C1C]'}`}>
-                                        <img src={fotoUrlAux(c.avatar_url)} className="w-8 h-12 object-cover bg-gray-200" alt="" />
+                                        <img src={fotoUrlAux(c.avatar_url)} loading="lazy" className="w-8 h-12 object-cover bg-gray-200" alt="" />
                                         <span className="font-serif text-xs truncate">{c.dorsal ? `#${c.dorsal}` : '⚠️ Revisar'}</span>
                                       </button>
                                     ))
@@ -1176,14 +1195,15 @@ export default function AdminDashboard() {
                                 <div className="flex-1">
                                   {corredorSeleccionado && (
                                     <>
-                                      <div className="flex items-center gap-4 bg-white p-4 border border-[#EAEAEA] rounded-sm shadow-sm mb-6 sticky top-[84px] z-20">
+                                      {/* ENCABEZADO DORSAL PEGADO A 72px */}
+                                      <div className="flex items-center gap-4 bg-white p-4 border border-[#EAEAEA] rounded-sm shadow-sm mb-6 sticky top-[72px] z-20">
                                         <Hash size={20} className="text-[#9A8F82]"/>
                                         <input type="text" value={dorsalTemporal} onChange={e=>setDorsalTemporal(e.target.value)} onBlur={guardarDorsalGlobal} className="text-3xl font-serif bg-transparent text-[#1C1C1C] outline-none uppercase w-full" placeholder="NÚMERO" />
                                       </div>
                                       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 pb-8">
                                         {fotosDelCorredor.map((f, idx) => (
                                           <div key={idx} className="aspect-square bg-[#EAEAEA] relative cursor-zoom-in rounded-sm overflow-hidden" onClick={() => setZoomCara({ photo_url: f.photo_url, bbox: f.bbox })}>
-                                            <img src={fotoUrlAux(f.photo_url, true)} className="w-full h-full object-cover" alt="" />
+                                            <img src={fotoUrlAux(f.photo_url, true)} loading="lazy" className="w-full h-full object-cover" alt="" />
                                             <BoundingBox bbox={f.bbox} color={SAND} label={`#${f.dorsal}`} />
                                           </div>
                                         ))}
@@ -1211,14 +1231,13 @@ export default function AdminDashboard() {
                                         <AlertTriangle size={12} /> Rostro sin identificar
                                       </div>
 
-                                      {/* EFECTO SNIPER Y BBOX CON CLIP-PATH */}
                                       <div className="w-full bg-[#111] relative overflow-hidden rounded-sm flex items-center justify-center p-4 min-h-[300px]">
                                         <div className="relative inline-block leading-none max-w-full shadow-lg">
                                           {(() => {
                                             const rawBox = getBboxCoords(fotoDudosa.bbox);
                                             
                                             if (rawBox) {
-                                              const box = expandBbox(rawBox); // Expandimos para agarrar el cuerpo
+                                              const box = expandBbox(rawBox);
                                               const insetTop = box.y;
                                               const insetRight = 100 - (box.x + box.w);
                                               const insetBottom = 100 - (box.y + box.h);
@@ -1226,16 +1245,12 @@ export default function AdminDashboard() {
                                               
                                               return (
                                                 <>
-                                                  {/* Capa Base: Fondo borroso */}
-                                                  <img src={fotoUrlAux(fotoDudosa.photo_url, true)} className="max-h-[50vh] w-auto max-w-full block opacity-50 blur-[3px]" alt="Contexto"/>
-                                                  
-                                                  {/* Capa Media: Recorte Nítido Exacto */}
+                                                  <img src={fotoUrlAux(fotoDudosa.photo_url, true)} loading="lazy" className="max-h-[50vh] w-auto max-w-full block opacity-50 blur-[3px]" alt="Contexto"/>
                                                   <img src={fotoUrlAux(fotoDudosa.photo_url, true)} 
+                                                       loading="lazy"
                                                        className="absolute inset-0 max-h-[50vh] w-auto max-w-full block" 
                                                        style={{ clipPath: `inset(${insetTop}% ${insetRight}% ${insetBottom}% ${insetLeft}%)` }} 
                                                        alt="Rostro"/>
-                                                  
-                                                  {/* Capa Superior: Cuadro Rojo y Etiqueta */}
                                                   <div className="absolute border-[2px] border-[#E74C3C] shadow-[0_0_15px_rgba(0,0,0,0.4)] z-10 pointer-events-none" 
                                                        style={{ left: `${box.x}%`, top: `${box.y}%`, width: `${box.w}%`, height: `${box.h}%` }}>
                                                     <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-[#E74C3C] text-white text-[9px] uppercase tracking-widest font-bold px-2 py-0.5 rounded-sm whitespace-nowrap">
@@ -1247,7 +1262,7 @@ export default function AdminDashboard() {
                                             } else {
                                               return (
                                                 <>
-                                                  <img src={fotoUrlAux(fotoDudosa.photo_url, true)} className="max-h-[50vh] w-auto max-w-full block" alt="Contexto"/>
+                                                  <img src={fotoUrlAux(fotoDudosa.photo_url, true)} loading="lazy" className="max-h-[50vh] w-auto max-w-full block" alt="Contexto"/>
                                                   <div className="absolute top-2 left-2 bg-red-500 text-white text-[9px] px-2 py-1 uppercase font-bold tracking-widest rounded-sm">
                                                     ⚠️ Registro Antiguo (Sin Coordenadas)
                                                   </div>
@@ -1269,7 +1284,7 @@ export default function AdminDashboard() {
                                       <div className="flex flex-col gap-3">
                                         {candidatosDuda.map(c => (
                                           <button key={c.id_identidad} onClick={async () => { await supabase.from('face_detections').update({identity_id: c.id_identidad}).eq('id', fotoDudosa.id); cargarDudas(); cargarStatsIA(eventoActivo.id, true); }} className="p-3 bg-white border border-[#EAEAEA] hover:border-[#1C1C1C] flex items-center gap-4 transition-colors text-left rounded-sm shadow-sm group">
-                                            <img src={fotoUrlAux(c.avatar)} className="w-14 h-14 rounded-full object-cover" alt="" />
+                                            <img src={fotoUrlAux(c.avatar)} loading="lazy" className="w-14 h-14 rounded-full object-cover" alt="" />
                                             <div className="flex-1">
                                               <div className="text-base font-serif text-[#1C1C1C] font-semibold group-hover:underline">{c.nombre_jugador}</div>
                                               <div className="text-[11px] font-bold text-[#C8B99A] uppercase tracking-wider mt-0.5">{Math.round(c.porcentaje_similitud * 100)}% Coincidencia</div>

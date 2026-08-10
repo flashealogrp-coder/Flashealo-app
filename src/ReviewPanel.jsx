@@ -262,79 +262,70 @@ export default function ReviewPanel({ evento, onVolver, onEjecutarIA, procesando
   return (
     <div className="min-h-screen bg-[#0A0A0A] text-white font-sans flex flex-col relative overflow-hidden">
       
-      {/* ─── HEADER / CABECERA SUPERIOR ─── */}
-      <header className="border-b border-[#222] bg-black/50 backdrop-blur-md shrink-0">
-        <div className="px-8 py-6 flex items-center justify-between border-b border-[#222]">
-          <div className="flex items-center gap-6">
-            <button onClick={onVolver} className="flex items-center gap-2 text-xs uppercase tracking-widest text-gray-400 hover:text-white transition-colors">
-              <ArrowLeft size={16} /> Salir del Auditor
-            </button>
-            <div className="w-[1px] h-8 bg-[#333]"></div>
-            <div>
-              <h1 className="text-2xl font-serif leading-none">{evento.nombre}</h1>
-              <p className="text-[9px] uppercase tracking-widest text-[#C8B99A] mt-1">Sala de Control IA</p>
-            </div>
+{/* ─── CABECERA UNIFICADA Y COMPACTA (STICKY BAR) ─── */}
+      <header className="sticky top-0 z-40 flex items-center justify-between px-6 py-3 bg-[#0A0A0A]/95 backdrop-blur-md border-b border-[#222]">
+        
+        {/* 1. IZQUIERDA: VOLVER Y TÍTULO */}
+        <div className="flex items-center gap-4">
+          <button onClick={onVolver} className="text-gray-400 hover:text-white transition-colors" title="Volver al Panel">
+            <ArrowLeft size={18} />
+          </button>
+          <div className="w-[1px] h-5 bg-[#333]"></div>
+          <div>
+             <h1 className="text-base font-serif text-white leading-none truncate max-w-[200px]">{evento.nombre}</h1>
+             <p className="text-[9px] uppercase tracking-widest text-[#C8B99A] mt-1">Sala IA</p>
           </div>
         </div>
 
-        {/* 🌟 EL RESUMEN DINÁMICO (LA PARTE DE ARRIBA QUE PEDISTE) 🌟 */}
-        <div className="px-8 py-8 bg-[#111]">
-          {stats.cargando ? (
-             <div className="flex items-center gap-3 text-gray-400"><Loader2 className="animate-spin" size={16}/> Comprobando base de datos...</div>
-          ) : procesandoIA ? (
-            <div className="flex items-center gap-4 bg-amber-900/20 border border-amber-900/50 p-6">
-               <Loader2 className="animate-spin text-amber-500" size={32} />
-               <div>
-                  <h3 className="text-amber-500 font-serif text-xl">El Enjambre IA está trabajando...</h3>
-                  <p className="text-xs text-amber-200/50 uppercase tracking-widest mt-1">Los servidores GPU están indexando las fotos. Esto puede tomar unos minutos.</p>
-               </div>
+        {/* 2. CENTRO: ESTADÍSTICAS COMPACTAS (Píldora) */}
+        {!stats.cargando && iaEjecutada ? (
+          <div className="hidden md:flex items-center gap-4 bg-[#111] border border-[#222] rounded-full px-4 py-1.5 shadow-inner">
+            <div className="flex items-center gap-2 text-[10px] text-gray-400 uppercase tracking-widest">
+               <ScanFace size={13}/> <span className="text-white font-bold text-xs">{stats.caras}</span>
             </div>
-          ) : iaEjecutada ? (
-            <div className="flex flex-col md:flex-row gap-6 items-center justify-between">
-              <div className="flex gap-4 w-full md:w-auto">
-                 {/* Tarjetas de Resumen */}
-                 <div className="bg-[#1A1A1A] border border-[#333] p-5 w-40 flex flex-col justify-between">
-                    <span className="text-[10px] uppercase tracking-widest text-gray-500 mb-2 flex items-center gap-2"><ScanFace size={14}/> Personas</span>
-                    <span className="text-4xl font-serif">{stats.caras}</span>
-                 </div>
-                 <div className="bg-[#1A1A1A] border border-[#333] p-5 w-40 flex flex-col justify-between">
-                    <span className="text-[10px] uppercase tracking-widest text-gray-500 mb-2 flex items-center gap-2"><ScanLine size={14}/> Dorsales OCR</span>
-                    <span className="text-4xl font-serif">{stats.dorsales}</span>
-                 </div>
-                 <div className="bg-[#1A1A1A] border border-[#333] p-5 w-40 flex flex-col justify-between">
-                    <span className="text-[10px] uppercase tracking-widest text-gray-500 mb-2 flex items-center gap-2"><AlertTriangle size={14} className={stats.dudas > 0 ? "text-red-400" : ""}/> Dudas</span>
-                    <span className={`text-4xl font-serif ${stats.dudas > 0 ? 'text-red-400' : 'text-green-500'}`}>{stats.dudas}</span>
-                 </div>
-              </div>
-              <button onClick={() => { onEjecutarIA(); setTimeout(cargarStats, 5000); }} className="px-6 py-4 bg-[#222] border border-[#333] hover:bg-white hover:text-black transition-colors text-[10px] uppercase tracking-widest font-bold flex items-center gap-2">
-                 <Zap size={16}/> Forzar Re-escaneo IA
-              </button>
+            <div className="w-[1px] h-3 bg-[#333]"></div>
+            <div className="flex items-center gap-2 text-[10px] text-gray-400 uppercase tracking-widest">
+               <ScanLine size={13}/> <span className="text-white font-bold text-xs">{stats.dorsales}</span>
             </div>
-          ) : (
-            <div className="flex flex-col items-start gap-4">
-              <p className="text-gray-400 text-sm">La inteligencia artificial aún no ha analizado esta colección.</p>
-              <button onClick={() => { onEjecutarIA(); setTimeout(cargarStats, 5000); }} className="px-8 py-4 bg-[#C8B99A] text-black hover:bg-white transition-colors text-xs uppercase tracking-widest font-bold flex items-center gap-2 shadow-[0_0_20px_rgba(200,185,154,0.3)]">
-                 <Zap size={18}/> Iniciar Reconocimiento IA Ahora
-              </button>
+            <div className="w-[1px] h-3 bg-[#333]"></div>
+            <div className="flex items-center gap-2 text-[10px] text-gray-400 uppercase tracking-widest">
+               <AlertTriangle size={13} className={stats.dudas > 0 ? 'text-red-400' : ''}/> 
+               <span className={stats.dudas > 0 ? 'text-red-400 font-bold text-xs' : 'text-white font-bold text-xs'}>{stats.dudas}</span>
             </div>
-          )}
+          </div>
+        ) : procesandoIA ? (
+          <div className="flex items-center gap-2 text-[10px] text-amber-500 uppercase tracking-widest">
+             <Loader2 className="animate-spin" size={14}/> Procesando IA...
+          </div>
+        ) : null}
+
+        {/* 3. DERECHA: PESTAÑAS Y ACCIONES */}
+        <div className="flex items-center gap-4">
+          
+          {/* Selector de Vistas (Estilo Toggle Switch de iOS) */}
+          <div className="flex items-center bg-[#111] p-0.5 rounded border border-[#222]">
+            {isOCR ? (
+               <button onClick={() => setVista('corredores')} className="px-4 py-1.5 text-[10px] uppercase tracking-widest font-bold bg-[#222] text-white rounded-sm shadow-sm flex items-center gap-2"><Hash size={13}/> OCR</button>
+            ) : (
+               <>
+                 <button onClick={() => setVista('perfiles')} className={`px-4 py-1.5 text-[10px] uppercase tracking-widest font-bold rounded-sm transition-all flex items-center gap-2 ${vista === 'perfiles' ? 'bg-[#222] text-white shadow-sm' : 'text-gray-500 hover:text-white'}`}>
+                    <User size={13}/> Identidades
+                 </button>
+                 <button onClick={() => setVista('dudas')} className={`px-4 py-1.5 text-[10px] uppercase tracking-widest font-bold rounded-sm transition-all flex items-center gap-2 ${vista === 'dudas' ? 'bg-red-900/30 text-red-400 shadow-sm' : 'text-gray-500 hover:text-red-400'}`}>
+                    <AlertTriangle size={13}/> Dudas {stats.dudas > 0 && `(${stats.dudas})`}
+                 </button>
+               </>
+            )}
+          </div>
+
+          <div className="w-[1px] h-5 bg-[#333]"></div>
+
+          {/* Botón Acción IA Compacto */}
+          <button onClick={() => { onEjecutarIA(); setTimeout(cargarStats, 5000); }} className="flex items-center gap-2 px-3 py-1.5 bg-[#C8B99A] text-black hover:bg-white transition-colors text-[10px] uppercase tracking-widest font-bold rounded-sm shadow-[0_0_10px_rgba(200,185,154,0.2)]">
+             <Zap size={14}/> {iaEjecutada ? 'Re-escanear' : 'Iniciar IA'}
+          </button>
         </div>
       </header>
-
-      {/* ─── PESTAÑAS (TABS) ─── */}
-      <nav className="flex gap-2 bg-[#0A0A0A] p-2 border-b border-[#222]">
-        {isOCR ? (
-          <button onClick={() => setVista('corredores')} className="flex items-center gap-2 px-5 py-2 text-[10px] font-bold uppercase tracking-widest bg-[#222] text-white"><User size={14}/> Grupos OCR</button>
-        ) : (
-          <>
-            <button onClick={() => setVista('perfiles')} className={`flex items-center gap-2 px-6 py-3 text-[10px] font-bold uppercase tracking-widest transition-colors ${vista === 'perfiles' ? 'bg-white text-black' : 'text-gray-400 hover:text-white hover:bg-[#111]'}`}><User size={14}/> Identidades</button>
-            <button onClick={() => setVista('dudas')} className={`flex items-center gap-2 px-6 py-3 text-[10px] font-bold uppercase tracking-widest transition-colors ${vista === 'dudas' ? 'bg-red-500 text-white' : 'text-gray-400 hover:text-white hover:bg-[#111]'}`}>
-               <AlertTriangle size={14}/> Dudas Huérfanas
-               {stats.dudas > 0 && <span className="bg-white/20 px-2 py-0.5 rounded-full ml-1">{stats.dudas}</span>}
-            </button>
-          </>
-        )}
-      </nav>
 
       {/* ─── CUERPO INFERIOR (SIDEBAR Y PANEL CENTRAL) ─── */}
       <div className="flex flex-1 overflow-hidden">

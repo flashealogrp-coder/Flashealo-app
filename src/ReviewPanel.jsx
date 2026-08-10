@@ -5,39 +5,83 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://muvzhnnsdnztlhynuipd.supabase.co";
 
+// 🌟 LEYENDO TU DOMINIO PÚBLICO DESDE EL .ENV
+const R2_PUBLIC_URL = import.meta.env.VITE_R2_DOMINIO_PUBLICO || "https://cdn.flashealo.do"; 
+
 const fotoUrl = (path, optimizada = false) => {
   if (!path) return null;
-  const base = SUPABASE_URL.endsWith('/') ? SUPABASE_URL.slice(0, -1) : SUPABASE_URL;
   
-  // 1. Si es un rostro/avatar, ya es súper ligero, lo devolvemos tal cual
-  if (path.includes('avatares/')) {
-    return `${base}/storage/v1/object/public/fotos/${path}`;
+  let cleanPath = path;
+  // Si por error la DB guardó la URL completa de Supabase, la limpiamos y extraemos solo la ruta útil
+  if (cleanPath.startsWith('http')) {
+    try {
+      const url = new URL(cleanPath);
+      cleanPath = url.pathname;
+      if (cleanPath.includes('fotos/')) {
+          cleanPath = cleanPath.split('fotos/')[1]; // Extrae "originales/foto.jpg"
+      }
+    } catch(e) {}
   }
 
-  // 2. Si pedimos la versión rápida/optimizada para la grilla
+  // Asegurarnos de que no empiece con un slash (/)
+  if (cleanPath.startsWith('/')) cleanPath = cleanPath.substring(1);
+
+  const base = R2_PUBLIC_URL.endsWith('/') ? R2_PUBLIC_URL.slice(0, -1) : R2_PUBLIC_URL;
+  
+  // 1. Avatares (ya son súper ligeros)
+  if (cleanPath.includes('avatares/')) {
+    return `${base}/${cleanPath}`;
+  }
+
+  // 2. Modo rápido para Grillas
   if (optimizada) {
-    let optimizedPath = path;
-    
-    // Le quitamos la barra inicial al buscador para que no falle nunca
-    if (path.includes('originales/')) {s
-      optimizedPath = path.replace('originales/', 'watermarks/');
-    } else {
-      // Fallback extremo: Si la ruta tiene un formato raro, forzamos sacar el nombre y buscar en watermarks
-      const nombreArchivo = path.split('/').pop();
+    let optimizedPath = cleanPath;
+    if (optimizedPath.includes('originales/')) {
+      optimizedPath = optimizedPath.replace('originales/', 'watermarks/');
+    } else if (!optimizedPath.includes('watermarks/')) {
+      const nombreArchivo = optimizedPath.split('/').pop();
       optimizedPath = `watermarks/${nombreArchivo}`;
     }
-    
-    return `${base}/storage/v1/object/public/fotos/${optimizedPath}`;
+    return `${base}/${optimizedPath}`;
   }
 
-  // 3. Versión original (solo si no pedimos optimizada)
-  return `${base}/storage/v1/object/public/fotos/${path}`;
+  // 3. Original HD
+  return `${base}/${cleanPath}`;
 };
 
 const SAND   = '#C8B99A';
 const TAUPE  = '#9A8F82';
 const INK    = '#1C1C1C';
 const CREAM  = '#FDFCF8';
+
+// 🌟 NUEVO COMPONENTE: Imagen Inteligente con Loader 🌟
+const CargadorImagen = ({ src, alt, className }) => {
+  const [cargada, setCargada] = useState(false);
+  const [error, setError] = useState(false);
+
+  return (
+    <div className={`relative flex items-center justify-center bg-[#0A0A0A] ${className}`}>
+      {/* Spinner de carga elegante */}
+      {!cargada && !error && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <Loader2 className="animate-spin text-[#C8B99A]/40" size={24} />
+        </div>
+      )}
+      <img
+        src={src}
+        alt={alt}
+        loading="lazy"
+        decoding="async"
+        onLoad={() => setCargada(true)}
+        onError={() => setError(true)}
+        className={`w-full h-full object-cover transition-opacity duration-500 ${cargada ? 'opacity-100 filter saturate-50 group-hover:saturate-100' : 'opacity-0'}`}
+      />
+      {/* Si la miniatura no existe en la nube, muestra un icono de alerta sutil */}
+      {error && <AlertTriangle size={24} className="text-red-900/50 absolute" title="Foto no encontrada" />}
+    </div>
+  );
+};
+
 
 const BoundingBox = ({ bbox, color, label, esCuerpo }) => {
   if (!bbox) return null;
@@ -303,13 +347,25 @@ export default function ReviewPanel({ evento, onVolver, onEjecutarIA, procesando
               {/* 🌟 AQUI EMPIEZA LA MAGIA DE LAZY LOADING EN PERFILES 🌟 */}
               {vista === 'perfiles' && listaJugadores.map(j => (
                 <button key={j.id} onClick={() => seleccionarJugador(j)} className={`w-full flex items-center gap-3 p-3 mb-1 transition-all ${jugadorSeleccionado?.id === j.id ? 'bg-[#222] text-white' : 'hover:bg-[#111] text-gray-400'}`}>
-                  <img 
-                    src={fotoUrl(j.avatar_url)} 
-                    loading="lazy" 
-                    decoding="async" 
-                    className="w-10 h-10 rounded-full object-cover filter saturate-50 bg-[#1A1A1A]" 
-                    alt="" 
-                  />
+<div className="grid grid-cols-2 lg:grid-cols-3 gap-6">
+                {fotosDelJugador.map((foto, idx) => (
+                  <div key={idx} className="relative aspect-square bg-[#050505] border border-[#222] group cursor-zoom-in overflow-hidden" onClick={() => setZoomCara({ photo_url: foto.photo_url, bbox: foto.detecciones[0]?.bbox, identidad: jugadorSeleccionado })}>
+                    
+                    {/* 🌟 Usamos el Cargador Inteligente en vez del <img /> */}
+                    <CargadorImagen 
+                      src={fotoUrl(foto.photo_url, true)} 
+                      className="w-full h-full group-hover:opacity-100 opacity-60" 
+                      alt="Contexto"
+                    />
+
+                    <div className="absolute top-2 right-2 bg-black/80 px-2 py-1 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      {foto.detecciones.map(det => (
+                        <button key={det.id} onClick={(e) => { e.stopPropagation(); supabase.from('face_detections').update({identity_id:null}).eq('id',det.id).then(()=>{seleccionarJugador(jugadorSeleccionado); cargarStats();}); }} className="text-red-400 hover:text-red-500 text-[10px] uppercase font-bold flex items-center gap-1" title="Desvincular"><UserMinus size={12}/> Quitar</button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
                   <span className="font-serif text-sm truncate">{j.display_name}</span>
                 </button>
               ))}
@@ -319,13 +375,21 @@ export default function ReviewPanel({ evento, onVolver, onEjecutarIA, procesando
                 const valido = c.dorsal && c.dorsal !== '';
                 return (
                   <button key={c.id} onClick={() => seleccionarCorredor(c)} className={`w-full flex items-center gap-3 p-3 mb-1 transition-all ${corredorSeleccionado?.id === c.id ? 'bg-[#222] text-white' : 'hover:bg-[#111] text-gray-400'}`}>
-                    <img 
-                      src={fotoUrl(c.avatar_url)} 
-                      loading="lazy" 
-                      decoding="async" 
-                      className="w-10 h-16 object-cover bg-[#1A1A1A] filter saturate-50" 
-                      alt="" 
+<div className="grid grid-cols-2 lg:grid-cols-3 gap-6">
+                {fotosDelCorredor.map((f, idx) => (
+                  <div key={idx} className="relative aspect-square bg-[#050505] border border-[#222] cursor-zoom-in overflow-hidden" onClick={() => setZoomCara({ photo_url: f.photo_url, bbox: f.bbox_cuerpo || f.bbox })}>
+                    
+                    {/* 🌟 Usamos el Cargador Inteligente en OCR */}
+                    <CargadorImagen 
+                      src={fotoUrl(f.photo_url, true)} 
+                      className="w-full h-full group-hover:opacity-100 opacity-60" 
+                      alt="Contexto"
                     />
+
+                    <BoundingBox bbox={f.bbox} color={SAND} label={`#${f.dorsal}`} />
+                  </div>
+                ))}
+              </div>
                     <span className="font-serif text-sm truncate">{valido ? `#${c.dorsal}` : '⚠️ Sin número'}</span>
                   </button>
                 )

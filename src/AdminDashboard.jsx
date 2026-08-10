@@ -28,6 +28,22 @@ const getUrlCompleta = (ruta) => {
   return `${DOMINIO_R2}/${ruta}`;
 };
 
+// 🌟 Generador de Slug inteligente y compacto
+const generarSlugCorto = (texto) => {
+  if (!texto) return '';
+  const ignorar = new Set(['de', 'del', 'la', 'el', 'los', 'las', 'un', 'una', 'en', 'por', 'para', 'con', 'y', 'a', 'al']);
+  
+  const palabras = texto
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // Quitar acentos
+    .replace(/[^a-z0-9\s-]/g, '')    // Quitar símbolos especiales
+    .split(/\s+/)
+    .filter(p => p.length > 0 && !ignorar.has(p));
+
+  return palabras.slice(0, 4).join('-'); // Toma las primeras 4 palabras clave
+};
+
 const renderCoverUrl = (urlStr) => {
   if (!urlStr) return null;
   const [rawUrl] = urlStr.split('@');
@@ -761,13 +777,13 @@ const destruirPerfilFalso = async () => {
                     url_slug: '', 
                     categoria: 'sport',
                     estado: 'activo',
-                    tipo_reconocimiento: 'hibrido', 
+                    tipo_reconocimiento: 'facial', // 🌟 Predeterminado Facial
                     fecha_evento: '', 
                     ubicacion: '', 
                     titulo_about: '', 
                     descripcion: '',
                     password_cliente: '',
-                    es_gratis: false,
+                    es_gratis: true, // 🌟 Predeterminado Gratuito
                     requiere_pago_para_ver: false,
                     moneda: 'DOP',
                     precio_galeria: 0,
@@ -825,88 +841,71 @@ const destruirPerfilFalso = async () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="col-span-1 md:col-span-2">
                       <label className="text-[10px] uppercase tracking-widest text-[#1C1C1C] font-bold mb-2 block">Nombre del Evento</label>
-                      <input required value={formData.nombre} onChange={e => setFormData({...formData, nombre: e.target.value})} className="w-full p-3 bg-[#FDFCF8] outline-none border border-[#EAEAEA] focus:border-[#C8B99A] text-xl font-serif rounded-sm transition-colors" />
+                      <input 
+                        required 
+                        value={formData.nombre} 
+                        onChange={e => {
+                          const nuevoNombre = e.target.value;
+                          setFormData(prev => ({
+                            ...prev,
+                            nombre: nuevoNombre,
+                            // 🌟 Genera el slug automáticamente al escribir el nombre si es una colección nueva
+                            url_slug: eventoEditandoId ? prev.url_slug : generarSlugCorto(nuevoNombre)
+                          }));
+                        }} 
+                        className="w-full p-3 bg-[#FDFCF8] outline-none border border-[#EAEAEA] focus:border-[#C8B99A] text-xl font-serif rounded-sm transition-colors" 
+                        placeholder="Ej. Boda Maria y Jose / Maratón Santo Domingo"
+                      />
                     </div>
+
                     <div>
-                      <label className="text-[10px] uppercase tracking-widest text-[#1C1C1C] font-bold mb-2 block">URL Personalizada (Slug)</label>
-                      <input required value={formData.url_slug} onChange={e => setFormData({...formData, url_slug: e.target.value.toLowerCase().replace(/ /g, '-')})} className="w-full p-3 bg-[#FDFCF8] outline-none border border-[#EAEAEA] focus:border-[#C8B99A] font-serif rounded-sm transition-colors" placeholder="ejemplo: maraton-sd-2026" />
+                      <label className="text-[10px] uppercase tracking-widest text-[#1C1C1C] font-bold mb-2 block">URL Personalizada (Slug Auto-generado)</label>
+                      <input 
+                        required 
+                        value={formData.url_slug} 
+                        onChange={e => setFormData({...formData, url_slug: e.target.value.toLowerCase().replace(/ /g, '-')})} 
+                        className="w-full p-3 bg-[#FDFCF8] outline-none border border-[#EAEAEA] focus:border-[#C8B99A] font-serif rounded-sm transition-colors text-gray-700" 
+                        placeholder="ejemplo: boda-maria-jose" 
+                      />
                     </div>
+
                     <div>
                       <label className="text-[10px] uppercase tracking-widest text-[#1C1C1C] font-bold mb-2 block">Categoría</label>
                       <select value={formData.categoria} onChange={e => setFormData({...formData, categoria: e.target.value})} className="w-full p-3 bg-[#FDFCF8] outline-none border border-[#EAEAEA] focus:border-[#C8B99A] font-serif rounded-sm transition-colors">
                         <option value="sport">Deporte / Sport</option>
+                        <option value="sesion_fotos">Sesión de Fotos</option> {/* 🌟 NUEVA OPCIÓN */}
                         <option value="social">Social / Fiesta</option>
                         <option value="boda">Bodas</option>
                         <option value="graduacion">Graduaciones</option>
                       </select>
                     </div>
+
                     <div>
                       <label className="text-[10px] uppercase tracking-widest text-[#1C1C1C] font-bold mb-2 block">Fecha del Evento</label>
                       <input type="date" value={formData.fecha_evento || ''} onChange={e => setFormData({...formData, fecha_evento: e.target.value})} className="w-full p-3 bg-[#FDFCF8] outline-none border border-[#EAEAEA] focus:border-[#C8B99A] font-serif rounded-sm transition-colors" />
                     </div>
+
                     <div>
                       <label className="text-[10px] uppercase tracking-widest text-[#1C1C1C] font-bold mb-2 block">Ubicación</label>
-                      <input type="text" value={formData.ubicacion || ''} onChange={e => setFormData({...formData, ubicacion: e.target.value})} className="w-full p-3 bg-[#FDFCF8] outline-none border border-[#EAEAEA] focus:border-[#C8B99A] font-serif rounded-sm transition-colors" placeholder="Ej. Estadio Olímpico" />
+                      <input type="text" value={formData.ubicacion || ''} onChange={e => setFormData({...formData, ubicacion: e.target.value})} className="w-full p-3 bg-[#FDFCF8] outline-none border border-[#EAEAEA] focus:border-[#C8B99A] font-serif rounded-sm transition-colors" placeholder="Ej. Jarabacoa / Punta Cana" />
                     </div>
                   </div>
                 </div>
 
-                {/* --- SECCIÓN 2: COMERCIALIZACIÓN Y VENTAS --- */}
+                {/* --- SECCIÓN 2: PÁGINA PÚBLICA Y ARCHIVOS --- */}
                 <div>
-                  <h3 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#9A8F82] border-b border-[#EAEAEA] pb-2 mb-5">Comercialización</h3>
-                  
-                  <div className="flex gap-8 mb-6 bg-[#FDFCF8] p-4 border border-[#EAEAEA] rounded-sm">
-                    <label className="flex items-center gap-3 cursor-pointer group">
-                      <div className={`w-5 h-5 rounded-sm border flex items-center justify-center transition-colors ${formData.es_gratis ? 'bg-[#C8B99A] border-[#C8B99A]' : 'bg-white border-gray-300'}`}>
-                        {formData.es_gratis && <Check size={14} color={WHITE} />}
-                      </div>
-                      <input type="checkbox" checked={formData.es_gratis} onChange={e => setFormData({...formData, es_gratis: e.target.checked})} className="hidden"/>
-                      <span className="text-xs uppercase tracking-widest text-[#1C1C1C] font-bold group-hover:text-[#C8B99A] transition-colors">Evento Gratuito</span>
-                    </label>
-
-                    <label className="flex items-center gap-3 cursor-pointer group">
-                      <div className={`w-5 h-5 rounded-sm border flex items-center justify-center transition-colors ${formData.requiere_pago_para_ver ? 'bg-[#C8B99A] border-[#C8B99A]' : 'bg-white border-gray-300'}`}>
-                        {formData.requiere_pago_para_ver && <Check size={14} color={WHITE} />}
-                      </div>
-                      <input type="checkbox" checked={formData.requiere_pago_para_ver} onChange={e => setFormData({...formData, requiere_pago_para_ver: e.target.checked})} className="hidden"/>
-                      <span className="text-xs uppercase tracking-widest text-[#1C1C1C] font-bold group-hover:text-[#C8B99A] transition-colors">Requiere Pago Para Ver</span>
-                    </label>
-                  </div>
-
-                  {!formData.es_gratis && (
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                      <div>
-                        <label className="text-[10px] uppercase tracking-widest text-[#1C1C1C] font-bold mb-2 block">Moneda</label>
-                        <select value={formData.moneda} onChange={e => setFormData({...formData, moneda: e.target.value})} className="w-full p-3 bg-[#FDFCF8] outline-none border border-[#EAEAEA] focus:border-[#C8B99A] font-serif rounded-sm transition-colors">
-                          <option value="DOP">DOP (Pesos)</option>
-                          <option value="USD">USD (Dólares)</option>
-                          <option value="EUR">EUR (Euros)</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="text-[10px] uppercase tracking-widest text-[#1C1C1C] font-bold mb-2 block">Precio Galería Completa</label>
-                        <input type="number" step="0.01" min="0" value={formData.precio_galeria || 0} onChange={e => setFormData({...formData, precio_galeria: parseFloat(e.target.value) || 0})} className="w-full p-3 bg-[#FDFCF8] outline-none border border-[#EAEAEA] focus:border-[#C8B99A] font-serif rounded-sm transition-colors" />
-                      </div>
-                      <div>
-                        <label className="text-[10px] uppercase tracking-widest text-[#1C1C1C] font-bold mb-2 block">Precio Foto Individual</label>
-                        <input type="number" step="0.01" min="0" value={formData.precio_foto || 0} onChange={e => setFormData({...formData, precio_foto: parseFloat(e.target.value) || 0})} className="w-full p-3 bg-[#FDFCF8] outline-none border border-[#EAEAEA] focus:border-[#C8B99A] font-serif rounded-sm transition-colors" />
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* --- SECCIÓN 3: PÁGINA PÚBLICA --- */}
-                <div>
-                  <h3 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#9A8F82] border-b border-[#EAEAEA] pb-2 mb-5">Página Pública</h3>
+                  <h3 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#9A8F82] border-b border-[#EAEAEA] pb-2 mb-5">Página Pública y Presentación</h3>
                   <div className="flex flex-col gap-6">
                     <div>
                       <label className="text-[10px] uppercase tracking-widest text-[#1C1C1C] font-bold mb-2 block">Título "Acerca Del Evento"</label>
-                      <input type="text" value={formData.titulo_about || ''} onChange={e => setFormData({...formData, titulo_about: e.target.value})} className="w-full p-3 bg-[#FDFCF8] outline-none border border-[#EAEAEA] focus:border-[#C8B99A] font-serif rounded-sm transition-colors" placeholder="Ej. El Maratón más grande del país" />
+                      <input type="text" value={formData.titulo_about || ''} onChange={e => setFormData({...formData, titulo_about: e.target.value})} className="w-full p-3 bg-[#FDFCF8] outline-none border border-[#EAEAEA] focus:border-[#C8B99A] font-serif rounded-sm transition-colors" placeholder="Ej. Fotografías oficiales del evento" />
                     </div>
+
                     <div>
                       <label className="text-[10px] uppercase tracking-widest text-[#1C1C1C] font-bold mb-2 block">Descripción Completa</label>
-                      <textarea value={formData.descripcion || ''} onChange={e => setFormData({...formData, descripcion: e.target.value})} rows={3} className="w-full p-3 bg-[#FDFCF8] outline-none border border-[#EAEAEA] focus:border-[#C8B99A] font-serif resize-none rounded-sm transition-colors" placeholder="Escribe los detalles que verán los usuarios..." />
+                      <textarea value={formData.descripcion || ''} onChange={e => setFormData({...formData, descripcion: e.target.value})} rows={3} className="w-full p-3 bg-[#FDFCF8] outline-none border border-[#EAEAEA] focus:border-[#C8B99A] font-serif resize-none rounded-sm transition-colors" placeholder="Detalles o mensaje de bienvenida..." />
                     </div>
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="border border-dashed border-[#C8B99A] bg-[#FDFCF8] p-4 flex flex-col items-center justify-center text-center rounded-sm">
                         <ImageIcon size={24} className="text-[#C8B99A] mb-2" />
@@ -916,6 +915,7 @@ const destruirPerfilFalso = async () => {
                         </label>
                         <span className="text-xs text-gray-400">{portadaFile ? portadaFile.name : (formData.portada_url ? 'Ya tiene portada' : 'No seleccionada')}</span>
                       </div>
+
                       <div className="border border-dashed border-[#C8B99A] bg-[#FDFCF8] p-4 flex flex-col items-center justify-center text-center rounded-sm">
                         <Star size={24} className="text-[#C8B99A] mb-2" />
                         <label className="text-[10px] uppercase tracking-widest text-[#1C1C1C] font-bold mb-2 cursor-pointer hover:underline">
@@ -928,18 +928,64 @@ const destruirPerfilFalso = async () => {
                   </div>
                 </div>
 
-                {/* --- SECCIÓN 4: MOTOR IA Y PRIVACIDAD --- */}
+                {/* --- SECCIÓN 3: COMERCIALIZACIÓN Y ACCESO (AHORA ABAJO) --- */}
                 <div>
-                  <h3 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#9A8F82] border-b border-[#EAEAEA] pb-2 mb-5">Inteligencia Artificial y Acceso</h3>
+                  <h3 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#9A8F82] border-b border-[#EAEAEA] pb-2 mb-5">Comercialización y Acceso</h3>
+                  
+                  {/* Selector de Gratuito / Pago */}
+                  <div className="flex gap-8 mb-6 bg-[#FDFCF8] p-4 border border-[#EAEAEA] rounded-sm">
+                    <label className="flex items-center gap-3 cursor-pointer group">
+                      <div className={`w-5 h-5 rounded-sm border flex items-center justify-center transition-colors ${formData.es_gratis ? 'bg-[#C8B99A] border-[#C8B99A]' : 'bg-white border-gray-300'}`}>
+                        {formData.es_gratis && <Check size={14} color={WHITE} />}
+                      </div>
+                      <input type="checkbox" checked={formData.es_gratis} onChange={e => setFormData({...formData, es_gratis: e.target.checked})} className="hidden"/>
+                      <span className="text-xs uppercase tracking-widest text-[#1C1C1C] font-bold group-hover:text-[#C8B99A] transition-colors">Evento Gratuito (Predeterminado)</span>
+                    </label>
+
+                    <label className="flex items-center gap-3 cursor-pointer group">
+                      <div className={`w-5 h-5 rounded-sm border flex items-center justify-center transition-colors ${formData.requiere_pago_para_ver ? 'bg-[#C8B99A] border-[#C8B99A]' : 'bg-white border-gray-300'}`}>
+                        {formData.requiere_pago_para_ver && <Check size={14} color={WHITE} />}
+                      </div>
+                      <input type="checkbox" checked={formData.requiere_pago_para_ver} onChange={e => setFormData({...formData, requiere_pago_para_ver: e.target.checked})} className="hidden"/>
+                      <span className="text-xs uppercase tracking-widest text-[#1C1C1C] font-bold group-hover:text-[#C8B99A] transition-colors">Requiere Pago Para Ver</span>
+                    </label>
+                  </div>
+
+                  {/* Precios (Si no es gratuito) */}
+                  {!formData.es_gratis && (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                      <div>
+                        <label className="text-[10px] uppercase tracking-widest text-[#1C1C1C] font-bold mb-2 block">Moneda</label>
+                        <select value={formData.moneda} onChange={e => setFormData({...formData, moneda: e.target.value})} className="w-full p-3 bg-[#FDFCF8] outline-none border border-[#EAEAEA] focus:border-[#C8B99A] font-serif rounded-sm transition-colors">
+                          <option value="DOP">DOP (Pesos)</option>
+                          <option value="USD">USD (Dólares)</option>
+                          <option value="EUR">EUR (Euros)</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="text-[10px] uppercase tracking-widest text-[#1C1C1C] font-bold mb-2 block">Precio Galería Completa</label>
+                        <input type="number" step="0.01" min="0" value={formData.precio_galeria || 0} onChange={e => setFormData({...formData, precio_galeria: parseFloat(e.target.value) || 0})} className="w-full p-3 bg-[#FDFCF8] outline-none border border-[#EAEAEA] focus:border-[#C8B99A] font-serif rounded-sm transition-colors" />
+                      </div>
+
+                      <div>
+                        <label className="text-[10px] uppercase tracking-widest text-[#1C1C1C] font-bold mb-2 block">Precio Foto Individual</label>
+                        <input type="number" step="0.01" min="0" value={formData.precio_foto || 0} onChange={e => setFormData({...formData, precio_foto: parseFloat(e.target.value) || 0})} className="w-full p-3 bg-[#FDFCF8] outline-none border border-[#EAEAEA] focus:border-[#C8B99A] font-serif rounded-sm transition-colors" />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Configuración de IA, Estado y Seguridad */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div>
-                      <label className="text-[10px] uppercase tracking-widest text-[#1C1C1C] font-bold mb-2 block">Motor IA Principal</label>
+                      <label className="text-[10px] uppercase tracking-widest text-[#1C1C1C] font-bold mb-2 block">Motor IA (Predeterminado: Facial)</label>
                       <select value={formData.tipo_reconocimiento} onChange={e => setFormData({...formData, tipo_reconocimiento: e.target.value})} className="w-full p-3 bg-[#FDFCF8] outline-none border border-[#EAEAEA] focus:border-[#C8B99A] font-serif rounded-sm transition-colors">
+                        <option value="facial">Facial Puro (Predeterminado)</option>
                         <option value="hibrido">Híbrido (Rostros + OCR)</option>
-                        <option value="facial">Facial Puro (Bodas/Sociales)</option>
                         <option value="ocr">Lectura OCR (Deportes)</option>
                       </select>
                     </div>
+
                     <div>
                       <label className="text-[10px] uppercase tracking-widest text-[#1C1C1C] font-bold mb-2 block">Estado de Publicación</label>
                       <select value={formData.estado} onChange={e => setFormData({...formData, estado: e.target.value})} className="w-full p-3 bg-[#FDFCF8] outline-none border border-[#EAEAEA] focus:border-[#C8B99A] font-serif rounded-sm transition-colors">
@@ -948,6 +994,7 @@ const destruirPerfilFalso = async () => {
                         <option value="inactivo">Inactivo (Archivado)</option>
                       </select>
                     </div>
+
                     <div>
                       <label className="text-[10px] uppercase tracking-widest text-[#1C1C1C] font-bold mb-2 flex items-center gap-1"><Lock size={10}/> Contraseña de Galería</label>
                       <input type="text" placeholder="Vacío = Acceso libre" value={formData.password_cliente || ''} onChange={e => setFormData({...formData, password_cliente: e.target.value})} className="w-full p-3 bg-[#FDFCF8] outline-none border border-[#EAEAEA] focus:border-[#C8B99A] font-serif rounded-sm transition-colors" />

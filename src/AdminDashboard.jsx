@@ -1050,53 +1050,99 @@ const destruirPerfilFalso = async () => {
               </div>
 
               <div style={{ display: 'flex', alignItems: 'flex-start', flex: 1 }}>
-                <div style={{ width: 240, background: WHITE, borderRight: `1px solid ${BORDER}`, flexShrink: 0, position: 'sticky', top: 0, height: 'calc(100vh - 64px)', display: 'flex', flexDirection: 'column' }}>
-                  
-                  <div style={{ height: scrolledPastBanner ? 240 : 0, opacity: scrolledPastBanner ? 1 : 0, overflow: 'hidden', transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', flexShrink: 0 }}>
-                    <img src={renderCoverUrl(eventoActivo.portada_url)} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: renderCoverPosition(eventoActivo.portada_url) }} />
-                  </div>
+                {/* 🌟 BARRA LATERAL INTERNA DEL EVENTO (REDISEÑADA) 🌟 */}
+              <div style={{ width: 240, background: WHITE, borderRight: `1px solid ${BORDER}`, flexShrink: 0, position: 'sticky', top: 0, height: 'calc(100vh - 48px)', display: 'flex', flexDirection: 'column' }}>
+                
+                {/* Previsualización de Portada al hacer scroll */}
+                <div style={{ height: scrolledPastBanner ? 160 : 0, opacity: scrolledPastBanner ? 1 : 0, overflow: 'hidden', transition: 'all 0.3s ease', flexShrink: 0, borderBottom: `1px solid ${BORDER}` }}>
+                  <img src={renderCoverUrl(eventoActivo.portada_url)} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: renderCoverPosition(eventoActivo.portada_url) }} alt="" />
+                </div>
 
-                  <div style={{ flex: 1, overflowY: 'auto' }}>
-                    <div className="mb-6 mt-4">
-                      <div style={{ padding: '8px 16px', background: '#F5F3EF', borderLeft: `3px solid ${SAND}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                        <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', color: INK }}>Carpetas</span>
-                        <button onClick={crearNuevaCarpeta} style={{ background: 'none', border: 'none', color: TAUPE, cursor: 'pointer' }}><Plus size={14} /></button>
-                      </div>
+                <div className="flex-1 overflow-y-auto py-5 px-3 space-y-7">
+                  
+                  {/* SECCIÓN 1: FOTOS */}
+                  <div>
+                    <div className="flex items-center justify-between px-2 mb-2">
+                      <span className="text-[10px] uppercase font-bold tracking-[0.18em] text-[#9A8F82]">Fotos</span>
+                      <button onClick={crearNuevaCarpeta} className="p-1 hover:bg-gray-100 rounded text-[#9A8F82] hover:text-[#1C1C1C] transition-colors" title="Añadir nuevo set">
+                        <Plus size={14} />
+                      </button>
+                    </div>
+
+                    <div className="space-y-1">
                       {carpetas.map(carpeta => {
                         const cant = fotosEvento.filter(f => f.carpeta_id === carpeta.id).length;
                         const isActiva = seccionDashboard === 'fotos' && carpetaActiva?.id === carpeta.id;
                         return (
-                          <div 
-                            key={carpeta.id} 
-                            onClick={() => { setCarpetaActiva(carpeta); setSeccionDashboard('fotos'); }} 
-                            style={{ padding: '10px 16px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: isActiva ? '#F5F5F5' : 'transparent', borderLeft: isActiva ? `3px solid ${INK}` : '3px solid transparent' }}
+                          <button
+                            key={carpeta.id}
+                            onClick={() => { setCarpetaActiva(carpeta); setSeccionDashboard('fotos'); }}
+                            className={`w-full flex items-center justify-between px-3 py-2.5 text-xs rounded-sm transition-all text-left ${
+                              isActiva 
+                                ? 'bg-[#1C1C1C] text-white font-medium shadow-sm' 
+                                : 'text-[#1C1C1C] hover:bg-[#F5F4F0]'
+                            }`}
                           >
-                            <span style={{ fontSize: 12, fontWeight: isActiva ? 600 : 400, color: INK }}>{carpeta.nombre}</span>
-                            <span style={{ fontSize: 10, color: TAUPE }}>{cant}</span>
-                          </div>
+                            <div className="flex items-center gap-2.5 truncate">
+                              <Folder size={14} className={isActiva ? 'text-[#C8B99A]' : 'text-[#9A8F82]'} />
+                              <span className="truncate">{carpeta.nombre}</span>
+                            </div>
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded font-mono ${isActiva ? 'bg-white/20 text-white' : 'bg-[#E8E4DE] text-[#1C1C1C]'}`}>
+                              {cant}
+                            </span>
+                          </button>
                         );
                       })}
                     </div>
-
-                    <div>
-                      <div style={{ padding: '8px 16px', background: '#F5F3EF', borderLeft: `3px solid ${INK}`, display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                        <Zap size={14} className="text-amber-500" />
-                        <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', color: INK }}>Motor IA</span>
-                      </div>
-                      <button 
-                        onClick={() => setSeccionDashboard('ia')} 
-                        className={`w-full flex items-center justify-between px-4 py-3 transition-colors text-left border-l-3 ${seccionDashboard === 'ia' ? 'bg-[#F5F5F5] border-black font-semibold' : 'border-transparent text-gray-700 hover:bg-gray-50'}`}
-                      >
-                        <div className="flex items-center gap-2.5">
-                          <ScanFace size={16} className={seccionDashboard === 'ia' ? 'text-black' : 'text-gray-400'} />
-                          <span style={{ fontSize: 12 }}>Centro de IA</span>
-                        </div>
-                        <ChevronRightIcon size={14} className="text-gray-400" />
-                      </button>
-                    </div>
                   </div>
-                </div>
 
+                  {/* SECCIÓN 2: MOTOR IA (SIN EL RAYITO) */}
+                  <div>
+                    <div className="px-2 mb-2">
+                      <span className="text-[10px] uppercase font-bold tracking-[0.18em] text-[#9A8F82]">Motor IA</span>
+                    </div>
+                    <button
+                      onClick={() => setSeccionDashboard('ia')}
+                      className={`w-full flex items-center justify-between px-3 py-2.5 text-xs rounded-sm transition-all text-left ${
+                        seccionDashboard === 'ia' 
+                          ? 'bg-[#1C1C1C] text-white font-medium shadow-sm' 
+                          : 'text-[#1C1C1C] hover:bg-[#F5F4F0]'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <ScanFace size={15} className={seccionDashboard === 'ia' ? 'text-[#C8B99A]' : 'text-[#9A8F82]'} />
+                        <span>Centro de IA</span>
+                      </div>
+                      {statsIA.dudas > 0 && (
+                        <span className="bg-[#E74C3C] text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">
+                          {statsIA.dudas}
+                        </span>
+                      )}
+                    </button>
+                  </div>
+
+                  {/* SECCIÓN 3: DISEÑO */}
+                  <div>
+                    <div className="px-2 mb-2">
+                      <span className="text-[10px] uppercase font-bold tracking-[0.18em] text-[#9A8F82]">Diseño</span>
+                    </div>
+                    <button
+                      onClick={() => setSeccionDashboard('diseno')}
+                      className={`w-full flex items-center justify-between px-3 py-2.5 text-xs rounded-sm transition-all text-left ${
+                        seccionDashboard === 'diseno' 
+                          ? 'bg-[#1C1C1C] text-white font-medium shadow-sm' 
+                          : 'text-[#1C1C1C] hover:bg-[#F5F4F0]'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <Sliders size={15} className={seccionDashboard === 'diseno' ? 'text-[#C8B99A]' : 'text-[#9A8F82]'} />
+                        <span>Personalización UI</span>
+                      </div>
+                    </button>
+                  </div>
+
+                </div>
+              </div>
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 'calc(100vh - 64px)' }}>
                   
                   {/* 🌟 CASO A: MODO FOTOS CON NUEVA BARRA DE HERRAMIENTAS 🌟 */}
@@ -1538,7 +1584,24 @@ const destruirPerfilFalso = async () => {
                       </div>
                     </div>
                   )}
+{/* CASO C: MODO DISEÑO Y PERSONALIZACIÓN UI */}
+                {seccionDashboard === 'diseno' && (
+                  <div className="flex-1 flex flex-col relative h-full bg-[#FAFAFA] p-8">
+                    <div className="max-w-4xl">
+                      <div className="mb-8 border-b border-[#EAEAEA] pb-4">
+                        <h2 className="text-2xl font-serif text-[#1C1C1C] m-0">Personalización de Galería</h2>
+                        <p className="text-xs text-[#9A8F82] mt-1">Ajusta la apariencia visual, banners, placeholders y elementos de marca para este evento.</p>
+                      </div>
 
+                      {/* Bloque temporal mientras desarrollamos la funcionalidad completa */}
+                      <div className="bg-white p-8 border border-[#EAEAEA] rounded-sm shadow-sm flex flex-col items-center justify-center text-center py-16">
+                        <Sliders size={40} className="text-[#C8B99A] mb-4" />
+                        <h3 className="text-lg font-serif text-[#1C1C1C] mb-2">Módulo de Diseño en Construcción</h3>
+                        <p className="text-xs text-[#9A8F82] max-w-md">Aquí podremos configurar el placeholder del buscador, colores de acento, banners interactivos y logos personalizados del cliente.</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
                 </div>
               </div>
             </div>

@@ -386,16 +386,52 @@ export default function AdminDashboard() {
     }
   };
 
-  const fusionarConJugador = async (idDestino) => {
+const fusionarConJugador = async (idDestino) => {
+    // 1. Guardamos la ruta del avatar físico antes de borrar el registro
+    const avatarABorrar = jugadorSeleccionado.avatar_url;
+
+    // 2. Reasignamos las fotos y borramos el perfil clonado en la BD
     await supabase.from('face_detections').update({ identity_id: idDestino }).eq('identity_id', jugadorSeleccionado.id);
     await supabase.from('identities').delete().eq('id', jugadorSeleccionado.id);
-    setJugadorSeleccionado(null); cargarJugadores(); cargarStatsIA(eventoActivo.id, true);
+    
+    // 3. 🌟 DISPARAMOS EL BORRADO FÍSICO EN CLOUDFLARE R2
+    if (avatarABorrar && !avatarABorrar.includes('default.jpg')) {
+      try {
+        await fetch(MODAL_API_URL, { 
+          method: "POST", 
+          headers: { "Content-Type": "application/json" }, 
+          body: JSON.stringify({ accion: "eliminar_fotos", rutas: [avatarABorrar] }) 
+        });
+      } catch (err) { console.error("Error borrando avatar físico:", err); }
+    }
+
+    setJugadorSeleccionado(null); 
+    cargarJugadores(); 
+    cargarStatsIA(eventoActivo.id, true);
   };
 
-  const destruirPerfilFalso = async () => {
+const destruirPerfilFalso = async () => {
+    // 1. Guardamos la ruta del avatar físico
+    const avatarABorrar = jugadorSeleccionado.avatar_url;
+
+    // 2. Borramos las detecciones basura y el perfil en la BD
     await supabase.from('face_detections').delete().eq('identity_id', jugadorSeleccionado.id);
     await supabase.from('identities').delete().eq('id', jugadorSeleccionado.id);
-    setJugadorSeleccionado(null); cargarJugadores(); cargarStatsIA(eventoActivo.id, true);
+    
+    // 3. 🌟 DISPARAMOS EL BORRADO FÍSICO EN CLOUDFLARE R2
+    if (avatarABorrar && !avatarABorrar.includes('default.jpg')) {
+      try {
+        await fetch(MODAL_API_URL, { 
+          method: "POST", 
+          headers: { "Content-Type": "application/json" }, 
+          body: JSON.stringify({ accion: "eliminar_fotos", rutas: [avatarABorrar] }) 
+        });
+      } catch (err) { console.error("Error borrando avatar físico:", err); }
+    }
+
+    setJugadorSeleccionado(null); 
+    cargarJugadores(); 
+    cargarStatsIA(eventoActivo.id, true);
   };
 
   const cargarCorredores = useCallback(async () => {

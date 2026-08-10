@@ -8,11 +8,29 @@ const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://muvzhnnsdnztl
 const fotoUrl = (path, optimizada = false) => {
   if (!path) return null;
   const base = SUPABASE_URL.endsWith('/') ? SUPABASE_URL.slice(0, -1) : SUPABASE_URL;
-  if (path.includes('/avatares/')) return `${base}/storage/v1/object/public/fotos/${path}`;
-  if (optimizada && path.includes('/originales/')) {
-    let optimizedPath = path.replace('/originales/', '/watermarks/');
+  
+  // 1. Si es un rostro/avatar, ya es súper ligero, lo devolvemos tal cual
+  if (path.includes('avatares/')) {
+    return `${base}/storage/v1/object/public/fotos/${path}`;
+  }
+
+  // 2. Si pedimos la versión rápida/optimizada para la grilla
+  if (optimizada) {
+    let optimizedPath = path;
+    
+    // Le quitamos la barra inicial al buscador para que no falle nunca
+    if (path.includes('originales/')) {s
+      optimizedPath = path.replace('originales/', 'watermarks/');
+    } else {
+      // Fallback extremo: Si la ruta tiene un formato raro, forzamos sacar el nombre y buscar en watermarks
+      const nombreArchivo = path.split('/').pop();
+      optimizedPath = `watermarks/${nombreArchivo}`;
+    }
+    
     return `${base}/storage/v1/object/public/fotos/${optimizedPath}`;
   }
+
+  // 3. Versión original (solo si no pedimos optimizada)
   return `${base}/storage/v1/object/public/fotos/${path}`;
 };
 
@@ -281,18 +299,33 @@ export default function ReviewPanel({ evento, onVolver, onEjecutarIA, procesando
         {vista !== 'dudas' && (
           <aside className="w-80 border-r border-[#222] bg-[#0A0A0A] flex flex-col shrink-0">
             <div className="flex-1 overflow-y-auto custom-scrollbar-dark p-2">
+              
+              {/* 🌟 AQUI EMPIEZA LA MAGIA DE LAZY LOADING EN PERFILES 🌟 */}
               {vista === 'perfiles' && listaJugadores.map(j => (
                 <button key={j.id} onClick={() => seleccionarJugador(j)} className={`w-full flex items-center gap-3 p-3 mb-1 transition-all ${jugadorSeleccionado?.id === j.id ? 'bg-[#222] text-white' : 'hover:bg-[#111] text-gray-400'}`}>
-                  <img src={fotoUrl(j.avatar_url)} className="w-10 h-10 rounded-full object-cover filter saturate-50" alt="" />
+                  <img 
+                    src={fotoUrl(j.avatar_url)} 
+                    loading="lazy" 
+                    decoding="async" 
+                    className="w-10 h-10 rounded-full object-cover filter saturate-50 bg-[#1A1A1A]" 
+                    alt="" 
+                  />
                   <span className="font-serif text-sm truncate">{j.display_name}</span>
                 </button>
               ))}
 
+              {/* 🌟 AQUI EMPIEZA LA MAGIA DE LAZY LOADING EN OCR 🌟 */}
               {vista === 'corredores' && listaCorredores.map(c => {
                 const valido = c.dorsal && c.dorsal !== '';
                 return (
                   <button key={c.id} onClick={() => seleccionarCorredor(c)} className={`w-full flex items-center gap-3 p-3 mb-1 transition-all ${corredorSeleccionado?.id === c.id ? 'bg-[#222] text-white' : 'hover:bg-[#111] text-gray-400'}`}>
-                    <img src={fotoUrl(c.avatar_url)} className="w-10 h-16 object-cover bg-[#222] filter saturate-50" alt="" />
+                    <img 
+                      src={fotoUrl(c.avatar_url)} 
+                      loading="lazy" 
+                      decoding="async" 
+                      className="w-10 h-16 object-cover bg-[#1A1A1A] filter saturate-50" 
+                      alt="" 
+                    />
                     <span className="font-serif text-sm truncate">{valido ? `#${c.dorsal}` : '⚠️ Sin número'}</span>
                   </button>
                 )
@@ -348,9 +381,17 @@ export default function ReviewPanel({ evento, onVolver, onEjecutarIA, procesando
               )}
 
               <div className="grid grid-cols-2 lg:grid-cols-3 gap-6">
+                
+                {/* 🌟 LAZY LOADING EN LAS FOTOS DE LOS JUGADORES 🌟 */}
                 {fotosDelJugador.map((foto, idx) => (
                   <div key={idx} className="relative aspect-square bg-[#050505] border border-[#222] group cursor-zoom-in overflow-hidden" onClick={() => setZoomCara({ photo_url: foto.photo_url, bbox: foto.detecciones[0]?.bbox, identidad: jugadorSeleccionado })}>
-                    <img src={fotoUrl(foto.photo_url, true)} className="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity filter saturate-50 group-hover:saturate-100" alt=""/>
+                    <img 
+                      src={fotoUrl(foto.photo_url, true)} 
+                      loading="lazy" 
+                      decoding="async" 
+                      className="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity filter saturate-50 group-hover:saturate-100" 
+                      alt=""
+                    />
                     <div className="absolute top-2 right-2 bg-black/80 px-2 py-1 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                       {foto.detecciones.map(det => (
                         <button key={det.id} onClick={(e) => { e.stopPropagation(); supabase.from('face_detections').update({identity_id:null}).eq('id',det.id).then(()=>{seleccionarJugador(jugadorSeleccionado); cargarStats();}); }} className="text-red-400 hover:text-red-500 text-[10px] uppercase font-bold flex items-center gap-1" title="Desvincular"><UserMinus size={12}/> Quitar</button>
@@ -417,9 +458,17 @@ export default function ReviewPanel({ evento, onVolver, onEjecutarIA, procesando
                 </div>
               </div>
               <div className="grid grid-cols-2 lg:grid-cols-3 gap-6">
+                
+                {/* 🌟 LAZY LOADING EN LAS FOTOS DE LOS CORREDORES 🌟 */}
                 {fotosDelCorredor.map((f, idx) => (
                   <div key={idx} className="relative aspect-square bg-[#050505] border border-[#222] cursor-zoom-in" onClick={() => setZoomCara({ photo_url: f.photo_url, bbox: f.bbox_cuerpo || f.bbox })}>
-                    <img src={fotoUrl(f.photo_url, true)} className="w-full h-full object-cover opacity-60 filter saturate-50 hover:opacity-100 transition-opacity" alt=""/>
+                    <img 
+                      src={fotoUrl(f.photo_url, true)} 
+                      loading="lazy" 
+                      decoding="async" 
+                      className="w-full h-full object-cover opacity-60 filter saturate-50 hover:opacity-100 transition-opacity" 
+                      alt=""
+                    />
                     <BoundingBox bbox={f.bbox} color={SAND} label={`#${f.dorsal}`} />
                   </div>
                 ))}

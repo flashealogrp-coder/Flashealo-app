@@ -756,8 +756,27 @@ const destruirPerfilFalso = async () => {
                 <h1 style={{ fontSize: 24, fontWeight: 400, fontFamily: 'Georgia, serif', margin: 0 }}>Colecciones</h1>
                 <button onClick={() => { 
                   setEventoEditandoId(null); 
-                  setFormData({ nombre: '', url_slug: '', tipo_reconocimiento: 'hibrido', password_cliente: '', fecha_evento: '', ubicacion: '', titulo_about: '', descripcion: '' });
-                  setPortadaFile(null); setLogoFile(null); setSeccionAbierta('datos'); setVista('form'); 
+                  setFormData({ 
+                    nombre: '', 
+                    url_slug: '', 
+                    categoria: 'sport',
+                    estado: 'activo',
+                    tipo_reconocimiento: 'hibrido', 
+                    fecha_evento: '', 
+                    ubicacion: '', 
+                    titulo_about: '', 
+                    descripcion: '',
+                    password_cliente: '',
+                    es_gratis: false,
+                    requiere_pago_para_ver: false,
+                    moneda: 'DOP',
+                    precio_galeria: 0,
+                    precio_foto: 0
+                  });
+                  setPortadaFile(null); 
+                  setLogoFile(null); 
+                  setSeccionAbierta('datos'); 
+                  setVista('form'); 
                 }} style={{ background: INK, color: WHITE, border: 'none', padding: '9px 18px', borderRadius: 4, cursor: 'pointer', fontSize: 12, fontWeight: 500, display: 'flex', alignItems: 'center', gap: 6 }}>
                   <Plus size={14} /> Crear Colección
                 </button>
@@ -794,37 +813,169 @@ const destruirPerfilFalso = async () => {
 
           {vista === 'form' && (
             <div style={{ maxWidth: 900, margin: '0 auto', padding: '40px 32px 80px' }}>
-              <h1 className="text-3xl font-serif mb-8 text-[#1C1C1C]">Ajustes del Evento</h1>
-              <form onSubmit={guardarEvento} className="bg-white p-8 border shadow-sm flex flex-col gap-6">
+              <h1 className="text-3xl font-serif mb-8 text-[#1C1C1C]">
+                {eventoEditandoId ? 'Ajustes del Evento' : 'Nueva Colección'}
+              </h1>
+              
+              <form onSubmit={guardarEvento} className="bg-white p-8 border border-[#EAEAEA] shadow-sm flex flex-col gap-10">
+                
+                {/* --- SECCIÓN 1: INFORMACIÓN BÁSICA --- */}
                 <div>
-                  <label className="text-xs uppercase tracking-widest text-gray-500 mb-2 block">Nombre del Evento</label>
-                  <input required value={formData.nombre} onChange={e => setFormData({...formData, nombre: e.target.value})} className="w-full p-4 bg-[#FDFCF8] outline-none border-b border-black/10 focus:border-black text-xl font-serif" />
+                  <h3 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#9A8F82] border-b border-[#EAEAEA] pb-2 mb-5">Información Básica</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="col-span-1 md:col-span-2">
+                      <label className="text-[10px] uppercase tracking-widest text-[#1C1C1C] font-bold mb-2 block">Nombre del Evento</label>
+                      <input required value={formData.nombre} onChange={e => setFormData({...formData, nombre: e.target.value})} className="w-full p-3 bg-[#FDFCF8] outline-none border border-[#EAEAEA] focus:border-[#C8B99A] text-xl font-serif rounded-sm transition-colors" />
+                    </div>
+                    <div>
+                      <label className="text-[10px] uppercase tracking-widest text-[#1C1C1C] font-bold mb-2 block">URL Personalizada (Slug)</label>
+                      <input required value={formData.url_slug} onChange={e => setFormData({...formData, url_slug: e.target.value.toLowerCase().replace(/ /g, '-')})} className="w-full p-3 bg-[#FDFCF8] outline-none border border-[#EAEAEA] focus:border-[#C8B99A] font-serif rounded-sm transition-colors" placeholder="ejemplo: maraton-sd-2026" />
+                    </div>
+                    <div>
+                      <label className="text-[10px] uppercase tracking-widest text-[#1C1C1C] font-bold mb-2 block">Categoría</label>
+                      <select value={formData.categoria} onChange={e => setFormData({...formData, categoria: e.target.value})} className="w-full p-3 bg-[#FDFCF8] outline-none border border-[#EAEAEA] focus:border-[#C8B99A] font-serif rounded-sm transition-colors">
+                        <option value="sport">Deporte / Sport</option>
+                        <option value="social">Social / Fiesta</option>
+                        <option value="boda">Bodas</option>
+                        <option value="graduacion">Graduaciones</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-[10px] uppercase tracking-widest text-[#1C1C1C] font-bold mb-2 block">Fecha del Evento</label>
+                      <input type="date" value={formData.fecha_evento || ''} onChange={e => setFormData({...formData, fecha_evento: e.target.value})} className="w-full p-3 bg-[#FDFCF8] outline-none border border-[#EAEAEA] focus:border-[#C8B99A] font-serif rounded-sm transition-colors" />
+                    </div>
+                    <div>
+                      <label className="text-[10px] uppercase tracking-widest text-[#1C1C1C] font-bold mb-2 block">Ubicación</label>
+                      <input type="text" value={formData.ubicacion || ''} onChange={e => setFormData({...formData, ubicacion: e.target.value})} className="w-full p-3 bg-[#FDFCF8] outline-none border border-[#EAEAEA] focus:border-[#C8B99A] font-serif rounded-sm transition-colors" placeholder="Ej. Estadio Olímpico" />
+                    </div>
+                  </div>
                 </div>
+
+                {/* --- SECCIÓN 2: COMERCIALIZACIÓN Y VENTAS --- */}
                 <div>
-                  <label className="text-xs uppercase tracking-widest text-gray-500 mb-2 block">URL Personalizada (Slug)</label>
-                  <input required value={formData.url_slug} onChange={e => setFormData({...formData, url_slug: e.target.value.toLowerCase().replace(/ /g, '-')})} className="w-full p-4 bg-[#FDFCF8] outline-none border-b border-black/10 focus:border-black text-xl font-serif" />
-                </div>
-                <div>
-                  <label className="text-xs uppercase tracking-widest text-gray-500 mb-2 block">Motor IA Principal</label>
-                  <select value={formData.tipo_reconocimiento} onChange={e => setFormData({...formData, tipo_reconocimiento: e.target.value})} className="w-full p-4 bg-[#FDFCF8] outline-none border-b border-black/10 focus:border-black font-serif">
-                    <option value="hibrido">Híbrido (Recomendado)</option>
-                    <option value="facial">Facial Puro (Bodas/Sociales)</option>
-                    <option value="ocr">Lectura OCR (Deportes)</option>
-                  </select>
-                </div>
-                <div className="flex gap-4 mt-4">
-                  <button type="submit" disabled={cargando} className="bg-[#1C1C1C] text-white px-6 py-3 uppercase tracking-widest text-xs font-bold">{cargando ? 'Guardando...' : 'Guardar Cambios'}</button>
-                  {eventoEditandoId && (
-                    <button type="button" onClick={() => setMostrarConfirmacionBorrar(true)} className="border border-red-500 text-red-500 px-6 py-3 uppercase tracking-widest text-xs font-bold hover:bg-red-50">Eliminar Evento</button>
+                  <h3 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#9A8F82] border-b border-[#EAEAEA] pb-2 mb-5">Comercialización</h3>
+                  
+                  <div className="flex gap-8 mb-6 bg-[#FDFCF8] p-4 border border-[#EAEAEA] rounded-sm">
+                    <label className="flex items-center gap-3 cursor-pointer group">
+                      <div className={`w-5 h-5 rounded-sm border flex items-center justify-center transition-colors ${formData.es_gratis ? 'bg-[#C8B99A] border-[#C8B99A]' : 'bg-white border-gray-300'}`}>
+                        {formData.es_gratis && <Check size={14} color={WHITE} />}
+                      </div>
+                      <input type="checkbox" checked={formData.es_gratis} onChange={e => setFormData({...formData, es_gratis: e.target.checked})} className="hidden"/>
+                      <span className="text-xs uppercase tracking-widest text-[#1C1C1C] font-bold group-hover:text-[#C8B99A] transition-colors">Evento Gratuito</span>
+                    </label>
+
+                    <label className="flex items-center gap-3 cursor-pointer group">
+                      <div className={`w-5 h-5 rounded-sm border flex items-center justify-center transition-colors ${formData.requiere_pago_para_ver ? 'bg-[#C8B99A] border-[#C8B99A]' : 'bg-white border-gray-300'}`}>
+                        {formData.requiere_pago_para_ver && <Check size={14} color={WHITE} />}
+                      </div>
+                      <input type="checkbox" checked={formData.requiere_pago_para_ver} onChange={e => setFormData({...formData, requiere_pago_para_ver: e.target.checked})} className="hidden"/>
+                      <span className="text-xs uppercase tracking-widest text-[#1C1C1C] font-bold group-hover:text-[#C8B99A] transition-colors">Requiere Pago Para Ver</span>
+                    </label>
+                  </div>
+
+                  {!formData.es_gratis && (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <div>
+                        <label className="text-[10px] uppercase tracking-widest text-[#1C1C1C] font-bold mb-2 block">Moneda</label>
+                        <select value={formData.moneda} onChange={e => setFormData({...formData, moneda: e.target.value})} className="w-full p-3 bg-[#FDFCF8] outline-none border border-[#EAEAEA] focus:border-[#C8B99A] font-serif rounded-sm transition-colors">
+                          <option value="DOP">DOP (Pesos)</option>
+                          <option value="USD">USD (Dólares)</option>
+                          <option value="EUR">EUR (Euros)</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-[10px] uppercase tracking-widest text-[#1C1C1C] font-bold mb-2 block">Precio Galería Completa</label>
+                        <input type="number" step="0.01" min="0" value={formData.precio_galeria || 0} onChange={e => setFormData({...formData, precio_galeria: parseFloat(e.target.value) || 0})} className="w-full p-3 bg-[#FDFCF8] outline-none border border-[#EAEAEA] focus:border-[#C8B99A] font-serif rounded-sm transition-colors" />
+                      </div>
+                      <div>
+                        <label className="text-[10px] uppercase tracking-widest text-[#1C1C1C] font-bold mb-2 block">Precio Foto Individual</label>
+                        <input type="number" step="0.01" min="0" value={formData.precio_foto || 0} onChange={e => setFormData({...formData, precio_foto: parseFloat(e.target.value) || 0})} className="w-full p-3 bg-[#FDFCF8] outline-none border border-[#EAEAEA] focus:border-[#C8B99A] font-serif rounded-sm transition-colors" />
+                      </div>
+                    </div>
                   )}
                 </div>
+
+                {/* --- SECCIÓN 3: PÁGINA PÚBLICA --- */}
+                <div>
+                  <h3 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#9A8F82] border-b border-[#EAEAEA] pb-2 mb-5">Página Pública</h3>
+                  <div className="flex flex-col gap-6">
+                    <div>
+                      <label className="text-[10px] uppercase tracking-widest text-[#1C1C1C] font-bold mb-2 block">Título "Acerca Del Evento"</label>
+                      <input type="text" value={formData.titulo_about || ''} onChange={e => setFormData({...formData, titulo_about: e.target.value})} className="w-full p-3 bg-[#FDFCF8] outline-none border border-[#EAEAEA] focus:border-[#C8B99A] font-serif rounded-sm transition-colors" placeholder="Ej. El Maratón más grande del país" />
+                    </div>
+                    <div>
+                      <label className="text-[10px] uppercase tracking-widest text-[#1C1C1C] font-bold mb-2 block">Descripción Completa</label>
+                      <textarea value={formData.descripcion || ''} onChange={e => setFormData({...formData, descripcion: e.target.value})} rows={3} className="w-full p-3 bg-[#FDFCF8] outline-none border border-[#EAEAEA] focus:border-[#C8B99A] font-serif resize-none rounded-sm transition-colors" placeholder="Escribe los detalles que verán los usuarios..." />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="border border-dashed border-[#C8B99A] bg-[#FDFCF8] p-4 flex flex-col items-center justify-center text-center rounded-sm">
+                        <ImageIcon size={24} className="text-[#C8B99A] mb-2" />
+                        <label className="text-[10px] uppercase tracking-widest text-[#1C1C1C] font-bold mb-2 cursor-pointer hover:underline">
+                          Subir Portada (Banner)
+                          <input type="file" accept="image/*" onChange={(e) => setPortadaFile(e.target.files[0])} className="hidden" />
+                        </label>
+                        <span className="text-xs text-gray-400">{portadaFile ? portadaFile.name : (formData.portada_url ? 'Ya tiene portada' : 'No seleccionada')}</span>
+                      </div>
+                      <div className="border border-dashed border-[#C8B99A] bg-[#FDFCF8] p-4 flex flex-col items-center justify-center text-center rounded-sm">
+                        <Star size={24} className="text-[#C8B99A] mb-2" />
+                        <label className="text-[10px] uppercase tracking-widest text-[#1C1C1C] font-bold mb-2 cursor-pointer hover:underline">
+                          Subir Logo del Evento
+                          <input type="file" accept="image/*" onChange={(e) => setLogoFile(e.target.files[0])} className="hidden" />
+                        </label>
+                        <span className="text-xs text-gray-400">{logoFile ? logoFile.name : (formData.logo_url ? 'Ya tiene logo' : 'No seleccionado')}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* --- SECCIÓN 4: MOTOR IA Y PRIVACIDAD --- */}
+                <div>
+                  <h3 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#9A8F82] border-b border-[#EAEAEA] pb-2 mb-5">Inteligencia Artificial y Acceso</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div>
+                      <label className="text-[10px] uppercase tracking-widest text-[#1C1C1C] font-bold mb-2 block">Motor IA Principal</label>
+                      <select value={formData.tipo_reconocimiento} onChange={e => setFormData({...formData, tipo_reconocimiento: e.target.value})} className="w-full p-3 bg-[#FDFCF8] outline-none border border-[#EAEAEA] focus:border-[#C8B99A] font-serif rounded-sm transition-colors">
+                        <option value="hibrido">Híbrido (Rostros + OCR)</option>
+                        <option value="facial">Facial Puro (Bodas/Sociales)</option>
+                        <option value="ocr">Lectura OCR (Deportes)</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-[10px] uppercase tracking-widest text-[#1C1C1C] font-bold mb-2 block">Estado de Publicación</label>
+                      <select value={formData.estado} onChange={e => setFormData({...formData, estado: e.target.value})} className="w-full p-3 bg-[#FDFCF8] outline-none border border-[#EAEAEA] focus:border-[#C8B99A] font-serif rounded-sm transition-colors">
+                        <option value="activo">Activo (Público)</option>
+                        <option value="oculto">Oculto (Borrador Privado)</option>
+                        <option value="inactivo">Inactivo (Archivado)</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-[10px] uppercase tracking-widest text-[#1C1C1C] font-bold mb-2 flex items-center gap-1"><Lock size={10}/> Contraseña de Galería</label>
+                      <input type="text" placeholder="Vacío = Acceso libre" value={formData.password_cliente || ''} onChange={e => setFormData({...formData, password_cliente: e.target.value})} className="w-full p-3 bg-[#FDFCF8] outline-none border border-[#EAEAEA] focus:border-[#C8B99A] font-serif rounded-sm transition-colors" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* --- BOTONES DE ACCIÓN --- */}
+                <div className="flex gap-4 mt-4 pt-6 border-t border-[#EAEAEA]">
+                  <button type="submit" disabled={cargando} className="bg-[#1C1C1C] text-white px-8 py-4 uppercase tracking-widest text-xs font-bold rounded-sm hover:bg-black transition-colors">
+                    {cargando ? 'Guardando...' : 'Guardar Colección'}
+                  </button>
+                  {eventoEditandoId && (
+                    <button type="button" onClick={() => setMostrarConfirmacionBorrar(true)} className="border border-red-200 text-red-500 px-8 py-4 uppercase tracking-widest text-xs font-bold rounded-sm hover:bg-red-50 transition-colors">
+                      Eliminar Evento
+                    </button>
+                  )}
+                </div>
+                
+                {/* --- CONFIRMACIÓN BORRAR --- */}
                 {mostrarConfirmacionBorrar && (
-                  <div className="mt-4 p-4 border border-red-200 bg-red-50">
-                    <p className="text-sm text-red-800 mb-2">Escribe "{formData.nombre}" para confirmar</p>
-                    <input type="text" value={textoConfirmacion} onChange={(e) => setTextoConfirmacion(e.target.value)} className="w-full p-2 mb-2" />
-                    <button type="button" onClick={eliminarColeccionCompleta} className="bg-red-600 text-white px-4 py-2">Eliminar Definitivamente</button>
+                  <div className="mt-4 p-6 border border-red-200 bg-red-50 rounded-sm">
+                    <p className="text-sm text-red-800 mb-3 font-bold">⚠️ ZONA DE PELIGRO: Escribe "{formData.nombre}" para confirmar</p>
+                    <input type="text" value={textoConfirmacion} onChange={(e) => setTextoConfirmacion(e.target.value)} className="w-full p-3 mb-3 border border-red-300 outline-none focus:border-red-500" placeholder="Nombre exacto..." />
+                    <button type="button" onClick={eliminarColeccionCompleta} className="bg-red-600 text-white px-6 py-3 text-xs uppercase tracking-widest font-bold rounded-sm hover:bg-red-700 transition-colors">Eliminar Definitivamente</button>
                   </div>
                 )}
+
               </form>
             </div>
           )}

@@ -1064,8 +1064,13 @@ const destruirPerfilFalso = async () => {
                   <div>
                     <div className="flex items-center justify-between px-2 mb-2">
                       <span className="text-[10px] uppercase font-bold tracking-[0.18em] text-[#9A8F82]">Fotos</span>
-                      <button onClick={crearNuevaCarpeta} className="p-1 hover:bg-gray-100 rounded text-[#9A8F82] hover:text-[#1C1C1C] transition-colors" title="Añadir nuevo set">
-                        <Plus size={14} />
+                      <button 
+                        onClick={crearNuevaCarpeta} 
+                        className="flex items-center gap-1.5 px-2 py-1 hover:bg-[#EAEAEA] rounded-sm text-[#9A8F82] hover:text-[#1C1C1C] transition-colors" 
+                        title="Añadir nuevo set"
+                      >
+                        <Plus size={12} strokeWidth={2.5} />
+                        <span className="text-[9px] font-bold uppercase tracking-widest">Nuevo Set</span>
                       </button>
                     </div>
 

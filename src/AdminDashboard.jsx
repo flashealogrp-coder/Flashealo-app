@@ -212,6 +212,13 @@ export default function AdminDashboard() {
   const [subTabDiseno, setSubTabDiseno] = useState('cover'); // 'cover' | 'tipografia' | 'color' | 'grid' | 'ia'
   const [disenoDispositivo, setDisenoDispositivo] = useState('web'); // 'web' | 'mobile'
 
+  const mainRef = useRef(null);
+  const prevSeccion = useRef(seccionDashboard);
+  const [isDisenoLocked, setIsDisenoLocked] = useState(false);
+
+
+
+
   // Configuración de UI sincronizada con la columna configuracion_ui de Supabase
   const [configUi, setConfigUi] = useState({
     estilo_portada: 'hero_full', // 'hero' | 'split' | 'editorial' | 'card'
@@ -247,6 +254,35 @@ export default function AdminDashboard() {
       
     setMensaje({ tipo: 'exito', texto: 'Ajustes de diseño guardados correctamente.' });
   };
+
+useEffect(() => {
+    if (!mainRef.current) {
+      prevSeccion.current = seccionDashboard;
+      return;
+    }
+    
+    if (seccionDashboard === 'diseno') {
+      // 1. Al entrar a diseño, auto-scrolleamos suavemente para ocultar el banner
+      mainRef.current.scrollTo({ top: 220, behavior: 'smooth' });
+      
+      // 2. Bloqueamos el scroll justo cuando termine la animación de bajar
+      const timer = setTimeout(() => setIsDisenoLocked(true), 400);
+      prevSeccion.current = seccionDashboard;
+      return () => clearTimeout(timer);
+    } else {
+      // 3. Al salir a fotos o IA, soltamos el candado
+      setIsDisenoLocked(false);
+      
+      // 4. Si veníamos de diseño, subimos de vuelta al banner
+      if (prevSeccion.current === 'diseno') {
+        mainRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+      prevSeccion.current = seccionDashboard;
+    }
+  }, [seccionDashboard]);
+
+
+
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => { setSession(session); setCargandoLogin(false); });
@@ -806,14 +842,15 @@ const destruirPerfilFalso = async () => {
         {/* CONTENEDOR CON SCROLL GLOBAL */}
 {/* CONTENEDOR CON SCROLL GLOBAL */}
           <main 
+            ref={mainRef}
             onScroll={handleMainScroll} 
             style={{ 
               flex: 1, 
-              overflowY: seccionDashboard === 'diseno' ? 'hidden' : 'auto', // 🌟 MAGIA: Si es diseño, se ancla y no baja.
+              overflowY: isDisenoLocked ? 'hidden' : 'auto', // 🌟 Se oculta sutilmente sin romper el scroll 
               background: '#FAFAFA' 
             }} 
             className="custom-scrollbar"
-          >          
+          >        
           {vista === 'grid' && (
             <div style={{ maxWidth: 1200, margin: '0 auto', padding: '28px 32px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
@@ -1671,8 +1708,7 @@ const destruirPerfilFalso = async () => {
                     const previewImg = renderCoverUrl(eventoActivo?.portada_url) || "https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?q=80&w=1200";
                     
                     return (
-                    <div className="flex-1 flex flex-col h-[calc(100vh-64px)] overflow-hidden bg-white">
-                      
+                    <div className="flex-1 flex flex-col h-[calc(100vh-48px)] overflow-hidden bg-white">                      
                       {/* BARRA SUPERIOR HEADER */}
                       <div className="h-14 flex-shrink-0 bg-white border-b border-[#EAEAEA] flex items-center justify-between px-8 z-20 shadow-sm">
                         <div className="flex items-center gap-4">

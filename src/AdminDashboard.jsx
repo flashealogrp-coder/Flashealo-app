@@ -6,7 +6,7 @@ import {
   ChevronLeft, ChevronRight as ChevronRightIcon, Eye, Heart, Maximize2, X, 
   PanelLeftClose, PanelLeft, UploadCloud, ChevronDown, ChevronUp, MapPin, 
   AlertTriangle, Zap, User, Copy, LogOut, Hash, UserMinus, Combine, Check, 
-  ScanFace, ScanLine, Share2, Edit2, Columns, LayoutGrid, Square, Info, Camera, Sliders, HardDrive, Monitor, Smartphone
+  ScanFace, ScanLine, Share2, Edit2, Columns, LayoutGrid, Square, Info, Camera, Sliders, HardDrive, Monitor, Smartphone, Mail
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -216,8 +216,8 @@ export default function AdminDashboard() {
   const prevSeccion = useRef(seccionDashboard);
   const [isDisenoLocked, setIsDisenoLocked] = useState(false);
 
-
-
+  const mockScrollRef = useRef(null);
+  const iaSectionRef = useRef(null);
 
   // Configuración de UI sincronizada con la columna configuracion_ui de Supabase
   const [configUi, setConfigUi] = useState({
@@ -240,6 +240,19 @@ export default function AdminDashboard() {
       setConfigUi(prev => ({ ...prev, ...eventoActivo.configuracion_ui }));
     }
   }, [eventoActivo]);
+
+  useEffect(() => {
+    if (seccionDashboard === 'diseno' && subTabDiseno === 'ia' && mockScrollRef.current) {
+      setTimeout(() => {
+        mockScrollRef.current.scrollTo({
+          top: mockScrollRef.current.scrollHeight,
+          behavior: 'smooth'
+        });
+      }, 150);
+    }
+  }, [seccionDashboard, subTabDiseno]);
+
+
 
   // Función para guardar los cambios de diseño en Supabase
   const guardarConfiguracionUi = async (nuevaConfig) => {
@@ -563,13 +576,26 @@ const destruirPerfilFalso = async () => {
     setCargandoDudas(false);
   }, [eventoActivo]);
 
-  useEffect(() => {
+    useEffect(() => {
+    // 1. Cargar datos si estamos en la vista de Dashboard IA tradicional
     if (seccionDashboard === 'ia') {
       if (subTabIA === 'identidades') cargarJugadores();
       else if (subTabIA === 'corredores') cargarCorredores();
       else if (subTabIA === 'dudas') cargarDudas();
     }
-  }, [seccionDashboard, subTabIA, cargarJugadores, cargarCorredores, cargarDudas]);
+    
+    // 2. Cargar datos Y hacer Auto-Scroll si estamos en el Preview de Diseño IA
+    if (seccionDashboard === 'diseno' && subTabDiseno === 'ia') {
+      cargarJugadores(); // Trae las caras reales para el Preview
+      
+      // La "Magia" del auto-scroll directo al Módulo IA
+      if (iaSectionRef.current) {
+        setTimeout(() => {
+          iaSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 300); // Pequeño retraso para que renderice primero
+      }
+    }
+  }, [seccionDashboard, subTabIA, subTabDiseno, cargarJugadores, cargarCorredores, cargarDudas]);
 
   const crearNuevaCarpeta = async () => {
     const nombre = window.prompt("Nombre de la nueva carpeta:");
@@ -1707,230 +1733,409 @@ const destruirPerfilFalso = async () => {
 {seccionDashboard === 'diseno' && (() => {
   const previewImg = renderCoverUrl(eventoActivo?.portada_url) || "https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?q=80&w=1200";
   const focalPosition = renderCoverPosition(eventoActivo?.portada_url);
-  
+  const fuenteClase = configUi.fuente_titulo === 'sans' ? 'font-sans' : configUi.fuente_titulo === 'mono' ? 'font-mono' : 'font-serif';
+
+  const alineacionContenedor = 
+    configUi.posicion_titulo === 'abajo_izq' ? 'justify-end items-start text-left pb-16 px-8' :
+    configUi.posicion_titulo === 'abajo_centro' ? 'justify-end items-center text-center pb-16 px-6' :
+    'justify-center items-center text-center p-6';
+
   return (
-  <div className="flex-1 flex flex-col h-[calc(100vh-48px)] overflow-hidden bg-white">
-    
-    {/* BARRA SUPERIOR HEADER */}
-    <div className="h-14 flex-shrink-0 bg-white border-b border-[#EAEAEA] flex items-center justify-between px-8 z-20 shadow-sm">
-      <div className="flex items-center gap-4">
-        <h2 className="text-lg font-serif text-[#1C1C1C] m-0">Live Preview</h2>
-        <span className="px-2 py-0.5 bg-[#C8B99A]/20 text-[#C8B99A] text-[9px] uppercase tracking-widest font-bold rounded-sm border border-[#C8B99A]/30">Auto-Sync</span>
-      </div>
-
-      {/* TOGGLE DE DISPOSITIVO */}
-      <div className="flex items-center gap-6">
-        <div className="flex items-center bg-[#F5F4F0] p-1 rounded-sm border border-[#EAEAEA]">
-          <button
-            onClick={() => setDisenoDispositivo('web')}
-            className={`flex items-center gap-2 px-3 py-1.5 text-[10px] uppercase font-bold tracking-widest transition-all rounded-sm ${
-              disenoDispositivo === 'web' ? 'bg-[#1C1C1C] text-white shadow-sm' : 'text-[#9A8F82] hover:text-[#1C1C1C]'
-            }`}
-          >
-            <Monitor size={13} />
-            <span>Escritorio</span>
-          </button>
-          <button
-            onClick={() => setDisenoDispositivo('mobile')}
-            className={`flex items-center gap-2 px-3 py-1.5 text-[10px] uppercase font-bold tracking-widest transition-all rounded-sm ${
-              disenoDispositivo === 'mobile' ? 'bg-[#1C1C1C] text-white shadow-sm' : 'text-[#9A8F82] hover:text-[#1C1C1C]'
-            }`}
-          >
-            <Smartphone size={13} />
-            <span>Móvil</span>
-          </button>
-        </div>
-
-        <button
-          onClick={() => guardarConfiguracionUi()}
-          className="bg-[#1C1C1C] text-white hover:bg-black px-5 py-2 text-[10px] uppercase tracking-widest font-bold rounded-sm transition-all shadow-md"
-        >
-          Publicar Diseño
-        </button>
-      </div>
-    </div>
-
-    {/* CONTENEDOR DIVIDIDO FIJO */}
-    <div className="flex-1 flex overflow-hidden min-h-0">
+    <div className="w-full h-full flex flex-col overflow-hidden bg-white min-h-0">
       
-      {/* ── LADO IZQUIERDO: CONTROLES ── */}
-      <div className="w-[360px] h-full bg-white border-r border-[#EAEAEA] flex flex-col flex-shrink-0 overflow-y-auto custom-scrollbar">
-        <div className="p-8">
-          <h3 className="text-lg font-serif text-[#1C1C1C] mb-4 capitalize">{subTabDiseno.replace('_', ' ')}</h3>
+      {/* BARRA SUPERIOR HEADER (Fija) */}
+      <div className="h-14 flex-shrink-0 bg-white border-b border-[#EAEAEA] flex items-center justify-between px-8 z-20 shadow-sm">
+        <div className="flex items-center gap-4">
+          <h2 className="text-lg font-serif text-[#1C1C1C] m-0">Live Preview</h2>
+          <span className="px-2 py-0.5 bg-[#C8B99A]/20 text-[#C8B99A] text-[9px] uppercase tracking-widest font-bold rounded-sm border border-[#C8B99A]/30">Auto-Sync</span>
+        </div>
 
-          {/* --- 1. COVER: MINI MUESTRAS VISUALES --- */}
-          {subTabDiseno === 'cover' && (
-            <div className="space-y-8">
-              <div>
-                <label className="text-[10px] uppercase tracking-widest text-[#9A8F82] font-bold block mb-4">Estructura de la Portada</label>
-                <div className="grid grid-cols-2 gap-4">
-                  
-                  {/* Hero Full */}
-                  <button onClick={() => setConfigUi({...configUi, estilo_portada: 'hero_full'})} className={`relative aspect-[4/5] rounded-md overflow-hidden border-[3px] transition-all group ${configUi.estilo_portada === 'hero_full' ? 'border-[#C8B99A] shadow-lg' : 'border-gray-200 hover:border-[#1C1C1C]'}`}>
-                    <img src={previewImg} className="absolute inset-0 w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" style={{ objectPosition: focalPosition }} alt="" />
-                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                      <span className="text-white font-serif font-bold text-xs tracking-widest drop-shadow-md">TÍTULO</span>
-                    </div>
-                  </button>
-                  
-                  {/* Split */}
-                  <button onClick={() => setConfigUi({...configUi, estilo_portada: 'split'})} className={`relative aspect-[4/5] bg-white rounded-md overflow-hidden border-[3px] flex flex-col transition-all group ${configUi.estilo_portada === 'split' ? 'border-[#C8B99A] shadow-lg' : 'border-gray-200 hover:border-[#1C1C1C]'}`}>
-                    <img src={previewImg} className="w-full h-[55%] object-cover opacity-90 group-hover:opacity-100 transition-opacity" style={{ objectPosition: focalPosition }} alt="" />
-                    <div className="flex-1 flex items-center justify-center bg-[#1C1C1C]">
-                      <span className="text-[#C8B99A] font-serif font-bold text-xs tracking-widest">TÍTULO</span>
-                    </div>
-                  </button>
-
-                  {/* Editorial */}
-                  <button onClick={() => setConfigUi({...configUi, estilo_portada: 'editorial'})} className={`relative aspect-[4/5] bg-[#FDFCF8] rounded-md overflow-hidden border-[3px] p-2 flex flex-col transition-all group ${configUi.estilo_portada === 'editorial' ? 'border-[#C8B99A] shadow-lg' : 'border-gray-200 hover:border-[#1C1C1C]'}`}>
-                    <img src={previewImg} className="w-full h-[70%] object-cover opacity-90 group-hover:opacity-100 transition-opacity" style={{ objectPosition: focalPosition }} alt="" />
-                    <div className="flex-1 flex items-end justify-start pb-1 pl-1">
-                      <span className="text-[#1C1C1C] font-serif font-bold text-[10px] tracking-widest">TÍTULO</span>
-                    </div>
-                  </button>
-
-                  {/* Card */}
-                  <button onClick={() => setConfigUi({...configUi, estilo_portada: 'card'})} className={`relative aspect-[4/5] rounded-md overflow-hidden border-[3px] transition-all group ${configUi.estilo_portada === 'card' ? 'border-[#C8B99A] shadow-lg' : 'border-gray-200 hover:border-[#1C1C1C]'}`}>
-                    <img src={previewImg} className="absolute inset-0 w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" style={{ objectPosition: focalPosition }} alt="" />
-                    <div className="absolute inset-0 bg-black/20" />
-                    <div className="absolute bottom-3 left-3 right-3 bg-white p-3 text-left shadow-lg">
-                      <span className="text-[#1C1C1C] font-serif font-bold text-[9px] tracking-widest">TÍTULO</span>
-                    </div>
-                  </button>
-
-                </div>
-              </div>
-
-              {/* Slider Oscurecimiento */}
-              <div className="mt-8 pt-8 border-t border-[#EAEAEA]">
-                <div className="flex justify-between items-center mb-4">
-                  <label className="text-[10px] uppercase tracking-widest text-[#9A8F82] font-bold">Nivel de Oscurecimiento</label>
-                  <span className="text-[10px] font-mono font-bold bg-gray-100 px-2 py-1 rounded text-[#1C1C1C]">{configUi.opacidad_overlay}%</span>
-                </div>
-                <input type="range" min="0" max="90" value={configUi.opacidad_overlay || 30} onChange={e => setConfigUi({ ...configUi, opacidad_overlay: parseInt(e.target.value) })} className="w-full accent-[#C8B99A] h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer" />
-              </div>
-            </div>
-          )}
-
-          {subTabDiseno !== 'cover' && (
-            <div className="text-center py-20 text-gray-400">
-              <p className="text-xs uppercase tracking-widest">Opciones de {subTabDiseno} en desarrollo</p>
-            </div>
-          )}
-
+        <div className="flex items-center gap-6">
+          <div className="flex items-center bg-[#F5F4F0] p-1 rounded-sm border border-[#EAEAEA]">
+            <button onClick={() => setDisenoDispositivo('web')} className={`flex items-center gap-2 px-3 py-1.5 text-[10px] uppercase font-bold tracking-widest transition-all rounded-sm ${disenoDispositivo === 'web' ? 'bg-[#1C1C1C] text-white shadow-sm' : 'text-[#9A8F82] hover:text-[#1C1C1C]'}`}><Monitor size={13} /><span>Escritorio</span></button>
+            <button onClick={() => setDisenoDispositivo('mobile')} className={`flex items-center gap-2 px-3 py-1.5 text-[10px] uppercase font-bold tracking-widest transition-all rounded-sm ${disenoDispositivo === 'mobile' ? 'bg-[#1C1C1C] text-white shadow-sm' : 'text-[#9A8F82] hover:text-[#1C1C1C]'}`}><Smartphone size={13} /><span>Móvil</span></button>
+          </div>
+          <button onClick={() => guardarConfiguracionUi()} className="bg-[#1C1C1C] text-white hover:bg-black px-5 py-2 text-[10px] uppercase tracking-widest font-bold rounded-sm transition-all shadow-md">Publicar Diseño</button>
         </div>
       </div>
 
-      {/* ── LADO DERECHO: SIMULADOR REAL DE ESCRITORIO Y MÓVIL ── */}
-      <div className="flex-1 bg-[#E8E6E1] p-6 flex flex-col items-center justify-center relative overflow-hidden" style={{ backgroundImage: 'radial-gradient(#D1CEC7 1px, transparent 1px)', backgroundSize: '20px 24px' }}>
+      {/* CONTENEDOR DIVIDIDO FIJO */}
+      <div className="flex-1 flex overflow-hidden min-h-0 h-[calc(100%-56px)]">
         
-        <div className={`transition-all duration-500 ease-in-out flex flex-col relative shadow-2xl overflow-hidden ${
-          disenoDispositivo === 'mobile' 
-            ? 'w-[320px] h-[580px] rounded-[38px] border-[10px] border-[#1C1C1C] bg-white' 
-            : 'w-full max-w-[900px] h-[95%] rounded-lg border border-[#D1CEC7] bg-white'
-        }`}>
-          
-          {/* Header Safari (Solo Escritorio) */}
-          {disenoDispositivo === 'web' && (
-            <div className="h-9 bg-[#F5F5F5] border-b border-[#EAEAEA] flex items-center px-3 gap-2 flex-shrink-0">
-              <div className="flex gap-1.5 w-16">
-                <div className="w-2.5 h-2.5 rounded-full bg-[#FF5F56] border border-[#E0443E]"></div>
-                <div className="w-2.5 h-2.5 rounded-full bg-[#FFBD2E] border border-[#DEA123]"></div>
-                <div className="w-2.5 h-2.5 rounded-full bg-[#27C93F] border border-[#1AAB29]"></div>
-              </div>
-              <div className="flex-1 flex justify-center">
-                <div className="bg-white px-10 py-0.5 rounded text-[9px] font-mono text-gray-400 border border-gray-200 shadow-sm flex items-center gap-1.5">
-                  <Lock size={9}/> flashealo.com/g/{eventoActivo?.url_slug || 'demo'}
+        {/* ── LADO IZQUIERDO: CONTROLES (SCROLL 100% INDEPENDIENTE Y FIJO) ── */}
+        <div className="w-[360px] h-full bg-white border-r border-[#EAEAEA] flex flex-col flex-shrink-0 overflow-y-auto custom-scrollbar z-10">
+          <div className="p-8 pb-16">
+            <h3 className="text-lg font-serif text-[#1C1C1C] mb-4 capitalize">{subTabDiseno.replace('_', ' ')}</h3>
+
+            {/* --- 1. COVER: ESTRUCTURA, ALINEACIÓN Y OPACIDAD --- */}
+            {subTabDiseno === 'cover' && (
+              <div className="space-y-8">
+                <div>
+                  <label className="text-[10px] uppercase tracking-widest text-[#9A8F82] font-bold block mb-4">Estructura de la Portada</label>
+                  <div className="grid grid-cols-2 gap-4">
+                    <button onClick={() => setConfigUi({...configUi, estilo_portada: 'hero_full'})} className={`relative aspect-[4/5] rounded-md overflow-hidden border-[3px] transition-all group ${configUi.estilo_portada === 'hero_full' ? 'border-[#C8B99A] shadow-lg' : 'border-gray-200 hover:border-[#1C1C1C]'}`}><img src={previewImg} className="absolute inset-0 w-full h-full object-cover opacity-80" style={{ objectPosition: focalPosition }} alt="" /><div className="absolute inset-0 bg-black/40 flex items-center justify-center"><span className="text-white font-serif font-bold text-xs tracking-widest">TÍTULO</span></div></button>
+                    <button onClick={() => setConfigUi({...configUi, estilo_portada: 'split'})} className={`relative aspect-[4/5] bg-white rounded-md overflow-hidden border-[3px] flex flex-col transition-all group ${configUi.estilo_portada === 'split' ? 'border-[#C8B99A] shadow-lg' : 'border-gray-200 hover:border-[#1C1C1C]'}`}><img src={previewImg} className="w-full h-[55%] object-cover opacity-90" style={{ objectPosition: focalPosition }} alt="" /><div className="flex-1 flex items-center justify-center bg-[#1C1C1C]"><span className="text-[#C8B99A] font-serif font-bold text-xs tracking-widest">TÍTULO</span></div></button>
+                    <button onClick={() => setConfigUi({...configUi, estilo_portada: 'editorial'})} className={`relative aspect-[4/5] bg-[#FDFCF8] rounded-md overflow-hidden border-[3px] p-2 flex flex-col transition-all group ${configUi.estilo_portada === 'editorial' ? 'border-[#C8B99A] shadow-lg' : 'border-gray-200 hover:border-[#1C1C1C]'}`}><img src={previewImg} className="w-full h-[70%] object-cover opacity-90" style={{ objectPosition: focalPosition }} alt="" /><div className="flex-1 flex items-end justify-start pb-1 pl-1"><span className="text-[#1C1C1C] font-serif font-bold text-[10px] tracking-widest">TÍTULO</span></div></button>
+                    <button onClick={() => setConfigUi({...configUi, estilo_portada: 'card'})} className={`relative aspect-[4/5] rounded-md overflow-hidden border-[3px] transition-all group ${configUi.estilo_portada === 'card' ? 'border-[#C8B99A] shadow-lg' : 'border-gray-200 hover:border-[#1C1C1C]'}`}><img src={previewImg} className="absolute inset-0 w-full h-full object-cover opacity-80" style={{ objectPosition: focalPosition }} alt="" /><div className="absolute inset-0 bg-black/20" /><div className="absolute bottom-3 left-3 right-3 bg-white p-3 text-left shadow-lg"><span className="text-[#1C1C1C] font-serif font-bold text-[9px] tracking-widest">TÍTULO</span></div></button>
+                  </div>
                 </div>
-              </div>
-              <div className="w-16"></div>
-            </div>
-          )}
 
-          {/* Notch (Solo Móvil) */}
-          {disenoDispositivo === 'mobile' && (
-            <div className="absolute top-0 inset-x-0 h-5 flex justify-center z-50 pointer-events-none">
-              <div className="w-28 h-4 bg-[#1C1C1C] rounded-b-[12px]"></div>
-            </div>
-          )}
+                <div className="pt-8 border-t border-[#EAEAEA]">
+                  <label className="text-[10px] uppercase tracking-widest text-[#9A8F82] font-bold block mb-4">Alineación del Texto</label>
+                  <div className="flex gap-3">
+                    <button onClick={() => setConfigUi({...configUi, posicion_titulo: 'centro'})} className={`flex-1 h-12 border rounded-sm relative transition-all ${configUi.posicion_titulo === 'centro' || !configUi.posicion_titulo ? 'border-[#1C1C1C] bg-gray-50' : 'border-gray-200 hover:border-gray-300'}`} title="Centro">
+                      <div className="absolute inset-0 flex items-center justify-center"><div className="w-6 h-1.5 bg-[#1C1C1C] rounded-sm"></div></div>
+                    </button>
+                    <button onClick={() => setConfigUi({...configUi, posicion_titulo: 'abajo_izq'})} className={`flex-1 h-12 border rounded-sm relative transition-all ${configUi.posicion_titulo === 'abajo_izq' ? 'border-[#1C1C1C] bg-gray-50' : 'border-gray-200 hover:border-gray-300'}`} title="Abajo Izquierda">
+                      <div className="absolute inset-0 flex items-end justify-start p-3"><div className="w-6 h-1.5 bg-[#1C1C1C] rounded-sm"></div></div>
+                    </button>
+                    <button onClick={() => setConfigUi({...configUi, posicion_titulo: 'abajo_centro'})} className={`flex-1 h-12 border rounded-sm relative transition-all ${configUi.posicion_titulo === 'abajo_centro' ? 'border-[#1C1C1C] bg-gray-50' : 'border-gray-200 hover:border-gray-300'}`} title="Abajo Centro">
+                      <div className="absolute inset-0 flex items-end justify-center p-3"><div className="w-6 h-1.5 bg-[#1C1C1C] rounded-sm"></div></div>
+                    </button>
+                  </div>
+                </div>
 
-          {/* PANTALLA INTERIOR DE LA GALERÍA */}
-          <div className="flex-1 overflow-y-auto custom-scrollbar relative bg-[#FDFCF8]">
-            
-            {/* HERO FULL */}
-            {configUi.estilo_portada === 'hero_full' && (
-              <div className={`relative w-full ${disenoDispositivo === 'mobile' ? 'h-[360px]' : 'h-[440px]'} flex`}>
-                <img src={previewImg} className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: focalPosition }} alt="" />
-                <div className="absolute inset-0" style={{ background: '#000000', opacity: (configUi.opacidad_overlay || 30) / 100 }} />
-                <div className="relative z-10 p-6 w-full flex flex-col justify-center items-center text-center text-white">
-                  <span className="text-[#C8B99A] text-[9px] uppercase tracking-[0.3em] font-bold mb-3">{eventoActivo?.fecha_evento || '10 AGOSTO 2026'}</span>
-                  <h1 className={`font-serif ${disenoDispositivo === 'mobile' ? 'text-3xl' : 'text-5xl'} font-light leading-tight drop-shadow-md`}>
-                    {eventoActivo?.nombre || 'Tu Colección'}
-                  </h1>
+                <div className="pt-8 border-t border-[#EAEAEA]">
+                  <div className="flex justify-between items-center mb-4">
+                    <label className="text-[10px] uppercase tracking-widest text-[#9A8F82] font-bold">Nivel de Oscurecimiento</label>
+                    <span className="text-[10px] font-mono font-bold bg-gray-100 px-2 py-1 rounded text-[#1C1C1C]">{configUi.opacidad_overlay || 30}%</span>
+                  </div>
+                  <input type="range" min="0" max="90" value={configUi.opacidad_overlay || 30} onChange={e => setConfigUi({ ...configUi, opacidad_overlay: parseInt(e.target.value) })} className="w-full accent-[#C8B99A] h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer" />
                 </div>
               </div>
             )}
 
-            {/* SPLIT */}
-            {configUi.estilo_portada === 'split' && (
-              <div className={`flex ${disenoDispositivo === 'mobile' ? 'flex-col h-[400px]' : 'flex-row h-[360px]'}`}>
-                <div className={`${disenoDispositivo === 'mobile' ? 'h-[55%]' : 'w-[55%]'} relative`}>
-                  <img src={previewImg} className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: focalPosition }} alt="" />
-                  <div className="absolute inset-0" style={{ background: '#000000', opacity: (configUi.opacidad_overlay || 30) / 100 }} />
-                </div>
-                <div className={`${disenoDispositivo === 'mobile' ? 'h-[45%]' : 'w-[45%]'} p-8 flex flex-col justify-center items-start bg-[#1C1C1C] text-white`}>
-                  <span className="text-[#C8B99A] text-[9px] uppercase tracking-[0.3em] font-bold mb-2">{eventoActivo?.fecha_evento || '10 AGOSTO 2026'}</span>
-                  <h1 className={`font-serif ${disenoDispositivo === 'mobile' ? 'text-2xl' : 'text-4xl'} font-light leading-tight`}>
-                    {eventoActivo?.nombre || 'Tu Colección'}
-                  </h1>
+            {/* --- 2. TIPOGRAFÍA --- */}
+            {subTabDiseno === 'tipografia' && (
+              <div className="space-y-6">
+                <div>
+                  <label className="text-[10px] uppercase tracking-widest text-[#9A8F82] font-bold block mb-4">Familia Tipográfica (Títulos)</label>
+                  <div className="flex flex-col gap-3">
+                    <button onClick={() => setConfigUi({...configUi, fuente_titulo: 'serif'})} className={`flex items-center justify-between p-4 rounded-sm border transition-all ${configUi.fuente_titulo === 'serif' ? 'border-[#1C1C1C] bg-[#FAFAFA] shadow-sm' : 'border-[#EAEAEA] hover:border-[#C8B99A] bg-white'}`}>
+                      <div className="flex items-center gap-4">
+                        <span className="font-serif text-3xl text-[#1C1C1C] leading-none">Ag</span>
+                        <div className="flex flex-col items-start">
+                          <span className="text-xs font-bold text-[#1C1C1C]">Serif</span>
+                          <span className="text-[9px] uppercase tracking-widest text-[#9A8F82]">Clásica & Elegante</span>
+                        </div>
+                      </div>
+                      <div className={`w-4 h-4 rounded-full border flex items-center justify-center transition-colors ${configUi.fuente_titulo === 'serif' ? 'border-[#1C1C1C]' : 'border-gray-300'}`}>
+                        {configUi.fuente_titulo === 'serif' && <div className="w-2 h-2 rounded-full bg-[#1C1C1C]" />}
+                      </div>
+                    </button>
+
+                    <button onClick={() => setConfigUi({...configUi, fuente_titulo: 'sans'})} className={`flex items-center justify-between p-4 rounded-sm border transition-all ${configUi.fuente_titulo === 'sans' ? 'border-[#1C1C1C] bg-[#FAFAFA] shadow-sm' : 'border-[#EAEAEA] hover:border-[#C8B99A] bg-white'}`}>
+                      <div className="flex items-center gap-4">
+                        <span className="font-sans text-3xl text-[#1C1C1C] leading-none font-medium">Ag</span>
+                        <div className="flex flex-col items-start">
+                          <span className="text-xs font-bold text-[#1C1C1C]">Sans</span>
+                          <span className="text-[9px] uppercase tracking-widest text-[#9A8F82]">Limpia & Moderna</span>
+                        </div>
+                      </div>
+                      <div className={`w-4 h-4 rounded-full border flex items-center justify-center transition-colors ${configUi.fuente_titulo === 'sans' ? 'border-[#1C1C1C]' : 'border-gray-300'}`}>
+                        {configUi.fuente_titulo === 'sans' && <div className="w-2 h-2 rounded-full bg-[#1C1C1C]" />}
+                      </div>
+                    </button>
+
+                    <button onClick={() => setConfigUi({...configUi, fuente_titulo: 'mono'})} className={`flex items-center justify-between p-4 rounded-sm border transition-all ${configUi.fuente_titulo === 'mono' ? 'border-[#1C1C1C] bg-[#FAFAFA] shadow-sm' : 'border-[#EAEAEA] hover:border-[#C8B99A] bg-white'}`}>
+                      <div className="flex items-center gap-4">
+                        <span className="font-mono text-3xl text-[#1C1C1C] leading-none">Ag</span>
+                        <div className="flex flex-col items-start">
+                          <span className="text-xs font-bold text-[#1C1C1C]">Mono</span>
+                          <span className="text-[9px] uppercase tracking-widest text-[#9A8F82]">Editorial & Técnica</span>
+                        </div>
+                      </div>
+                      <div className={`w-4 h-4 rounded-full border flex items-center justify-center transition-colors ${configUi.fuente_titulo === 'mono' ? 'border-[#1C1C1C]' : 'border-gray-300'}`}>
+                        {configUi.fuente_titulo === 'mono' && <div className="w-2 h-2 rounded-full bg-[#1C1C1C]" />}
+                      </div>
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
 
-            {/* EDITORIAL */}
-            {configUi.estilo_portada === 'editorial' && (
-              <div className="w-full pt-10 pb-6 flex flex-col items-center bg-[#FDFCF8]">
-                <div className={`${disenoDispositivo === 'mobile' ? 'w-[88%] h-[260px]' : 'w-[75%] h-[340px]'} relative shadow-2xl`}>
-                  <img src={previewImg} className="absolute inset-0 w-full h-full object-cover border-[12px] border-white" style={{ objectPosition: focalPosition }} alt="" />
-                  <div className="absolute inset-0 border-[12px] border-transparent" style={{ background: '#000000', opacity: (configUi.opacidad_overlay || 30) / 100, backgroundClip: 'content-box' }} />
+            {/* --- 3. COLORES --- */}
+            {subTabDiseno === 'color' && (() => {
+              const paletas = [
+                { id: 'clasica', nombre: 'Clásica', fondo: '#FDFCF8', texto: '#1C1C1C', acento: '#C8B99A' },
+                { id: 'noche', nombre: 'Noche', fondo: '#121212', texto: '#FAFAFA', acento: '#D4AF37' },
+                { id: 'bosque', nombre: 'Bosque', fondo: '#F4F5F0', texto: '#2B3024', acento: '#6B7E54' },
+                { id: 'terracota', nombre: 'Terracota', fondo: '#FCF8F5', texto: '#2A1B18', acento: '#B85C38' },
+                { id: 'oceano', nombre: 'Océano Profundo', fondo: '#0F172A', texto: '#F8FAFC', acento: '#38BDF8' },
+                { id: 'minimalista', nombre: 'Minimalista', fondo: '#FFFFFF', texto: '#000000', acento: '#9CA3AF' }
+              ];
+
+              return (
+                <div className="space-y-6">
+                  <div>
+                    <label className="text-[10px] uppercase tracking-widest text-[#9A8F82] font-bold block mb-4">Tema de Color</label>
+                    <div className="grid grid-cols-2 gap-4">
+                      {paletas.map(p => {
+                        const isActive = configUi.color_fondo === p.fondo;
+                        return (
+                          <button
+                            key={p.id}
+                            onClick={() => setConfigUi({...configUi, color_fondo: p.fondo, color_texto: p.texto, color_acento: p.acento})}
+                            className={`flex flex-col border rounded-md p-4 transition-all duration-300 ${isActive ? 'ring-2 ring-offset-2 ring-[#1C1C1C] shadow-md' : 'border-[#EAEAEA] hover:scale-[1.02]'}`}
+                            style={{ backgroundColor: p.fondo }}
+                          >
+                            <div className="flex items-center gap-2 mb-3">
+                              <div className="w-5 h-5 rounded-full border border-black/10" style={{ backgroundColor: p.texto }}></div>
+                              <div className="w-5 h-5 rounded-full border border-black/10" style={{ backgroundColor: p.acento }}></div>
+                            </div>
+                            <span className="text-xs font-bold text-left tracking-wide" style={{ color: p.texto }}>{p.nombre}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
-                <div className={`${disenoDispositivo === 'mobile' ? 'w-[88%]' : 'w-[75%]'} mt-6 flex flex-col items-start text-[#1C1C1C]`}>
-                  <span className="text-[#9A8F82] text-[9px] uppercase tracking-[0.3em] font-bold mb-2">{eventoActivo?.fecha_evento || '10 AGOSTO 2026'}</span>
-                  <h1 className={`font-serif ${disenoDispositivo === 'mobile' ? 'text-3xl' : 'text-5xl'} font-light leading-none`}>
-                    {eventoActivo?.nombre || 'Tu Colección'}
-                  </h1>
+              );
+            })()}
+
+            {/* --- 4. MÓDULO IA --- */}
+            {subTabDiseno === 'ia' && (
+              <div className="space-y-6">
+                <div>
+                  <h4 className="text-xs font-bold text-[#1C1C1C] uppercase tracking-wider mb-1">
+                    Buscador Inteligente ({eventoActivo?.tipo_reconocimiento === 'ocr' ? 'OCR / Dorsales' : 'Reconocimiento Facial'})
+                  </h4>
+                  <p className="text-[10px] text-[#9A8F82] mb-6">
+                    Configura cómo interactúan los visitantes con el motor de IA en la galería pública.
+                  </p>
+
+                  <div className="flex items-center justify-between p-4 bg-[#FAFAFA] border border-[#EAEAEA] rounded-sm mb-4">
+                    <div>
+                      <span className="text-xs font-bold text-[#1C1C1C] block">Mostrar Buscador IA</span>
+                      <span className="text-[9px] text-[#9A8F82] block">Muestra u oculta la sección de búsqueda</span>
+                    </div>
+                    <button type="button" onClick={() => setConfigUi({ ...configUi, mostrar_modulo_ia: configUi.mostrar_modulo_ia === false ? true : false })} className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors cursor-pointer ${configUi.mostrar_modulo_ia !== false ? 'bg-[#1C1C1C]' : 'bg-gray-300'}`}><div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${configUi.mostrar_modulo_ia !== false ? 'translate-x-5' : 'translate-x-0'}`} /></button>
+                  </div>
+
+                  {eventoActivo?.tipo_reconocimiento !== 'ocr' && (
+                    <div className="flex items-center justify-between p-4 bg-[#FAFAFA] border border-[#EAEAEA] rounded-sm">
+                      <div>
+                        <span className="text-xs font-bold text-[#1C1C1C] block">Mostrar Nombres</span>
+                        <span className="text-[9px] text-[#9A8F82] block">Si se apaga, solo mostrará el avatar circular</span>
+                      </div>
+                      <button type="button" onClick={() => setConfigUi({ ...configUi, mostrar_nombres_ia: configUi.mostrar_nombres_ia === false ? true : false })} className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors cursor-pointer ${configUi.mostrar_nombres_ia !== false ? 'bg-[#1C1C1C]' : 'bg-gray-300'}`}><div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${configUi.mostrar_nombres_ia !== false ? 'translate-x-5' : 'translate-x-0'}`} /></button>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
 
-            {/* CARD */}
-            {configUi.estilo_portada === 'card' && (
-              <div className={`relative w-full ${disenoDispositivo === 'mobile' ? 'h-[380px]' : 'h-[420px]'} flex items-end justify-center p-6 bg-black`}>
-                <img src={previewImg} className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: focalPosition }} alt="" />
-                <div className="absolute inset-0" style={{ background: '#000000', opacity: (configUi.opacidad_overlay || 30) / 100 }} />
-                <div className="relative z-10 p-6 w-[90%] bg-white shadow-2xl flex flex-col items-center text-center transform translate-y-6">
-                  <span className="text-[#C8B99A] text-[9px] uppercase tracking-[0.3em] font-bold mb-2">{eventoActivo?.fecha_evento || '10 AGOSTO 2026'}</span>
-                  <h1 className={`font-serif ${disenoDispositivo === 'mobile' ? 'text-2xl' : 'text-4xl'} font-light leading-tight text-[#1C1C1C]`}>
-                    {eventoActivo?.nombre || 'Tu Colección'}
-                  </h1>
-                </div>
+            {/* FALLBACK OTROS TABS */}
+            {subTabDiseno !== 'cover' && subTabDiseno !== 'tipografia' && subTabDiseno !== 'color' && subTabDiseno !== 'ia' && (
+              <div className="text-center py-20 text-gray-400">
+                <p className="text-xs uppercase tracking-widest">Opciones en desarrollo</p>
               </div>
             )}
-
-            {/* SECCIÓN SOBRE EL EVENTO */}
-            <div className="p-8 text-center max-w-md mx-auto mt-6">
-              <div className="w-8 h-[1px] mx-auto mb-4" style={{ background: configUi.color_acento || '#C8B99A' }} />
-              <h3 className="text-sm font-serif italic mb-2">"{eventoActivo?.titulo_about || 'Capturando emociones únicas'}"</h3>
-              <p className="text-xs text-gray-500 font-light leading-relaxed">{eventoActivo?.descripcion || 'Bienvenido a la galería oficial.'}</p>
-            </div>
 
           </div>
         </div>
 
-      </div>
+        {/* ── LADO DERECHO: PREVIEW ENMARCADO (100% FIJO EN PANTALLA) ── */}
+        <div 
+          className="flex-1 bg-[#E8E6E1] p-4 md:p-6 flex flex-col items-center justify-center relative overflow-hidden h-full min-h-0" 
+          style={{ backgroundImage: 'radial-gradient(#D1CEC7 1px, transparent 1px)', backgroundSize: '20px 24px' }}
+        >
+          
+          {/* MARCO MOCKUP (Restringido con max-h-full para jamás desbordar la pantalla) */}
+          <div className={`transition-all duration-500 ease-in-out flex flex-col relative overflow-hidden h-full max-h-full min-h-0 ${
+            disenoDispositivo === 'mobile' 
+              ? 'w-[280px] max-h-[520px] rounded-[36px] border-[8px] border-[#1C1C1C] bg-[#1C1C1C] shadow-2xl' 
+              : 'w-full max-w-[900px] rounded-lg border border-[#D1CEC7] bg-white shadow-2xl'
+          }`}>
+            
+            {/* Header Barra de Navegador (Solo Escritorio) */}
+            {disenoDispositivo === 'web' && (
+              <div className="h-9 bg-[#F5F5F5] border-b border-[#EAEAEA] flex items-center px-3 gap-2 flex-shrink-0 z-30">
+                <div className="flex gap-1.5 w-16"><div className="w-2.5 h-2.5 rounded-full bg-[#FF5F56] border border-[#E0443E]"></div><div className="w-2.5 h-2.5 rounded-full bg-[#FFBD2E] border border-[#DEA123]"></div><div className="w-2.5 h-2.5 rounded-full bg-[#27C93F] border border-[#1AAB29]"></div></div>
+                <div className="flex-1 flex justify-center"><div className="bg-white px-10 py-0.5 rounded text-[9px] font-mono text-gray-400 border border-gray-200 shadow-sm flex items-center gap-1.5"><Lock size={9}/> flashealo.com/g/{eventoActivo?.url_slug || 'demo'}</div></div>
+                <div className="w-16"></div>
+              </div>
+            )}
 
+            {/* Notch (Solo Móvil) */}
+            {disenoDispositivo === 'mobile' && (
+              <div className="absolute top-0 inset-x-0 h-4 flex justify-center z-50 pointer-events-none">
+                <div className="w-24 h-4 bg-[#1C1C1C] rounded-b-[10px]"></div>
+              </div>
+            )}
+
+            {/* 📱 PANTALLA INTERIOR DE LA WEB (Scroll 100% aislado dentro del mockup) */}
+            <div 
+              ref={mockScrollRef}
+              className={`flex-1 overflow-y-auto custom-scrollbar relative transition-colors duration-500 min-h-0 ${disenoDispositivo === 'mobile' ? 'rounded-[28px]' : 'rounded-b-md'}`} 
+              style={{ backgroundColor: configUi.color_fondo || '#FDFCF8', color: configUi.color_texto || '#1C1C1C' }}
+            >
+              
+              {/* HERO FULL */}
+              {configUi.estilo_portada === 'hero_full' && (
+                <div className={`relative w-full ${disenoDispositivo === 'mobile' ? 'h-[360px]' : 'h-[380px]'} flex flex-col flex-shrink-0`}>
+                  <img src={previewImg} className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: focalPosition }} alt="" />
+                  <div className="absolute inset-0 bg-black" style={{ opacity: (configUi.opacidad_overlay || 30) / 100 }} />
+                  <div className={`absolute inset-0 z-10 w-full h-full flex flex-col ${alineacionContenedor}`}>
+                    <span className="text-[8px] md:text-[11px] uppercase tracking-[0.35em] font-bold mb-3 drop-shadow-md transition-colors" style={{ color: configUi.color_acento || '#C8B99A' }}>
+                      {eventoActivo?.fecha_evento || '10 AGOSTO 2026'}
+                    </span>
+                    <h1 className={`${fuenteClase} ${disenoDispositivo === 'mobile' ? 'text-[26px] font-light leading-snug' : 'text-4xl lg:text-5xl font-light leading-tight'} drop-shadow-xl text-white max-w-2xl`}>
+                      {eventoActivo?.nombre || 'Tu Colección'}
+                    </h1>
+                  </div>
+                </div>
+              )}
+
+              {/* SPLIT */}
+              {configUi.estilo_portada === 'split' && (
+                <div className={`flex w-full ${disenoDispositivo === 'mobile' ? 'flex-col h-[380px]' : 'flex-row h-[360px]'} flex-shrink-0`}>
+                  <div className={`${disenoDispositivo === 'mobile' ? 'h-[55%]' : 'w-[55%]'} relative`}>
+                    <img src={previewImg} className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: focalPosition }} alt="" />
+                    <div className="absolute inset-0 bg-black" style={{ opacity: (configUi.opacidad_overlay || 30) / 100 }} />
+                  </div>
+                  <div className={`${disenoDispositivo === 'mobile' ? 'h-[45%]' : 'w-[45%]'} flex flex-col ${configUi.posicion_titulo === 'abajo_izq' || configUi.posicion_titulo === 'abajo_centro' ? alineacionContenedor : 'justify-center items-start p-6 md:p-10'} bg-[#1C1C1C] text-white`}>
+                    <span className="text-[8px] md:text-[10px] uppercase tracking-[0.3em] font-bold mb-3 transition-colors" style={{ color: configUi.color_acento || '#C8B99A' }}>{eventoActivo?.fecha_evento || '10 AGOSTO 2026'}</span>
+                    <h1 className={`${fuenteClase} ${disenoDispositivo === 'mobile' ? 'text-[20px]' : 'text-3xl'} font-light leading-tight`}>{eventoActivo?.nombre || 'Tu Colección'}</h1>
+                  </div>
+                </div>
+              )}
+
+              {/* EDITORIAL */}
+              {configUi.estilo_portada === 'editorial' && (
+                <div className={`w-full pt-8 pb-6 flex flex-col items-center relative ${disenoDispositivo === 'mobile' ? 'min-h-[360px]' : 'min-h-[380px]'} flex-shrink-0`}>
+                  <div className={`${disenoDispositivo === 'mobile' ? 'w-[85%] h-[220px]' : 'w-[75%] h-[280px]'} relative shadow-2xl z-10`}>
+                    <img src={previewImg} className="absolute inset-0 w-full h-full object-cover border-[8px] md:border-[16px] border-white" style={{ objectPosition: focalPosition }} alt="" />
+                    <div className="absolute inset-0 border-[8px] md:border-[16px] border-transparent" style={{ background: '#000000', opacity: (configUi.opacidad_overlay || 30) / 100, backgroundClip: 'content-box' }} />
+                  </div>
+                  <div className={`absolute inset-0 z-20 w-full h-full flex flex-col ${alineacionContenedor}`} style={{ color: configUi.color_texto || '#1C1C1C' }}>
+                    <span className="text-[8px] md:text-[11px] uppercase tracking-[0.3em] font-bold mb-2 md:mb-3 transition-colors" style={{ color: configUi.color_acento || '#C8B99A' }}>{eventoActivo?.fecha_evento || '10 AGOSTO 2026'}</span>
+                    <h1 className={`${fuenteClase} ${disenoDispositivo === 'mobile' ? 'text-2xl' : 'text-4xl'} font-light leading-none`}>{eventoActivo?.nombre || 'Tu Colección'}</h1>
+                  </div>
+                </div>
+              )}
+
+              {/* CARD */}
+              {configUi.estilo_portada === 'card' && (
+                <div className={`relative w-full ${disenoDispositivo === 'mobile' ? 'h-[340px]' : 'h-[380px]'} flex items-end justify-center p-6 bg-black flex-shrink-0`}>
+                  <img src={previewImg} className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: focalPosition }} alt="" />
+                  <div className="absolute inset-0 bg-black" style={{ opacity: (configUi.opacidad_overlay || 30) / 100 }} />
+                  <div className="relative z-10 p-5 md:p-8 w-[90%] max-w-2xl bg-white shadow-2xl flex flex-col items-center text-center transform translate-y-6">
+                    <span className="text-[8px] md:text-[10px] uppercase tracking-[0.3em] font-bold mb-3 transition-colors" style={{ color: configUi.color_acento || '#C8B99A' }}>{eventoActivo?.fecha_evento || '10 AGOSTO 2026'}</span>
+                    <h1 className={`${fuenteClase} ${disenoDispositivo === 'mobile' ? 'text-lg' : 'text-3xl'} font-light leading-tight text-[#1C1C1C] mb-2`}>{eventoActivo?.nombre || 'Tu Colección'}</h1>
+                  </div>
+                </div>
+              )}
+
+              {/* SECCIÓN SOBRE EL EVENTO */}
+              <div className="p-6 text-center max-w-md mx-auto mt-4 mb-2 flex-shrink-0">
+                <div className="w-8 h-[1px] mx-auto mb-3 transition-colors" style={{ background: configUi.color_acento || '#C8B99A' }} />
+                <h3 className={`text-xs md:text-sm ${fuenteClase} italic mb-2 transition-colors`} style={{ color: configUi.color_texto || '#1C1C1C' }}>"{eventoActivo?.titulo_about || 'Capturando emociones únicas'}"</h3>
+                <p className="text-[10px] font-light leading-relaxed opacity-70 transition-colors" style={{ color: configUi.color_texto || '#1C1C1C' }}>{eventoActivo?.descripcion || 'Bienvenido a la galería oficial.'}</p>
+              </div>
+
+              {/* TABS DE CARPETAS (Sets Reales) */}
+              <div className="w-full px-6 md:px-10 mt-6 mb-6 flex-shrink-0">
+                {carpetas && carpetas.length > 0 && (
+                  <div className="flex gap-5 border-b border-black/10 overflow-x-auto custom-scrollbar mb-4">
+                    {carpetas.map((c, i) => (
+                      <div key={c.id} className={`pb-2 text-[9px] md:text-[10px] uppercase tracking-widest whitespace-nowrap transition-colors ${i === 0 ? 'font-bold' : 'opacity-40'}`} style={{ borderBottom: i === 0 ? `2px solid ${configUi.color_acento || '#C8B99A'}` : '2px solid transparent', color: configUi.color_texto || '#1C1C1C' }}>
+                        {c.nombre}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* GRID DE FOTOS MASONRY LITE (Fotos Reales) */}
+                {fotosEvento && fotosEvento.length > 0 && (
+                  <div className="columns-2 md:columns-3 gap-2 md:gap-3">
+                    {fotosEvento.filter(f => carpetas.length > 0 ? f.carpeta_id === carpetas[0].id : true).slice(0, 6).map((foto) => (
+                      <div key={foto.id} className="mb-2 md:mb-3 break-inside-avoid">
+                        <img src={resolverUrlFoto(foto, false)} className="w-full h-auto object-cover rounded-sm shadow-sm" alt="Preview"/>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* MÓDULO DE IA CONDICIONAL */}
+              {configUi.mostrar_modulo_ia !== false && (
+                <div ref={iaSectionRef} className="w-full px-6 md:px-10 py-10 text-center transition-all mt-4 bg-black/5 flex-shrink-0">
+                  <span className="text-[8px] md:text-[9px] uppercase tracking-[0.3em] opacity-50 block mb-2 font-bold" style={{ color: configUi.color_texto || '#1C1C1C' }}>
+                    Tu colección personal
+                  </span>
+                  <h3 className={`text-sm md:text-base font-bold mb-6 ${fuenteClase}`} style={{ color: configUi.color_texto || '#1C1C1C' }}>
+                    {eventoActivo?.tipo_reconocimiento === 'ocr' ? 'Encuentra tus fotografías' : 'Identidades Detectadas'}
+                  </h3>
+
+                  {eventoActivo?.tipo_reconocimiento === 'ocr' ? (
+                    <div className="max-w-xs mx-auto flex flex-col items-center gap-3">
+                      <input 
+                        type="text" 
+                        placeholder="Ej. 1405" 
+                        disabled 
+                        className={`w-full bg-transparent border-b py-2 text-center text-xs md:text-sm outline-none ${fuenteClase}`}
+                        style={{ borderColor: 'rgba(0,0,0,0.2)', color: configUi.color_texto || '#1C1C1C' }}
+                      />
+                      <div className="px-6 py-2.5 text-[9px] uppercase tracking-widest font-bold rounded-sm shadow-sm mt-2" style={{ backgroundColor: configUi.color_texto || '#1C1C1C', color: configUi.color_fondo || '#FFFFFF' }}>
+                        Acceder a Galería
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-4 gap-3 max-w-xs mx-auto">
+                      {(listaJugadores && listaJugadores.length > 0 
+                        ? listaJugadores.slice(0, 4) 
+                        : [
+                            { id: 1, display_name: 'Participante 1', avatar_url: `https://i.pravatar.cc/150?img=11` },
+                            { id: 2, display_name: 'Participante 2', avatar_url: `https://i.pravatar.cc/150?img=12` },
+                            { id: 3, display_name: 'Participante 3', avatar_url: `https://i.pravatar.cc/150?img=13` },
+                            { id: 4, display_name: 'Participante 4', avatar_url: `https://i.pravatar.cc/150?img=14` }
+                          ]
+                      ).map((jugador, idx) => (
+                        <div key={jugador.id} className="flex flex-col items-center gap-2">
+                          <div 
+                            className="w-12 h-12 rounded-full overflow-hidden border-2 shadow-sm transition-transform hover:scale-110 bg-white"
+                            style={{ borderColor: configUi.color_acento || '#C8B99A' }}
+                          >
+                            <img 
+                              src={jugador.avatar_url?.includes('http') ? jugador.avatar_url : (jugador.avatar_url ? fotoUrlAux(jugador.avatar_url) : `https://i.pravatar.cc/150?img=${idx + 10}`)} 
+                              className="w-full h-full object-cover filter grayscale-[20%]" 
+                              alt="Avatar" 
+                            />
+                          </div>
+                          {configUi.mostrar_nombres_ia !== false && (
+                            <span className={`text-[8px] ${fuenteClase} italic truncate w-full px-1 text-center opacity-80`} style={{ color: configUi.color_texto || '#1C1C1C' }}>
+                              {jugador.display_name}
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* FOOTER DE LA WEB INTERNA */}
+              <footer className="w-full px-6 py-6 md:px-8 flex justify-between items-center transition-colors duration-500 flex-shrink-0" style={{ backgroundColor: configUi.color_texto || '#1C1C1C' }}>
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="w-0.5 h-3.5 rounded-sm transition-colors" style={{ backgroundColor: configUi.color_acento || '#C8B99A' }}></span>
+                    <span className="font-serif text-[11px] tracking-[0.2em] uppercase transition-colors" style={{ color: configUi.color_fondo || '#FFFFFF' }}>Flashealo</span>
+                  </div>
+                  <p className="text-[7px] tracking-[0.2em] uppercase opacity-50 transition-colors" style={{ color: configUi.color_fondo || '#FFFFFF' }}>
+                    Inteligencia artificial aplicada al arte.
+                  </p>
+                </div>
+                <Mail size={14} className="opacity-50 transition-colors" style={{ color: configUi.color_fondo || '#FFFFFF' }} />
+              </footer>
+
+            </div>
+          </div>
+
+        </div>
+
+      </div>
     </div>
-  </div>
   );
 })()}
                 </div>

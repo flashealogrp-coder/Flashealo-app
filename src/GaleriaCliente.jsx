@@ -75,7 +75,7 @@ const GaleriaCliente = () => {
     const fetchEventoPorSlug = async () => {
       setCargandoInicial(true);
       const esUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slug);
-      let query = supabase.from('eventos').select('*');
+      let query = supabase.from('eventos').select('id,nombre,descripcion,logo_url,banner_url,es_gratis,precio_galeria,fecha_evento,estado,created_at,tipo_reconocimiento,slug,portada_url,configuracion_ui,precio_foto,moneda,requiere_pago_para_ver,ubicacion,url_slug,titulo_about,categoria,url_portada,tiene_clave');
       query = esUUID ? query.eq('id', slug) : query.eq('url_slug', slug);
 
       const { data, error } = await query.single();
@@ -86,7 +86,7 @@ const GaleriaCliente = () => {
         
         // Memoria de Sesión para no pedir la clave 2 veces
         const authMemory = sessionStorage.getItem(`auth_${data.id}`);
-        if (!data.password_cliente || authMemory === 'true') {
+        if (!data.tiene_clave || authMemory === 'true') {
           setAutenticado(true);
         }
 
@@ -109,7 +109,7 @@ const GaleriaCliente = () => {
 
   const cargarAvatares = async (eventoId) => {
     setCargando(true);
-    const { data: identitiesData } = await supabase.from('identities').select('*').eq('evento_id', eventoId);
+    const { data: identitiesData } = await supabase.from('identities').select('id,display_name,avatar_url,created_at,evento_id,dorsal,avatar_score').eq('evento_id', eventoId);
     const { data: detectionsData } = await supabase.from('face_detections').select('identity_id, photo_url').eq('evento_id', eventoId);
     
     if (identitiesData) {
@@ -188,9 +188,11 @@ const GaleriaCliente = () => {
     ejecutarBusquedaYMostrarGaleria('identity_id', identidad.id);
   };
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    if (passwordInput === evento.password_cliente) {
+    // La clave se valida en el servidor (la columna password_cliente ya no es pública)
+    const { data: ok, error } = await supabase.rpc('verificar_clave_evento', { p_evento: evento.id, p_clave: passwordInput });
+    if (!error && ok === true) {
       setAutenticado(true);
       sessionStorage.setItem(`auth_${evento.id}`, 'true'); // Memoria activada
     } else {

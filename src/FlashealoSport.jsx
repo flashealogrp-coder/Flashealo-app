@@ -48,9 +48,9 @@ const FlashealoSport = ({ isMobile }) => {
       setCargandoEventos(true);
       const { data } = await supabase
         .from('eventos')
-        .select('*')
+        .select('id,nombre,descripcion,logo_url,banner_url,es_gratis,precio_galeria,fecha_evento,estado,created_at,tipo_reconocimiento,slug,portada_url,configuracion_ui,precio_foto,moneda,requiere_pago_para_ver,ubicacion,url_slug,titulo_about,categoria,url_portada,tiene_clave')
         .eq('categoria', 'sport')
-        .or('password_cliente.is.null,password_cliente.eq.""')
+        .eq('tiene_clave', false)
         .order('fecha_evento', { ascending: false });
 
       if (data) setEventosSport(data);

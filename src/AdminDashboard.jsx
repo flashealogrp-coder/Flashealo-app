@@ -632,7 +632,8 @@ const destruirPerfilFalso = async () => {
     for (let i = 0; i < archivosUploader.length; i++) {
       const file = archivosUploader[i];
       try {
-        const resURL = await fetch("/api/upload-url", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ fileName: file.name, fileType: file.type, carpetaR2: baseR2Path }) });
+        const { data: { session: sesionSubida } } = await supabase.auth.getSession();
+        const resURL = await fetch("/api/upload-url", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${sesionSubida?.access_token || ''}` }, body: JSON.stringify({ fileName: file.name, fileType: file.type, carpetaR2: baseR2Path }) });
         const data = await resURL.json();
         const uploadRes = await fetch(data.url, { method: "PUT", headers: { "Content-Type": file.type }, body: file });
         if (uploadRes.ok) { await supabase.from('fotografias').insert([{ evento_id: eventoActivo.id, carpeta_id: carpetaActiva.id, url_original: data.path }]); subidasExitosas++; }

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from './supabaseClient';
+import { urlFotoPublica } from './urlFotos';
 import { X, ChevronLeft, ChevronRight, Loader2, AlertCircle, Lock, ChevronDown, Mail, Columns, LayoutGrid, Square } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -96,8 +97,7 @@ const GaleriaCliente = () => {
         if (allPhotos) {
           const arrGenerales = allPhotos.map((f, idx) => {
             const path = (f.url_watermark || f.url_original).trim();
-            const { data: u } = supabase.storage.from('fotos').getPublicUrl(path);
-            return { id: idx, src: u.publicUrl + '?v=1', path: path }; // Guardamos el path para el mapa
+            return { id: idx, src: urlFotoPublica(path) + '?v=1', path: path }; // Guardamos el path para el mapa
           });
           setFotosGenerales(arrGenerales);
         }
@@ -161,8 +161,7 @@ const GaleriaCliente = () => {
       } else {
         const fotosFormateadas = fotosEncontradas.map((foto, index) => {
           const pathLimpio = (foto.url_watermark || foto.photo_url).trim();
-          const { data } = supabase.storage.from('fotos').getPublicUrl(pathLimpio);
-          return { id: foto.id || index, src: data.publicUrl + '?v=1', path: pathLimpio };
+          return { id: foto.id || index, src: urlFotoPublica(pathLimpio) + '?v=1', path: pathLimpio };
         });
         setFotosReales(fotosFormateadas);
         setVistaActual('galeria');

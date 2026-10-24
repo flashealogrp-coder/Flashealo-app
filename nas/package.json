@@ -1,0 +1,13 @@
+{
+  "name": "flashealo-nas",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Servidor web + servicio de derivadas de Flashealo en el NAS",
+  "scripts": {
+    "test": "node --test test/*.test.mjs"
+  },
+  "dependencies": {
+    "sharp": "^0.35.4"
+  }
+}

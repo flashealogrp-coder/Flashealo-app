@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from './supabaseClient';
 import { UserMinus, Combine, Loader2, Hash, Trash2, Edit2, User, AlertTriangle, Check, X, Zap, ArrowLeft, ScanFace, ScanLine } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { urlAdmin } from './urlFotos';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://muvzhnnsdnztlhynuipd.supabase.co";
 
@@ -32,6 +33,10 @@ const fotoUrl = (path, optimizada = false) => {
   if (cleanPath.includes('avatares/')) {
     return `${base}/${cleanPath}`;
   }
+
+  // Fotos en el NAS (o/...): grilla -> versión con marca; HD -> original protegido
+  const enNas = urlAdmin(cleanPath, !optimizada);
+  if (enNas) return enNas;
 
   // 2. Modo rápido para Grillas
   if (optimizada) {

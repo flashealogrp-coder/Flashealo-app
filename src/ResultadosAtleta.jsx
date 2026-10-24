@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate, Navigate } from 'react-router-dom';
 import { supabase } from './supabaseClient'; // Ajusta tu ruta
+import { urlFotoPublica } from './urlFotos';
 import { ArrowLeft, Loader2, Calendar, MapPin, Download } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -63,8 +64,7 @@ const ResultadosAtleta = () => {
   }, [vectorBusqueda]);
 
   // Función de utilidad para armar la URL de la foto en Supabase
-  const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://muvzhnnsdnztlhynuipd.supabase.co";
-  const getUrl = (path) => `${SUPABASE_URL}/storage/v1/object/public/fotos/${path}`;
+  const getUrl = (path) => urlFotoPublica(path);
 
   return (
     <div className="min-h-screen bg-[#FDFCF8] text-[#1C1C1C] font-sans pb-24">

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from './supabaseClient';
+import { urlAdmin } from './urlFotos';
 import { 
   Loader2, Plus, Calendar, Settings, Image as ImageIcon, Trash2, CheckCircle, 
   Lock, Unlock, Grid, Folder, Star, ArrowLeft, FolderInput, CheckCircle2, 
@@ -19,13 +20,23 @@ const BORDER = 'rgba(0,0,0,0.06)';
 
 const DOMINIO_R2 = import.meta.env.VITE_R2_DOMINIO || 'https://pub-c4c062c3f8754b2d9ff6de40e9d6d713.r2.dev'; 
 const MODAL_API_URL = "https://flashealogrp-coder--flashealo-ia-produccion-webhook-react.modal.run";
+// En el NAS la IA se pide a /api/ia (el servidor valida que eres admin y añade la clave del motor); sin la variable, igual que antes.
+const IA_ENDPOINT = import.meta.env.VITE_IA_ENDPOINT || MODAL_API_URL;
+const llamarIA = async (cuerpo) => {
+  const headers = { "Content-Type": "application/json" };
+  if (IA_ENDPOINT.startsWith('/')) {
+    const { data: { session } } = await supabase.auth.getSession();
+    headers.Authorization = `Bearer ${session?.access_token || ''}`;
+  }
+  return fetch(IA_ENDPOINT, { method: "POST", headers, body: JSON.stringify(cuerpo) });
+};
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://muvzhnnsdnztlhynuipd.supabase.co";
 
 const getUrlCompleta = (ruta) => {
   if (!ruta) return null;
   if (ruta.includes('http')) return ruta;
   if (ruta.includes('/portadas/') || ruta.includes('/logos/')) return `${SUPABASE_URL}/storage/v1/object/public/assets/${ruta}`;
-  return `${DOMINIO_R2}/${ruta}`;
+  return urlAdmin(ruta) || `${DOMINIO_R2}/${ruta}`;
 };
 
 // 🌟 Generador de Slug inteligente y compacto
@@ -61,6 +72,8 @@ const resolverUrlFoto = (foto, altaResolucion = false) => {
   let ruta = altaResolucion ? foto.url_original : (foto.url_watermark || foto.url_original);
   if (!ruta) return '';
   if (ruta.startsWith('http')) return ruta;
+  const enNas = urlAdmin(ruta, altaResolucion);
+  if (enNas) return enNas;
   if (!altaResolucion && ruta.includes('originales/')) {
     ruta = ruta.replace('originales/', 'watermarks/');
   }
@@ -70,6 +83,8 @@ const resolverUrlFoto = (foto, altaResolucion = false) => {
 const fotoUrlAux = (path, esWatermark = true) => {
   if (!path) return '';
   if (path.startsWith('http')) return path;
+  const enNas = urlAdmin(path, !esWatermark);
+  if (enNas) return enNas;
   let ruta = path;
   
   if (esWatermark) {
@@ -420,7 +435,7 @@ useEffect(() => {
     try {
       const prefijoCarpeta = formData.url_slug || formData.id; 
       await supabase.from('eventos').delete().eq('id', eventoEditandoId);
-      try { await fetch(MODAL_API_URL, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ accion: "eliminar_coleccion", prefijo: prefijoCarpeta }) }); } catch (err) { }
+      try { await llamarIA({ accion: "eliminar_coleccion", prefijo: prefijoCarpeta }); } catch (err) { }
       setMensaje({ tipo: 'exito', texto: 'Colección e imágenes eliminadas.' });
       setVista('grid'); setEventoEditandoId(null); setMostrarConfirmacionBorrar(false); setTextoConfirmacion(''); await cargarEventos();
     } catch (error) { setMensaje({ tipo: 'error', texto: `Error al eliminar: ${error.message}` }); }
@@ -502,11 +517,7 @@ const fusionarConJugador = async (idDestino) => {
     // 3. 🌟 DISPARAMOS EL BORRADO FÍSICO EN CLOUDFLARE R2
     if (avatarABorrar && !avatarABorrar.includes('default.jpg')) {
       try {
-        await fetch(MODAL_API_URL, { 
-          method: "POST", 
-          headers: { "Content-Type": "application/json" }, 
-          body: JSON.stringify({ accion: "eliminar_fotos", rutas: [avatarABorrar] }) 
-        });
+        await llamarIA({ accion: "eliminar_fotos", rutas: [avatarABorrar] });
       } catch (err) { console.error("Error borrando avatar físico:", err); }
     }
 
@@ -526,11 +537,7 @@ const destruirPerfilFalso = async () => {
     // 3. 🌟 DISPARAMOS EL BORRADO FÍSICO EN CLOUDFLARE R2
     if (avatarABorrar && !avatarABorrar.includes('default.jpg')) {
       try {
-        await fetch(MODAL_API_URL, { 
-          method: "POST", 
-          headers: { "Content-Type": "application/json" }, 
-          body: JSON.stringify({ accion: "eliminar_fotos", rutas: [avatarABorrar] }) 
-        });
+        await llamarIA({ accion: "eliminar_fotos", rutas: [avatarABorrar] });
       } catch (err) { console.error("Error borrando avatar físico:", err); }
     }
 
@@ -645,14 +652,14 @@ const destruirPerfilFalso = async () => {
     if (fotosNuevas) setFotosEvento(fotosNuevas);
     setArchivosUploader([]); setEstadoSubida({ activa: false, progreso: 0, total: 0 }); setMostrarUploader(false);
     setMensaje({ tipo: 'exito', texto: `${subidasExitosas} fotos subidas. Optimizando en la nube...` });
-    try { await fetch(MODAL_API_URL, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ evento_id: eventoActivo.id, accion: "miniaturas" }) }); } catch (err) {}
+    try { await llamarIA({ evento_id: eventoActivo.id, accion: "miniaturas" }); } catch (err) {}
   };
 
   const dispararInteligenciaArtificial = async () => {
     if (!eventoActivo) return;
     setProcesandoIA(true);
     try {
-      await fetch(MODAL_API_URL, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ evento_id: eventoActivo.id, accion: "ia", tipo_reconocimiento: eventoActivo.tipo_reconocimiento }) });
+      await llamarIA({ evento_id: eventoActivo.id, accion: "ia", tipo_reconocimiento: eventoActivo.tipo_reconocimiento });
       setMensaje({ tipo: 'exito', texto: `¡IA Desplegada! Analizando imágenes...` });
       setTimeout(() => { cargarStatsIA(eventoActivo.id, true); setProcesandoIA(false); }, 5000);
     } catch (error) { setMensaje({ tipo: 'error', texto: 'Error al conectar con la IA.' }); setProcesandoIA(false); }
@@ -669,7 +676,7 @@ const destruirPerfilFalso = async () => {
     setFotosSeleccionadas([]); setLightboxIndex(null);
     setMensaje({ tipo: 'exito', texto: 'Fotografías eliminadas permanentemente.' });
     if (rutasR2.length > 0) {
-      try { await fetch(MODAL_API_URL, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ accion: "eliminar_fotos", rutas: rutasR2 }) }); } catch (err) {}
+      try { await llamarIA({ accion: "eliminar_fotos", rutas: rutasR2 }); } catch (err) {}
     }
   };
 

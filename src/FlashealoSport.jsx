@@ -71,7 +71,7 @@ const FlashealoSport = ({ isMobile }) => {
     try {
       setModalCamaraAbierto(false); 
       
-      const URL_API = "https://api.flashealo.do/vectorizar-selfie/";      
+      const URL_API = `${import.meta.env.VITE_IA_PUBLICA || 'https://api.flashealo.do'}/vectorizar-selfie/`;      
       
       // 🚨 VOLVEMOS A TU CÓDIGO ORIGINAL (Enviando JSON con Base64)
       const response = await fetch(URL_API, {

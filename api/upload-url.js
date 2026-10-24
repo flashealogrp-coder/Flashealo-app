@@ -3,6 +3,7 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 const s3Client = new S3Client({
   region: "auto",
+  forcePathStyle: !!process.env.S3_PATH_STYLE, // MinIO en el NAS
   endpoint: process.env.R2_ENDPOINT,
   credentials: {
     accessKeyId: process.env.R2_ACCESS_KEY_ID,

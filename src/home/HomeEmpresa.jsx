@@ -8,6 +8,7 @@ import {
   visibles,
   whatsappUrl,
 } from '../marca/servicios.js';
+import { urlDeLinea } from '../marca/anfitrion.js';
 import '../marca/tokens.css';
 import './home.css';
 
@@ -45,7 +46,9 @@ function IconoCorreo() {
 }
 
 function FilaServicio({ servicio }) {
-  const { nombre, descripcion, desde, detallePrecio, acento, estado, href } = servicio;
+  const { nombre, descripcion, desde, detallePrecio, acento, estado, subdominio } = servicio;
+  const host = typeof window !== 'undefined' ? window.location.host : '';
+  const href = subdominio ? urlDeLinea(subdominio, host, servicio.href) : servicio.href;
   const activa = estado === 'activa' && href;
   const contenido = (
     <>

@@ -42,7 +42,8 @@ export const SERVICIOS = [
     detallePrecio: null,
     acento: '#ff6a2b',
     estado: 'activa',
-    href: '/sport',
+    href: '/sport', // ruta interna de respaldo (desarrollo)
+    subdominio: 'sport',
   },
   {
     id: 'colegios',

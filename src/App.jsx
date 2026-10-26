@@ -10,12 +10,15 @@ import Cliente from './ClientGallery';
 import ResultadosAtleta from './ResultadosAtleta'; 
 import HomeEmpresa from './home/HomeEmpresa';
 import PaginaSport from './PaginaSport';
+import { lineaDelHost } from './marca/anfitrion';
 
 const App = () => {
+  // En sport.flashealo.do la raíz es la pantalla de deportes; en el resto, la home de la empresa.
+  const linea = typeof window !== 'undefined' ? lineaDelHost(window.location.host) : null;
   return (
     <Routes>
       {/* Home de la empresa: presenta las líneas de negocio */}
-      <Route path="/" element={<HomeEmpresa />} />
+      <Route path="/" element={linea === 'sport' ? <PaginaSport /> : <HomeEmpresa />} />
 
       {/* Deportes como página propia (luego, sport.flashealo.do) */}
       <Route path="/sport" element={<PaginaSport />} />

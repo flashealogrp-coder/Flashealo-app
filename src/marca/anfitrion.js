@@ -38,3 +38,13 @@ export function urlPrincipal(host) {
   if (esDireccionIP(host)) return '/';
   return `https://${hostPrincipal(host)}`;
 }
+
+// Un solo panel de administración, en la dirección principal (www.flashealo.do/admin).
+// Mientras la home no se haya movido a la NAS (www sigue en Vercel), se deja en false para poder
+// administrar desde sport.*; el día del cambio de www se pone en true.
+export const ADMIN_EN_PRINCIPAL = false;
+
+export function urlAdminPrincipal(host) {
+  if (esDireccionIP(host)) return '/admin';
+  return `https://www.${hostPrincipal(host)}/admin`;
+}

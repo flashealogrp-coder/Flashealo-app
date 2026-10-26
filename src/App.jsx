@@ -10,7 +10,13 @@ import Cliente from './ClientGallery';
 import ResultadosAtleta from './ResultadosAtleta'; 
 import HomeEmpresa from './home/HomeEmpresa';
 import PaginaSport from './PaginaSport';
-import { lineaDelHost } from './marca/anfitrion';
+import { lineaDelHost, ADMIN_EN_PRINCIPAL, urlAdminPrincipal } from './marca/anfitrion';
+
+// En una línea (sport.*) no hay panel propio: se envía al admin único de la empresa.
+const IrAlAdmin = () => {
+  window.location.replace(urlAdminPrincipal(window.location.host));
+  return null;
+};
 
 const App = () => {
   // En sport.flashealo.do la raíz es la pantalla de deportes; en el resto, la home de la empresa.
@@ -27,7 +33,7 @@ const App = () => {
       <Route path="/inicio-anterior" element={<FlashealoApp />} />
       
       {/* RUTA 2: Dashboard Administrativo */}
-      <Route path="/admin" element={<AdminDashboard />} />
+      <Route path="/admin" element={linea && ADMIN_EN_PRINCIPAL ? <IrAlAdmin /> : <AdminDashboard />} />
       
       {/* RUTA 3: Galería del Cliente */}
       <Route path="/cliente" element={<Cliente />} />

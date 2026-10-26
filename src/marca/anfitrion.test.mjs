@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { lineaDelHost, hostPrincipal, urlDeLinea, urlPrincipal } from './anfitrion.js';
+import { lineaDelHost, hostPrincipal, urlDeLinea, urlPrincipal, urlAdminPrincipal } from './anfitrion.js';
 
 test('reconoce la línea por el subdominio', () => {
   assert.equal(lineaDelHost('sport.flashealo.do'), 'sport');
@@ -32,4 +32,9 @@ test('direcciones de la empresa y de cada línea', () => {
   assert.equal(urlDeLinea('sport', 'localhost:5173', '/sport'), '/sport');
   assert.equal(urlPrincipal('sport.beta.flashealo.do'), 'https://beta.flashealo.do');
   assert.equal(urlPrincipal('localhost'), '/');
+});
+
+test('el admin único vive en la dirección principal', () => {
+  assert.equal(urlAdminPrincipal('sport.flashealo.do'), 'https://www.flashealo.do/admin');
+  assert.equal(urlAdminPrincipal('localhost:5173'), '/admin');
 });

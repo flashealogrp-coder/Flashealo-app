@@ -30,7 +30,8 @@ test('direcciones de la empresa y de cada línea', () => {
   assert.equal(urlDeLinea('sport', 'beta.flashealo.do', '/sport'), 'https://sport.beta.flashealo.do');
   assert.equal(urlDeLinea('sport', 'www.flashealo.do', '/sport'), 'https://sport.flashealo.do');
   assert.equal(urlDeLinea('sport', 'localhost:5173', '/sport'), '/sport');
-  assert.equal(urlPrincipal('sport.beta.flashealo.do'), 'https://beta.flashealo.do');
+  assert.equal(urlPrincipal('sport.flashealo.do'), 'https://www.flashealo.do');
+  assert.equal(urlPrincipal('www.flashealo.do'), 'https://www.flashealo.do');
   assert.equal(urlPrincipal('localhost'), '/');
 });
 

@@ -34,9 +34,10 @@ export function urlDeLinea(linea, host, rutaInterna) {
   return `https://${linea}.${hostPrincipal(host)}`;
 }
 
+// La home de la empresa vive en www (el nombre sin www pertenece al hosting y no sirve la web).
 export function urlPrincipal(host) {
   if (esDireccionIP(host)) return '/';
-  return `https://${hostPrincipal(host)}`;
+  return `https://www.${hostPrincipal(host)}`;
 }
 
 // Un solo panel de administración, en la dirección principal (www.flashealo.do/admin).

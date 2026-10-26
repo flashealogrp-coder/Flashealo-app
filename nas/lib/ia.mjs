@@ -7,6 +7,7 @@ const json = (res, code, obj) => {
   res.end(JSON.stringify(obj));
 };
 import { borrarFotos, borrarColeccion } from './borrado.mjs';
+import { firmarUrlsFotos, listarFotosEvento } from './fotosIA.mjs';
 const ACCIONES_IA = new Set(['ia']);
 
 export function manejadorIA(cfg, esAdmin, fetchFn = fetch) {
@@ -38,11 +39,19 @@ export function manejadorIA(cfg, esAdmin, fetchFn = fetch) {
 
     if (ACCIONES_IA.has(accion)) {
       if (!cfg.iaUrl) return json(res, 503, { error: 'Motor de IA no configurado todavía' });
+      // Si hay dirección pública, el motor recibe también un enlace temporal por cada foto del NAS (campo `fotos`).
+      let fotos;
+      if (cfg.webPublica && cfg.uploadSecret) {
+        try {
+          const jwt = (req.headers.authorization || '').replace(/^Bearer\s+/i, '');
+          fotos = firmarUrlsFotos(cfg, await listarFotosEvento(cfg, jwt, evento_id, fetchFn));
+        } catch (e) { console.error(JSON.stringify({ nivel: 'error', msg: 'no se pudieron preparar los enlaces de fotos para la IA', error: String(e.message) })); }
+      }
       try {
         const r = await fetchFn(cfg.iaUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'X-Flashealo-Key': cfg.iaClave },
-          body: JSON.stringify({ evento_id, accion, tipo_reconocimiento }),
+          body: JSON.stringify({ evento_id, accion, tipo_reconocimiento, ...(fotos ? { fotos } : {}) }),
           signal: AbortSignal.timeout(20000),
         });
         return json(res, r.ok ? 202 : 502, { ok: r.ok, estado: r.status });

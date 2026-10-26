@@ -211,3 +211,41 @@ test('estáticos: SPA, 404 de assets, sin salir de dist, cabeceras', async () =>
     assert.equal((await fetch(e.base + '/api/otra')).status, 404);
   } finally { await e.fin(); }
 });
+
+test('IA: enlaces temporales de fotos para el motor, y el enlace sirve solo esa foto', async () => {
+  // Supabase simulado: is_admin y listado de fotografías
+  const pedidos = [];
+  const supa2 = http.createServer((req, res) => {
+    pedidos.push(req.url);
+    res.setHeader('Content-Type', 'application/json');
+    if (req.url.includes('is_admin')) return res.end('true');
+    res.end(JSON.stringify([{ id: 'f1', url_original: 'o/ev/a.jpg' }, { id: 'f2', url_original: 'o/ev/../../secreto.txt' }, { id: 'f3', url_original: 'watermarks/x.jpg' }]));
+  });
+  const p2 = await escuchar(supa2);
+  const e = await entorno({ SUPABASE_URL: `http://127.0.0.1:${p2}`, WEB_PUBLIC_URL: 'https://www.flashealo.do/' });
+  // reconstruir servidor con cfg que apunta a supa2 (entorno ya lo hizo con SUPABASE_URL=extra)
+  fs.mkdirSync(path.join(e.datos, 'originales', 'ev'), { recursive: true });
+  fs.writeFileSync(path.join(e.datos, 'originales', 'ev', 'a.jpg'), 'JPEGDATA');
+  fs.writeFileSync(path.join(e.datos, 'originales', 'otra.jpg'), 'OTRA');
+  const ev = '11111111-1111-1111-1111-111111111111';
+  const r = await post(e.base, '/api/ia', { evento_id: ev, accion: 'ia', tipo_reconocimiento: 'hibrido' }, 'admin');
+  assert.equal(r.status, 202);
+  const enviado = e.llamadas.modal[0].body;
+  assert.equal(enviado.fotos.length, 1);                              // solo la válida: sin '..' y sin rutas que no son del NAS
+  assert.match(enviado.fotos[0].url, /^https:\/\/www\.flashealo\.do\/api\/foto-ia\//);
+  const token = enviado.fotos[0].url.split('/api/foto-ia/')[1];
+  const ok = await fetch(`${e.base}/api/foto-ia/${token}`);
+  assert.equal(ok.status, 200); assert.equal(await ok.text(), 'JPEGDATA'); assert.equal(ok.headers.get('content-type'), 'image/jpeg');
+  assert.equal((await fetch(`${e.base}/api/foto-ia/${token}x`)).status, 401);
+  // un token de SUBIDA no sirve como enlace de IA (claves separadas)
+  const subida = firmar({ k: 'otra.jpg', t: 'image/jpeg', m: 1, e: Date.now() + 5000 }, e.cfg.uploadSecret);
+  assert.equal((await fetch(`${e.base}/api/foto-ia/${subida}`)).status, 401);
+  // un token de IA caducado no sirve
+  const viejo = firmar({ k: 'ev/a.jpg', p: 'ia', e: Date.now() - 1 }, 'ia:' + e.cfg.uploadSecret);
+  assert.equal((await fetch(`${e.base}/api/foto-ia/${viejo}`)).status, 401);
+  // intento de salir de la carpeta con un token válido pero ruta maliciosa
+  const malo = firmar({ k: '../../secreto.txt', p: 'ia', e: Date.now() + 5000 }, 'ia:' + e.cfg.uploadSecret);
+  assert.equal((await fetch(`${e.base}/api/foto-ia/${malo}`)).status, 400);
+  assert.ok(pedidos.some((u) => u.includes(`evento_id=eq.${ev}`)));
+  await cerrar(supa2); await e.fin();
+});

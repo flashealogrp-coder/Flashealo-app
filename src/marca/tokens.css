@@ -1,0 +1,19 @@
+/* Kit de marca de Flashealo: una sola fuente de colores, tipografía y espacios.
+   Lo usan la web, el panel y (copiados a marca.json) los correos de reservas. */
+:root {
+  --fl-carbon: #1c1c1c;
+  --fl-champan: #c8b99a;
+  --fl-marfil: #fdfcf8;
+  --fl-taupe: #9a8f82;
+  --fl-perla: #eaeaea;
+
+  /* Texto pequeño sobre marfil (el taupe solo llega a 3,1:1; este llega a 7,1:1). */
+  --fl-tinta-suave: #5d554b;
+
+  --fl-serif: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
+  --fl-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  --fl-radio: 4px;
+  --fl-ancho: 72rem;
+  --fl-margen: clamp(1.25rem, 5vw, 3rem);
+}

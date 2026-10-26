@@ -1,0 +1,23 @@
+{
+  "nombre": "Flashealo",
+  "colores": {
+    "carbon": "#1c1c1c",
+    "champan": "#c8b99a",
+    "marfil": "#fdfcf8",
+    "taupe": "#9a8f82",
+    "perla": "#eaeaea",
+    "tintaSuave": "#5d554b"
+  },
+  "tipografia": {
+    "titulares": "'Cormorant Garamond', Georgia, 'Times New Roman', serif",
+    "texto": "'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
+    "correo": "Georgia, 'Times New Roman', serif"
+  },
+  "contacto": {
+    "whatsapp": "18292856200",
+    "whatsappVisible": "+1 829 285 6200",
+    "instagram": "flashealo.studio",
+    "correo": "info@flashealo.do"
+  },
+  "nota": "Los correos de reservas usan 'correo' para titulares porque los clientes de correo no cargan fuentes web. Cualquier cambio de marca se hace aquí y en tokens.css."
+}

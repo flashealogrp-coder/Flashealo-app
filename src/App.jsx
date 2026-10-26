@@ -8,11 +8,20 @@ import GaleriaCliente from './GaleriaCliente';
 import Cliente from './ClientGallery'; 
 // 👇 1. IMPORTAMOS EL NUEVO COMPONENTE
 import ResultadosAtleta from './ResultadosAtleta'; 
+import HomeEmpresa from './home/HomeEmpresa';
+import PaginaSport from './PaginaSport';
 
 const App = () => {
   return (
     <Routes>
-      <Route path="/" element={<FlashealoApp />} />
+      {/* Home de la empresa: presenta las líneas de negocio */}
+      <Route path="/" element={<HomeEmpresa />} />
+
+      {/* Deportes como página propia (luego, sport.flashealo.do) */}
+      <Route path="/sport" element={<PaginaSport />} />
+
+      {/* La web anterior (tres temas en una página) se conserva mientras se migra su contenido */}
+      <Route path="/inicio-anterior" element={<FlashealoApp />} />
       
       {/* RUTA 2: Dashboard Administrativo */}
       <Route path="/admin" element={<AdminDashboard />} />

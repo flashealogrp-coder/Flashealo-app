@@ -21,6 +21,8 @@ COPY --from=build /app/dist ./dist
 COPY nas/server.mjs ./server.mjs
 COPY nas/lib ./lib
 COPY nas/derivadas ./derivadas
+# Los archivos pueden llegar con permisos restrictivos (UGOS/ACL): dejarlos legibles para el usuario `node`.
+RUN chmod -R a+rX /app
 USER node
 EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 CMD wget -q -O /dev/null http://127.0.0.1:${PORT:-3000}/healthz || exit 1

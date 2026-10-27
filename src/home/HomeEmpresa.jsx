@@ -53,53 +53,27 @@ function Flecha() {
 }
 
 function ItemMenu({ servicio, alElegir }) {
-  const { nombre, descripcion, desde, detallePrecio, estado, subdominio } = servicio;
+  const { nombre, estado, subdominio } = servicio;
   const host = typeof window !== 'undefined' ? window.location.host : '';
   const href = subdominio ? urlDeLinea(subdominio, host, servicio.href) : servicio.href;
   const activa = estado === 'activa' && href;
 
-  const contenido = (
-    <>
-      <span className="fh-item-texto">
-        <span className="fh-item-nombre">{nombre}</span>
-        <span className="fh-item-desc">{descripcion}</span>
-      </span>
-      <span className="fh-item-lado">
-        {activa ? (
-          <>
-            {desde && (
-              <span className="fh-item-precio">
-                <span className="fl-etiqueta">Desde</span> {desde}
-                <span className="fh-detalle"> {detallePrecio}</span>
-              </span>
-            )}
-            <span className="fl-etiqueta fh-ir">
-              {desde ? 'Reservar' : 'Entrar'} <Flecha />
-            </span>
-          </>
-        ) : (
-          <span className="fl-etiqueta">Próximamente</span>
-        )}
-      </span>
-    </>
-  );
-
   if (!activa) {
     return (
       <li className="fh-item fh-item-pausado">
-        <div className="fh-item-interior" aria-label={`${nombre}, próximamente`}>
-          {contenido}
-        </div>
+        <span className="fh-item-interior" aria-label={`${nombre}, próximamente`}>
+          {nombre}
+        </span>
       </li>
     );
   }
   const enlace = href.startsWith('/') ? (
     <Link className="fh-item-interior" to={href} onClick={alElegir}>
-      {contenido}
+      {nombre}
     </Link>
   ) : (
     <a className="fh-item-interior" href={href} onClick={alElegir}>
-      {contenido}
+      {nombre}
     </a>
   );
   return <li className="fh-item">{enlace}</li>;

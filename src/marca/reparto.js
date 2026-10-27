@@ -2,8 +2,8 @@
 export const MAX_POR_SET = 500;
 
 const coleccion = new Intl.Collator('es', { numeric: true, sensitivity: 'base' });
-// Orden natural por nombre (IMG_2 antes que IMG_10) para respetar la secuencia de la cámara.
-export const ordenarPorNombre = (archivos) => [...archivos].sort((a, b) => coleccion.compare(a.name, b.name));
+// Orden natural por ruta/nombre (IMG_2 antes que IMG_10; las subcarpetas quedan agrupadas) para respetar la secuencia de la cámara.
+export const ordenarPorNombre = (archivos) => [...archivos].sort((a, b) => coleccion.compare(a.webkitRelativePath || a.name, b.webkitRelativePath || b.name));
 
 // Siguiente nombre libre "Set N" (continúa la numeración de los sets que ya existen).
 export function siguienteNombreSet(nombresExistentes, ya = []) {

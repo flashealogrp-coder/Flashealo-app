@@ -207,6 +207,7 @@ export default function AdminDashboard() {
   const [maxPorSet, setMaxPorSet] = useState(MAX_POR_SET);
   const [arrastrando, setArrastrando] = useState(false);
   const fileInputRef = useRef(null);
+  const carpetaInputRef = useRef(null);
   const [procesandoIA, setProcesandoIA] = useState(false);
 
   const [seccionDashboard, setSeccionDashboard] = useState('fotos'); 
@@ -678,7 +679,20 @@ const destruirPerfilFalso = async () => {
     setMostrarUploader(true);
   };
 
-  const manejarSeleccionArchivos = (e) => { setArchivosUploader(prev => [...prev, ...Array.from(e.target.files)]); };
+  // Añade archivos a la cola: solo imágenes, sin repetir los que ya están (misma ruta, tamaño y fecha).
+  const agregarALaCola = (archivos) => {
+    const lista = Array.from(archivos || []);
+    const imagenes = lista.filter(f => f.type && f.type.startsWith('image/'));
+    const clave = (f) => `${f.webkitRelativePath || f.name}|${f.size}|${f.lastModified}`;
+    setArchivosUploader(prev => {
+      const vistos = new Set(prev.map(clave));
+      const nuevos = imagenes.filter(f => { const k = clave(f); if (vistos.has(k)) return false; vistos.add(k); return true; });
+      return [...prev, ...nuevos];
+    });
+    if (lista.length > imagenes.length) setMensaje({ tipo: 'exito', texto: `${lista.length - imagenes.length} archivos que no son fotos se omitieron.` });
+  };
+  const manejarSeleccionArchivos = (e) => { agregarALaCola(e.target.files); };
+  const manejarSeleccionCarpeta = (e) => { agregarALaCola(e.target.files); };
   const prevenirDefault = (e) => { e.preventDefault(); e.stopPropagation(); };
 
   const procesarEntry = (entry, filesArray) => {
@@ -703,7 +717,7 @@ const destruirPerfilFalso = async () => {
     const items = e.dataTransfer.items; let nuevosArchivos = [];
     if (items) { for (let i = 0; i < items.length; i++) { const item = items[i]; if (item.kind === 'file') { const entry = item.webkitGetAsEntry(); if (entry) await procesarEntry(entry, nuevosArchivos); } } } 
     else { const files = Array.from(e.dataTransfer.files); nuevosArchivos = files.filter(file => file.type.startsWith('image/')); }
-    if(nuevosArchivos.length > 0) setArchivosUploader(prev => [...prev, ...nuevosArchivos]);
+    if (nuevosArchivos.length > 0) agregarALaCola(nuevosArchivos);
   };
 
   // Sube una foto con hasta 2 intentos. Devuelve true si quedó guardada.
@@ -1636,8 +1650,12 @@ const destruirPerfilFalso = async () => {
                                 >
                                   <UploadCloud size={40} color={arrastrando ? SAND : TAUPE} style={{ marginBottom: 16 }} />
                                   <p style={{ fontSize: 14, color: INK, marginBottom: 8, fontWeight: 500 }}>{arrastrando ? '¡Suelta para añadir!' : 'Arrastra tus fotografías o carpetas aquí'}</p>
-                                  <input type="file" multiple accept="image/*" ref={fileInputRef} onChange={manejarSeleccionArchivos} style={{ display: 'none' }} />
-                                  <button onClick={() => fileInputRef.current?.click()} style={{ padding: '10px 24px', background: WHITE, border: `1px solid ${BORDER}`, borderRadius: 4, fontSize: 12, cursor: 'pointer' }}>Explorar Archivos</button>
+                                  <input type="file" multiple accept="image/*" ref={fileInputRef} onChange={(e) => { manejarSeleccionArchivos(e); e.target.value = ''; }} style={{ display: 'none' }} />
+                                  <input type="file" multiple webkitdirectory="" directory="" ref={carpetaInputRef} onChange={(e) => { manejarSeleccionCarpeta(e); e.target.value = ''; }} style={{ display: 'none' }} />
+                                  <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center' }}>
+                                    <button onClick={() => fileInputRef.current?.click()} style={{ padding: '10px 24px', background: WHITE, border: `1px solid ${BORDER}`, borderRadius: 4, fontSize: 12, cursor: 'pointer' }}>Explorar Archivos</button>
+                                    <button onClick={() => carpetaInputRef.current?.click()} style={{ padding: '10px 24px', background: WHITE, border: `1px solid ${BORDER}`, borderRadius: 4, fontSize: 12, cursor: 'pointer' }}>Elegir carpeta</button>
+                                  </div>
                                   {archivosUploader.length > 0 && (
                                     <div style={{ marginTop: 32, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                                       <span style={{ fontSize: 12, color: INK, fontWeight: 600, marginBottom: 12 }}>{archivosUploader.length} archivos en cola</span>

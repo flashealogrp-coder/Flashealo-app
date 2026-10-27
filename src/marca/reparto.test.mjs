@@ -37,3 +37,9 @@ test('leerTodo: junta las páginas hasta que una viene incompleta', async () => 
   assert.equal(r.length, 2500);
   await assert.rejects(() => leerTodo(async () => ({ data: null, error: new Error('x') })));
 });
+
+test('reparto: con carpetas, ordena por ruta relativa (subcarpetas agrupadas)', () => {
+  const f = (rel) => ({ name: rel.split('/').pop(), webkitRelativePath: rel });
+  const r = ordenarPorNombre([f('E/101/IMG_1.jpg'), f('E/100/IMG_9.jpg'), f('E/100/IMG_10.jpg')]).map((x) => x.webkitRelativePath);
+  assert.deepEqual(r, ['E/100/IMG_9.jpg', 'E/100/IMG_10.jpg', 'E/101/IMG_1.jpg']);
+});

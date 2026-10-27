@@ -1382,7 +1382,7 @@ const destruirPerfilFalso = async () => {
 
                 </div>
               </div>
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 'calc(100vh - 64px)' }}>
+                <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', minHeight: 'calc(100vh - 64px)', ...(seccionDashboard === 'diseno' ? { height: 'calc(100vh - 48px)', minHeight: 0, overflow: 'hidden' } : {}) }}>
                   
                   {/* 🌟 CASO A: MODO FOTOS CON NUEVA BARRA DE HERRAMIENTAS 🌟 */}
                   {seccionDashboard === 'fotos' && (

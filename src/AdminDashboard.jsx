@@ -326,6 +326,26 @@ useEffect(() => {
 
 
 
+  // Quién eres en el portal: superadministrador o fotógrafo (con su carpeta y su cuenta aprobada o pendiente).
+  const [contexto, setContexto] = useState(undefined); // undefined = cargando, null = sin acceso
+  useEffect(() => {
+    if (!session) { setContexto(undefined); return undefined; }
+    let vivo = true;
+    (async () => {
+      const { data, error } = await supabase.rpc('mi_contexto');
+      if (!vivo) return;
+      if (!error && data) { setContexto(data); return; }
+      // Base de datos sin la migración 0008 todavía: se comporta como antes (solo el administrador entra).
+      const { data: esAdm } = await supabase.rpc('is_admin');
+      if (vivo) setContexto(esAdm === true ? { es_admin: true, estado: null, slug: null, fotografo_id: null } : null);
+    })();
+    return () => { vivo = false; };
+  }, [session?.user?.id]);
+  const esSuper = contexto?.es_admin === true;
+  const miSlug = contexto && contexto.estado === 'activo' ? contexto.slug : null;
+  // Prefijo de carpeta propio: el superadmin conserva las rutas de siempre; cada fotógrafo trabaja dentro de <su-slug>/.
+  const rutaBase = esSuper ? '' : (miSlug ? `${miSlug}/` : '');
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => { setSession(session); setCargandoLogin(false); });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => { setSession(session); });
@@ -360,7 +380,7 @@ useEffect(() => {
     return () => supabase.removeChannel(canal);
   }, [eventoActivo]);
 
-  useEffect(() => { if(session) cargarEventos(); }, [session]);
+  useEffect(() => { if (session && contexto) cargarEventos(); }, [session, contexto]);
   useEffect(() => { setSidebarOpen(vista !== 'dashboard'); }, [vista]);
   useEffect(() => {
     if (mensaje.texto) {
@@ -403,7 +423,9 @@ useEffect(() => {
 
   const cargarEventos = async () => {
     setCargando(true);
-    const { data } = await supabase.from('eventos').select('*').order('created_at', { ascending: false });
+    let consulta = supabase.from('eventos').select('*').order('created_at', { ascending: false });
+    if (!esSuper) consulta = consulta.eq('fotografo_id', contexto?.fotografo_id || '00000000-0000-0000-0000-000000000000');
+    const { data } = await consulta;
     if (data) setListaEventos(data);
     setCargando(false);
   };
@@ -414,15 +436,15 @@ useEffect(() => {
     try {
       if (portadaFile) {
         const fileName = `${Date.now()}_portada.${portadaFile.name.split('.').pop()}`;
-        const { error: errP } = await supabase.storage.from('assets').upload(`portadas/${fileName}`, portadaFile);
+        const { error: errP } = await supabase.storage.from('assets').upload(`portadas/${rutaBase}${fileName}`, portadaFile);
         if (errP) throw errP;
-        finalPortadaUrl = `portadas/${fileName}`;
+        finalPortadaUrl = `portadas/${rutaBase}${fileName}`;
       }
       if (logoFile) {
         const fileName = `${Date.now()}_logo.${logoFile.name.split('.').pop()}`;
-        const { error: errL } = await supabase.storage.from('assets').upload(`logos/${fileName}`, logoFile);
+        const { error: errL } = await supabase.storage.from('assets').upload(`logos/${rutaBase}${fileName}`, logoFile);
         if (errL) throw errL;
-        finalLogoUrl = `logos/${fileName}`;
+        finalLogoUrl = `logos/${rutaBase}${fileName}`;
       }
       const datosGuardar = { ...formData, portada_url: finalPortadaUrl, logo_url: finalLogoUrl };
       
@@ -755,7 +777,7 @@ const destruirPerfilFalso = async () => {
     for (let intento = 0; intento < 2; intento++) {
       try {
         const { data: { session: sesionSubida } } = await supabase.auth.getSession();
-        const resURL = await fetch("/api/upload-url", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${sesionSubida?.access_token || ''}` }, body: JSON.stringify({ fileName: file.name, fileType: file.type, carpetaR2: baseR2Path }) });
+        const resURL = await fetch("/api/upload-url", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${sesionSubida?.access_token || ''}` }, body: JSON.stringify({ fileName: file.name, fileType: file.type, fileSize: file.size, carpetaR2: baseR2Path }) });
         const data = await resURL.json();
         if (!resURL.ok || !data.url) throw new Error(data.error || 'sin enlace');
         const uploadRes = await fetch(data.url, { method: "PUT", headers: { "Content-Type": file.type }, body: file });
@@ -797,7 +819,7 @@ const destruirPerfilFalso = async () => {
         setEstadoSubida(prev => ({ ...prev, carpetaIds: [...prev.carpetaIds, carpeta.id], porSet: { ...prev.porSet, [carpeta.id]: { hechas: 0, total: tramo.archivos.length } } }));
       }
       setEstadoSubida(prev => ({ ...prev, carpetaNombre: carpeta.nombre }));
-      const baseR2Path = `${eventoActivo.url_slug || eventoActivo.id}/${carpeta.nombre.toLowerCase().replace(/ /g, '-')}`;
+      const baseR2Path = `${rutaBase}${eventoActivo.url_slug || eventoActivo.id}/${carpeta.nombre.toLowerCase().replace(/ /g, '-')}`;
       // 4 subidas en paralelo
       let siguiente = 0;
       const trabajador = async () => {
@@ -909,7 +931,7 @@ const destruirPerfilFalso = async () => {
     if (archivo.size > 15 * 1024 * 1024) { setMensaje({ tipo: 'error', texto: 'La imagen pesa más de 15 MB. Usa una más liviana.' }); return; }
     setSubiendoPortada(true);
     const ext = (archivo.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 5) || 'jpg';
-    const ruta = `portadas/${Date.now()}_portada.${ext}`;
+    const ruta = `portadas/${rutaBase}${Date.now()}_portada.${ext}`;
     const { error } = await supabase.storage.from('assets').upload(ruta, archivo, { contentType: archivo.type });
     setSubiendoPortada(false);
     if (error) { setMensaje({ tipo: 'error', texto: 'No se pudo subir la imagen.' }); return; }
@@ -1069,6 +1091,22 @@ const destruirPerfilFalso = async () => {
     );
   }
 
+  if (contexto === undefined) return <div className="h-screen w-full flex items-center justify-center bg-[#F9F8F5]"><Loader2 className="animate-spin text-[#5A5955]" size={32}/></div>;
+  if (!contexto || (!esSuper && !miSlug)) {
+    const pendiente = contexto && contexto.estado === 'pendiente';
+    const suspendida = contexto && contexto.estado === 'suspendido';
+    return (
+      <div className="h-screen w-full flex items-center justify-center bg-[#F9F8F5] font-sans px-6">
+        <div className="bg-fl-lino p-10 md:p-12 shadow-2xl border border-fl-texto/5 w-full max-w-md text-center">
+          <span className="w-4 h-12 bg-[#C8B69E] inline-block mb-4"></span>
+          <h1 className="text-2xl font-serif text-[#181816] mb-3">{pendiente ? 'Tu cuenta está en revisión' : suspendida ? 'Tu cuenta está suspendida' : 'Esta cuenta no tiene un espacio en Flashealo'}</h1>
+          <p className="text-sm text-[#5A5955] mb-8 leading-relaxed">{pendiente ? 'Te avisaremos en cuanto esté aprobada. Mientras tanto no necesitas hacer nada más.' : suspendida ? 'Escríbenos para resolverlo y reactivarla.' : 'Pide a Flashealo que te dé de alta como fotógrafo con este mismo correo.'}</p>
+          <button onClick={() => supabase.auth.signOut()} className="w-full bg-[#181816] text-white p-4 text-xs uppercase tracking-widest font-bold hover:bg-fl-texto transition-colors">Cerrar sesión</button>
+        </div>
+      </div>
+    );
+  }
+
   const fotosActuales = carpetaActiva ? fotosEvento.filter(f => f.carpeta_id === carpetaActiva.id) : [];
   const fotosFavoritas = fotosActuales.filter(f => f.es_favorita);
   const fotosRestantes = fotosActuales.filter(f => !f.es_favorita);
@@ -1086,7 +1124,7 @@ const destruirPerfilFalso = async () => {
               <span style={{ width: 2, height: 18, background: SAND, flexShrink: 0, borderRadius: 1 }} />
               <div style={{ display: 'flex', flexDirection: 'column' }}>
                 <span style={{ fontFamily: 'var(--fl-serif)', fontSize: 15, letterSpacing: '0.15em', textTransform: 'uppercase', color: INK, lineHeight: 1 }}>Flashealo</span>
-                <span style={{ fontSize: 8, letterSpacing: '0.15em', textTransform: 'uppercase', color: TAUPE, marginTop: 3 }}>Admin</span>
+                <span style={{ fontSize: 8, letterSpacing: '0.15em', textTransform: 'uppercase', color: TAUPE, marginTop: 3 }}>{esSuper ? 'Admin' : (contexto?.nombre || 'Fotógrafo')}</span>
               </div>
             </div>
           ) : <span style={{ width: 3, height: 20, background: SAND, borderRadius: 1 }} />}

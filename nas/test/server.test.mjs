@@ -20,10 +20,23 @@ async function entorno(extra = {}) {
   const datos = path.join(tmp, 'datos'); fs.mkdirSync(datos);
 
   const llamadas = { modal: [], desp: [] };
-  const supa = http.createServer((req, res) => {
+  // Simula Supabase: mi_contexto() y es_dueno_evento() según el "token" de cada prueba.
+  const PERFILES = {
+    admin: { es_admin: true, estado: null, slug: null },
+    ana: { es_admin: false, estado: 'activo', slug: 'ana', fotografo_id: 'f-ana', cuota_bytes: null },
+    chica: { es_admin: false, estado: 'activo', slug: 'chica', fotografo_id: 'f-chica', cuota_bytes: 1000 },
+    pendiente: { es_admin: false, estado: 'pendiente', slug: 'pend', fotografo_id: 'f-pend', cuota_bytes: null },
+  };
+  const supa = http.createServer(async (req, res) => {
     const t = (req.headers.authorization || '').replace('Bearer ', '');
+    let b = ''; for await (const c of req) b += c;
     res.setHeader('Content-Type', 'application/json');
-    res.end(t === 'admin' ? 'true' : 'false');
+    if (req.url.endsWith('/rpc/mi_contexto')) return res.end(JSON.stringify(PERFILES[t] || { es_admin: false, estado: null, slug: null }));
+    if (req.url.endsWith('/rpc/es_dueno_evento')) {
+      const ev = JSON.parse(b || '{}').p_evento;
+      return res.end(JSON.stringify(t === 'admin' || (t === 'ana' && ev === '11111111-1111-1111-1111-111111111111')));
+    }
+    res.statusCode = 404; res.end('{}');
   });
   const modal = http.createServer(async (req, res) => {
     let b = ''; for await (const c of req) b += c;
@@ -218,7 +231,7 @@ test('IA: enlaces temporales de fotos para el motor, y el enlace sirve solo esa 
   const supa2 = http.createServer((req, res) => {
     pedidos.push(req.url);
     res.setHeader('Content-Type', 'application/json');
-    if (req.url.includes('is_admin')) return res.end('true');
+    if (req.url.includes('mi_contexto')) return res.end(JSON.stringify({ es_admin: true, estado: null, slug: null }));
     res.end(JSON.stringify([{ id: 'f1', url_original: 'o/ev/a.jpg' }, { id: 'f2', url_original: 'o/ev/../../secreto.txt' }, { id: 'f3', url_original: 'watermarks/x.jpg' }]));
   });
   const p2 = await escuchar(supa2);
@@ -248,4 +261,54 @@ test('IA: enlaces temporales de fotos para el motor, y el enlace sirve solo esa 
   assert.equal((await fetch(`${e.base}/api/foto-ia/${malo}`)).status, 400);
   assert.ok(pedidos.some((u) => u.includes(`evento_id=eq.${ev}`)));
   await cerrar(supa2); await e.fin();
+});
+
+test('fotógrafos: solo escriben en su carpeta, cuentas pendientes no entran y la cuota se respeta', async () => {
+  const e = await entorno();
+  const sube = (token, carpetaR2, extra = {}) => post(e.base, '/api/upload-url', { fileName: 'a.jpg', fileType: 'image/jpeg', carpetaR2, ...extra }, token);
+  assert.equal((await sube('ana', 'ana/boda/novios')).status, 200);               // su carpeta
+  assert.equal((await sube('ana', 'ana')).status, 200);
+  assert.equal((await sube('ana', 'chica/boda')).status, 403);                     // carpeta de otra persona
+  assert.equal((await sube('ana', 'anabanana/x')).status, 403);                    // prefijo parecido, no igual
+  assert.equal((await sube('ana', 'boda/novios')).status, 403);                    // sin su carpeta
+  assert.equal((await sube('pendiente', 'pend/x')).status, 401);                   // cuenta sin aprobar
+  assert.equal((await sube('admin', 'cualquiera/x')).status, 200);                 // superadmin sin restricción
+  // cuota de 1000 bytes: ya hay 900 guardados y se pide subir 200 más
+  fs.mkdirSync(path.join(e.datos, 'originales', 'chica', 'ev'), { recursive: true });
+  fs.writeFileSync(path.join(e.datos, 'originales', 'chica', 'ev', 'x.jpg'), Buffer.alloc(900));
+  assert.equal((await sube('chica', 'chica/ev', { fileSize: 200 })).status, 507);
+  assert.equal((await sube('chica', 'chica/ev', { fileSize: 50 })).status, 200);
+  await e.fin();
+});
+
+test('fotógrafos: /api/ia borra solo lo suyo y solo procesa colecciones propias', async () => {
+  const e = await entorno();
+  const ia = (token, body) => post(e.base, '/api/ia', body, token);
+  const suya = '11111111-1111-1111-1111-111111111111', ajena = '22222222-2222-2222-2222-222222222222';
+  for (const rel of ['ana/ev/a.jpg', 'otro/ev/b.jpg']) {
+    for (const d of ['originales', 'watermarks', 'miniaturas']) {
+      fs.mkdirSync(path.dirname(path.join(e.datos, d, rel)), { recursive: true });
+      fs.writeFileSync(path.join(e.datos, d, rel + (d === 'originales' ? '' : '.jpg')), 'x');
+    }
+  }
+  assert.equal((await ia('ana', { accion: 'eliminar_fotos', rutas: ['o/otro/ev/b.jpg'] })).status, 403);
+  assert.equal((await ia('ana', { accion: 'eliminar_fotos', rutas: ['o/ana/ev/a.jpg', 'o/otro/ev/b.jpg'] })).status, 403);
+  assert.equal((await ia('ana', { accion: 'eliminar_fotos', rutas: ['o/ana/../otro/ev/b.jpg'] })).status, 403);
+  assert.ok(fs.existsSync(path.join(e.datos, 'originales', 'otro', 'ev', 'b.jpg')));
+  assert.equal((await ia('ana', { accion: 'eliminar_fotos', rutas: ['o/ana/ev/a.jpg'] })).status, 200);
+  assert.ok(!fs.existsSync(path.join(e.datos, 'originales', 'ana', 'ev', 'a.jpg')));
+  // eliminar colección: el prefijo se resuelve DENTRO de la carpeta del fotógrafo
+  fs.mkdirSync(path.join(e.datos, 'originales', 'ev'), { recursive: true });
+  fs.writeFileSync(path.join(e.datos, 'originales', 'ev', 'raiz.jpg'), 'x');
+  assert.equal((await ia('ana', { accion: 'eliminar_coleccion', prefijo: 'ev' })).status, 200);
+  assert.ok(fs.existsSync(path.join(e.datos, 'originales', 'ev', 'raiz.jpg')), 'no debe tocar la raíz ni a otros');
+  assert.ok(fs.existsSync(path.join(e.datos, 'originales', 'otro', 'ev', 'b.jpg')));
+  assert.equal((await ia('ana', { accion: 'eliminar_coleccion', prefijo: '../otro' })).status, 400);
+  // procesar / IA solo de colecciones propias
+  assert.equal((await ia('ana', { evento_id: ajena, accion: 'miniaturas' })).status, 403);
+  assert.equal((await ia('ana', { evento_id: suya, accion: 'miniaturas' })).status, 202);
+  assert.equal((await ia('ana', { evento_id: ajena, accion: 'ia' })).status, 403);
+  assert.equal((await ia('pendiente', { evento_id: suya, accion: 'miniaturas' })).status, 401);
+  assert.equal((await ia('admin', { evento_id: ajena, accion: 'miniaturas' })).status, 202);
+  await e.fin();
 });

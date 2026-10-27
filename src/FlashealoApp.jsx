@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from './supabaseClient';
+import { supabasePublico as supabase } from './supabaseClient';
 import { useNavigate } from 'react-router-dom';
 import { Loader2, Mail, ArrowUpRight, Calendar, Menu, X, CheckCircle2, MoveLeft, MoveRight } from 'lucide-react';
 import { SiInstagram, SiWhatsapp } from '@icons-pack/react-simple-icons';

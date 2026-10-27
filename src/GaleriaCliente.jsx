@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { supabase } from './supabaseClient';
+import { supabase as supabaseSesion, supabasePublico } from './supabaseClient';
 import { urlFotoPublica } from './urlFotos';
 import { resolverPortada } from './marca/portada';
 import { leerTodo } from './marca/paginar';
@@ -26,6 +26,7 @@ const GaleriaCliente = () => {
   const { slug } = useParams(); 
   const navigate = useNavigate();
 
+  const db = useRef(supabasePublico); // cliente de datos: visitante; solo cambia a la sesión del dueño para ver un borrador
   const [evento, setEvento] = useState(null);
   const [cargandoInicial, setCargandoInicial] = useState(true);
   const [errorInicial, setErrorInicial] = useState(null);
@@ -67,10 +68,22 @@ const GaleriaCliente = () => {
     const fetchEventoPorSlug = async () => {
       setCargandoInicial(true);
       const esUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slug);
-      let query = supabase.from('eventos').select('id,nombre,descripcion,logo_url,banner_url,es_gratis,precio_galeria,fecha_evento,estado,created_at,tipo_reconocimiento,slug,portada_url,configuracion_ui,precio_foto,moneda,requiere_pago_para_ver,ubicacion,url_slug,titulo_about,categoria,url_portada,tiene_clave,permitir_descarga,permitir_descarga_zip');
-      query = esUUID ? query.eq('id', slug) : query.eq('url_slug', slug);
+      const columnas = 'id,nombre,descripcion,logo_url,banner_url,es_gratis,precio_galeria,fecha_evento,estado,created_at,tipo_reconocimiento,slug,portada_url,configuracion_ui,precio_foto,moneda,requiere_pago_para_ver,ubicacion,url_slug,titulo_about,categoria,url_portada,tiene_clave,permitir_descarga,permitir_descarga_zip';
+      const buscar = (cliente) => {
+        const q = cliente.from('eventos').select(columnas);
+        return (esUUID ? q.eq('id', slug) : q.eq('url_slug', slug)).maybeSingle();
+      };
+      // Siempre como visitante. Si no aparece y hay una sesión abierta, puede ser un borrador del propio fotógrafo (vista previa).
+      db.current = supabasePublico;
+      let { data, error } = await buscar(supabasePublico);
+      if (!data) {
+        const { data: { session: sesion } } = await supabaseSesion.auth.getSession();
+        if (sesion) {
+          const r = await buscar(supabaseSesion);
+          if (r.data) { data = r.data; error = null; db.current = supabaseSesion; }
+        }
+      }
 
-      const { data, error } = await query.single();
       if (error || !data) {
         setErrorInicial('No pudimos encontrar esta colección. Verifica el enlace.');
       } else {
@@ -86,7 +99,7 @@ const GaleriaCliente = () => {
         if (data.tipo_reconocimiento !== 'ocr') cargarAvatares(data.id);
         
         let allPhotos = null;
-        try { allPhotos = await leerTodo((d, h) => supabase.from('fotografias').select('url_watermark, url_original, carpeta_id').eq('evento_id', data.id).order('created_at', { ascending: true }).order('id', { ascending: true }).range(d, h)); } catch (e) { allPhotos = null; }
+        try { allPhotos = await leerTodo((d, h) => db.current.from('fotografias').select('url_watermark, url_original, carpeta_id').eq('evento_id', data.id).order('created_at', { ascending: true }).order('id', { ascending: true }).range(d, h)); } catch (e) { allPhotos = null; }
         if (allPhotos) {
           const arrGenerales = allPhotos.map((f, idx) => {
             const path = (f.url_watermark || f.url_original).trim();
@@ -96,12 +109,12 @@ const GaleriaCliente = () => {
         }
         // Sets del evento: se muestran como pestañas para que el cliente vaya directo al que quiere.
         try {
-          const { data: cs } = await supabase.from('carpetas_evento').select('id,nombre,created_at').eq('evento_id', data.id).order('created_at', { ascending: true });
+          const { data: cs } = await db.current.from('carpetas_evento').select('id,nombre,created_at').eq('evento_id', data.id).order('created_at', { ascending: true });
           setCarpetas(cs || []);
         } catch (e) { setCarpetas([]); }
         // Centro de la cara principal de cada foto, para encuadrar el mosaico sobre las caras.
         try {
-          const dets = await leerTodo((d, h) => supabase.from('face_detections').select('photo_url, bbox').eq('evento_id', data.id).order('id', { ascending: true }).range(d, h));
+          const dets = await leerTodo((d, h) => db.current.from('face_detections').select('photo_url, bbox').eq('evento_id', data.id).order('id', { ascending: true }).range(d, h));
           const mejor = {};
           (dets || []).forEach((det) => {
             let b = det.bbox;
@@ -140,9 +153,9 @@ const GaleriaCliente = () => {
 
   const cargarAvatares = async (eventoId) => {
     setCargando(true);
-    const { data: identitiesData } = await supabase.from('identities').select('id,display_name,avatar_url,created_at,evento_id,dorsal,avatar_score').eq('evento_id', eventoId);
+    const { data: identitiesData } = await db.current.from('identities').select('id,display_name,avatar_url,created_at,evento_id,dorsal,avatar_score').eq('evento_id', eventoId);
     let detectionsData = null;
-    try { detectionsData = await leerTodo((d, h) => supabase.from('face_detections').select('identity_id, photo_url').eq('evento_id', eventoId).order('id', { ascending: true }).range(d, h)); } catch (e) { detectionsData = null; }
+    try { detectionsData = await leerTodo((d, h) => db.current.from('face_detections').select('identity_id, photo_url').eq('evento_id', eventoId).order('id', { ascending: true }).range(d, h)); } catch (e) { detectionsData = null; }
     
     if (identitiesData) {
       const conteos = {};
@@ -150,7 +163,7 @@ const GaleriaCliente = () => {
       
       const identidadesConUrl = identitiesData.map(id => {
         const pathLimpio = id.avatar_url ? id.avatar_url.trim() : '';
-        const { data: urlData } = supabase.storage.from('fotos').getPublicUrl(pathLimpio);
+        const { data: urlData } = db.current.storage.from('fotos').getPublicUrl(pathLimpio);
         return { ...id, publicAvatarUrl: urlData.publicUrl, totalFotos: conteos[String(id.id)] || 0 };
       }).sort((a, b) => b.totalFotos - a.totalFotos);
       
@@ -179,11 +192,11 @@ const GaleriaCliente = () => {
     try {
       let fotosEncontradas = [];
       if (tipoBusqueda === 'dorsal') {
-        const { data, error } = await supabase.from('etiquetas_fotos').select('fotografias!inner(id, url_watermark, url_original)').eq('dorsal', valor).eq('fotografias.evento_id', evento.id);
+        const { data, error } = await db.current.from('etiquetas_fotos').select('fotografias!inner(id, url_watermark, url_original)').eq('dorsal', valor).eq('fotografias.evento_id', evento.id);
         if (error) throw error;
         if (data) fotosEncontradas = data.map(item => ({ ...item.fotografias }));
       } else if (tipoBusqueda === 'identity_id') {
-        const { data, error } = await supabase.from('face_detections').select('photo_url').eq('identity_id', valor).eq('evento_id', evento.id);
+        const { data, error } = await db.current.from('face_detections').select('photo_url').eq('identity_id', valor).eq('evento_id', evento.id);
         if (error) throw error;
         if (data) fotosEncontradas = data.map(item => ({ id: Math.random(), url_watermark: item.photo_url }));
       }
@@ -222,7 +235,7 @@ const GaleriaCliente = () => {
   const handleLogin = async (e) => {
     e.preventDefault();
     // La clave se valida en el servidor (la columna password_cliente ya no es pública)
-    const { data: ok, error } = await supabase.rpc('verificar_clave_evento', { p_evento: evento.id, p_clave: passwordInput });
+    const { data: ok, error } = await db.current.rpc('verificar_clave_evento', { p_evento: evento.id, p_clave: passwordInput });
     if (!error && ok === true) {
       setAutenticado(true);
       sessionStorage.setItem(`auth_${evento.id}`, 'true'); // Memoria activada

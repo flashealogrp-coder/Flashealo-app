@@ -6,3 +6,9 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://muvzhnnsdnztlh
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im11dnpobm5zZG56dGxoeW51aXBkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA2NTYyNjgsImV4cCI6MjA5NjIzMjI2OH0.zec3LdfU3i0gdcCEDeHaIlMz1xSNTydpth50obaGesU'
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+
+// Cliente SIN sesión para las páginas públicas (galerías, Sport, resultados): siempre entra como visitante,
+// así nunca arrastra los permisos de un fotógrafo o administrador que tenga la sesión abierta en el mismo navegador.
+export const supabasePublico = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+})

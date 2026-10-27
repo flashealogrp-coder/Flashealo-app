@@ -1,5 +1,5 @@
 // Subida de originales directamente al disco del NAS.
-//   POST /api/upload-url  (admin)  -> { url: "/api/subir/<token>", path: "o/<ruta>" }
+//   POST /api/upload-url  (admin o fotógrafo activo, solo en su carpeta)  -> { url: "/api/subir/<token>", path: "o/<ruta>" }
 //   PUT  /api/subir/<token>        -> escribe el archivo en <datos>/originales/<ruta>
 // El contrato con el frontend es el mismo que tenía R2: pide una URL, sube con PUT y guarda `path`.
 import fs from 'node:fs';
@@ -28,24 +28,33 @@ const json = (res, code, obj) => {
   res.end(JSON.stringify(obj));
 };
 
-export function manejadorUploadUrl(cfg, esAdmin) {
+export function manejadorUploadUrl(cfg, ctx, cuotas) {
   return async function (req, res) {
     if (req.method !== 'POST') return json(res, 405, { error: 'Método no permitido' });
     if (!cfg.uploadSecret) return json(res, 503, { error: 'Servidor sin UPLOAD_SECRET' });
-    if (!(await esAdmin(req))) return json(res, 401, { error: 'No autorizado' });
+    const c = await ctx.contexto(req);
+    if (!c || !c.permitido) return json(res, 401, { error: 'No autorizado' });
 
-    const { fileName, fileType } = req.body || {};
+    const { fileName, fileType, fileSize } = req.body || {};
     const carpeta = limpiarRuta(req.body && req.body.carpetaR2);
     const nombre = typeof fileName === 'string' ? limpiarNombre(fileName) : '';
     if (!nombre || !TIPOS.test(fileType || '') || !carpeta) return json(res, 400, { error: 'Datos inválidos' });
+    // Un fotógrafo solo escribe dentro de su propia carpeta (<su-slug>/…); el superadmin no tiene esa restricción.
+    if (!c.admin && !(carpeta === c.slug || carpeta.startsWith(c.slug + '/'))) return json(res, 403, { error: 'Esa carpeta no es tuya' });
 
     try {
       const e = await espacio(cfg.datos);
       if (e.libre_pct < cfg.minLibrePct) return json(res, 507, { error: 'Disco casi lleno: libera espacio antes de subir' });
     } catch { /* si no se puede medir, el PUT lo volverá a comprobar */ }
 
-    const clave = `${carpeta}/${Date.now()}_${crypto.randomBytes(3).toString('hex')}_${nombre}`;
     const max = fileType.startsWith('video/') ? cfg.maxVideo : cfg.maxImagen;
+    if (!c.admin && cuotas) {
+      const declarado = Number.isFinite(Number(fileSize)) && Number(fileSize) > 0 ? Math.min(Number(fileSize), max) : 0;
+      const q = await cuotas.reservar(c.slug, c.cuota_bytes, declarado);
+      if (!q.ok) return json(res, 507, { error: 'Llegaste al límite de espacio de tu plan' });
+    }
+
+    const clave = `${carpeta}/${Date.now()}_${crypto.randomBytes(3).toString('hex')}_${nombre}`;
     const token = firmar({ k: clave, t: fileType, m: max, e: Date.now() + cfg.tokenTtlMs }, cfg.uploadSecret);
     return json(res, 200, { url: `/api/subir/${token}`, path: `o/${clave}` });
   };

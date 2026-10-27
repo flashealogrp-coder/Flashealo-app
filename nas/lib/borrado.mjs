@@ -59,12 +59,16 @@ export async function borrarFotos(datos, rutas, { papelera = false } = {}) {
   return { movidos, omitidas };
 }
 
-export async function borrarColeccion(datos, prefijo, { papelera = false } = {}) {
+// `base` (opcional) es la carpeta del fotógrafo: la colección está en <base>/<prefijo>.
+export async function borrarColeccion(datos, prefijo, { papelera = false, base = '' } = {}) {
   const p = limpiarRuta(prefijo);
   if (!p || p.includes('/')) return { movidos: 0, error: 'prefijo inválido' };
+  const b = base ? limpiarRuta(base) : '';
+  if (base && (!b || b.includes('/'))) return { movidos: 0, error: 'carpeta inválida' };
+  const rel = b ? `${b}/${p}` : p;
   let movidos = 0;
   for (const dir of ['originales', 'watermarks', 'miniaturas']) {
-    if (await quitar(datos, `${dir}/${p}`, papelera)) movidos++;
+    if (await quitar(datos, `${dir}/${rel}`, papelera)) movidos++;
   }
   return { movidos };
 }

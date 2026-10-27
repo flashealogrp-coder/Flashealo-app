@@ -86,7 +86,7 @@ test('purgarPapelera con 0 días vacía toda la papelera heredada', async () => 
 
 test('API /api/ia eliminar_*: solo admin y sin tocar nada si no lo es', async () => {
   const d = datos();
-  const supa = http.createServer((req, res) => { res.end((req.headers.authorization || '') === 'Bearer admin' ? 'true' : 'false'); });
+  const supa = http.createServer((req, res) => { res.setHeader('Content-Type', 'application/json'); res.end(JSON.stringify({ es_admin: (req.headers.authorization || '') === 'Bearer admin', estado: null, slug: null })); });
   await new Promise((r) => supa.listen(0, '127.0.0.1', r));
   const cfg = leerConfig({ DIST_DIR: d, DATA_DIR: d, SUPABASE_URL: `http://127.0.0.1:${supa.address().port}`, SUPABASE_KEY: 'k', UPLOAD_SECRET: 'x'.repeat(40) });
   const srv = crearServidor(cfg);
@@ -103,4 +103,19 @@ test('API /api/ia eliminar_*: solo admin y sin tocar nada si no lo es', async ()
     assert.equal((await post({ accion: 'eliminar_coleccion', prefijo: '../x' }, 'admin')).status, 400);
     assert.equal((await (await post({ accion: 'eliminar_coleccion', prefijo: 'otra' }, 'admin')).json()).movidos, 2);
   } finally { srv.closeAllConnections?.(); srv.close(); supa.closeAllConnections?.(); supa.close(); }
+});
+
+test('borrarColeccion con base: borra dentro de la carpeta del fotógrafo y no fuera', async () => {
+  const d = datos();
+  for (const dir of ['originales', 'watermarks', 'miniaturas']) {
+    fs.mkdirSync(path.join(d, dir, 'ana', 'boda'), { recursive: true });
+    fs.writeFileSync(path.join(d, dir, 'ana', 'boda', 'a.jpg'), 'x');
+    fs.mkdirSync(path.join(d, dir, 'boda'), { recursive: true });
+    fs.writeFileSync(path.join(d, dir, 'boda', 'raiz.jpg'), 'x');
+  }
+  const r = await borrarColeccion(d, 'boda', { base: 'ana' });
+  assert.equal(r.movidos, 3);
+  assert.ok(!fs.existsSync(path.join(d, 'originales', 'ana', 'boda')));
+  assert.ok(fs.existsSync(path.join(d, 'originales', 'boda', 'raiz.jpg')));
+  assert.equal((await borrarColeccion(d, 'boda', { base: 'a/../b' })).error, 'carpeta inválida');
 });

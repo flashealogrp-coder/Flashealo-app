@@ -9,25 +9,33 @@ const json = (res, code, obj) => {
 import { borrarFotos, borrarColeccion } from './borrado.mjs';
 import { firmarUrlsFotos, listarFotosEvento } from './fotosIA.mjs';
 const ACCIONES_IA = new Set(['ia']);
+// ¿la ruta guardada en la base (o/<slug>/…, watermarks/<slug>/…, miniaturas/<slug>/…) está dentro de la carpeta del fotógrafo?
+const rutaDe = (r, slug) => new RegExp(`^(o|watermarks|miniaturas)/${slug}/`).test(String(r).trim().replace(/^\/+/, '')) && !String(r).includes('..');
 
-export function manejadorIA(cfg, esAdmin, fetchFn = fetch) {
+export function manejadorIA(cfg, ctx, fetchFn = fetch) {
   return async function (req, res) {
     if (req.method !== 'POST') return json(res, 405, { error: 'Método no permitido' });
-    if (!(await esAdmin(req))) return json(res, 401, { error: 'No autorizado' });
+    const c = await ctx.contexto(req);
+    if (!c || !c.permitido) return json(res, 401, { error: 'No autorizado' });
     const { evento_id, accion, tipo_reconocimiento, rutas, prefijo } = req.body || {};
 
     // Borrado físico: lo hace el propio NAS (se elimina del disco), no el motor externo.
     if (accion === 'eliminar_fotos') {
       if (!Array.isArray(rutas) || rutas.some((r) => typeof r !== 'string')) return json(res, 400, { error: 'rutas inválidas' });
+      // Un fotógrafo solo borra dentro de su carpeta.
+      if (!c.admin && !rutas.every((r) => rutaDe(r, c.slug))) return json(res, 403, { error: 'Esas fotos no son tuyas' });
       return json(res, 200, { ok: true, ...(await borrarFotos(cfg.datos, rutas, { papelera: cfg.papeleraDias > 0 })) });
     }
     if (accion === 'eliminar_coleccion') {
       if (typeof prefijo !== 'string') return json(res, 400, { error: 'prefijo inválido' });
-      const r = await borrarColeccion(cfg.datos, prefijo, { papelera: cfg.papeleraDias > 0 });
+      const r = await borrarColeccion(cfg.datos, prefijo, { papelera: cfg.papeleraDias > 0, base: c.admin ? '' : c.slug });
       return json(res, r.error ? 400 : 200, { ok: !r.error, ...r });
     }
 
     if (typeof evento_id !== 'string' || !/^[0-9a-fA-F-]{36}$/.test(evento_id)) return json(res, 400, { error: 'evento_id inválido' });
+
+    // Procesar o analizar una colección solo lo puede pedir su dueño.
+    if ((accion === 'miniaturas' || ACCIONES_IA.has(accion)) && !(await ctx.esDueno(req, evento_id))) return json(res, 403, { error: 'Esa colección no es tuya' });
 
     if (accion === 'miniaturas') {
       if (!cfg.derivadasUrl) return json(res, 503, { error: 'Servicio de derivadas no configurado' });

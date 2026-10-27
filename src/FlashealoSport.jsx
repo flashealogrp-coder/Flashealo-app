@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from './supabaseClient';
+import { supabasePublico as supabase } from './supabaseClient';
 import { useNavigate } from 'react-router-dom';
 import { Loader2, ArrowUpRight, Search, Camera, Hash, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';

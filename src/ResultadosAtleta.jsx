@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate, Navigate } from 'react-router-dom';
-import { supabase } from './supabaseClient'; // Ajusta tu ruta
+import { supabasePublico as supabase } from './supabaseClient'; // Ajusta tu ruta
 import { urlFotoPublica } from './urlFotos';
 import { ArrowLeft, Loader2, Calendar, MapPin, Download } from 'lucide-react';
 import { motion } from 'framer-motion';

@@ -4,7 +4,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { leerConfig } from './lib/config.mjs';
-import { crearEsAdmin } from './lib/admin.mjs';
+import { crearContexto } from './lib/contexto.mjs';
+import { crearCuotas } from './lib/cuotas.mjs';
 import { manejadorUploadUrl, manejadorSubir, espacio } from './lib/subidas.mjs';
 import { manejadorIA } from './lib/ia.mjs';
 import { manejadorFotoIA } from './lib/fotosIA.mjs';
@@ -28,11 +29,11 @@ async function leerJson(req, limite = 1e5) {
 }
 
 export function crearServidor(cfg = leerConfig(), deps = {}) {
-  const esAdmin = deps.esAdmin || crearEsAdmin(cfg);
-  const uploadUrl = manejadorUploadUrl(cfg, esAdmin);
+  const ctx = deps.contexto || crearContexto(cfg, deps.fetch || fetch);
+  const uploadUrl = manejadorUploadUrl(cfg, ctx, crearCuotas(cfg));
   const subir = manejadorSubir(cfg);
   const fotoIA = manejadorFotoIA(cfg);
-  const ia = manejadorIA(cfg, esAdmin, deps.fetch || fetch);
+  const ia = manejadorIA(cfg, ctx, deps.fetch || fetch);
   const selfie = manejadorSelfie(cfg, deps.fetch || fetch);
   const descargaSolicitud = manejadorDescargaSolicitud(cfg, deps.fetch || fetch);
   const descargaArchivo = manejadorDescargaArchivo(cfg);

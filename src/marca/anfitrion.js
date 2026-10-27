@@ -48,3 +48,11 @@ export function urlAdminPrincipal(host) {
   if (esDireccionIP(host)) return '/admin';
   return `https://www.${hostPrincipal(host)}/admin`;
 }
+
+// Portal de reservas de un fotógrafo: reservas.flashealo.do/<carpeta> (la empresa, en la raíz).
+// Sin dominio real (desarrollo) devuelve null.
+export function urlReservas(host, slug, admin = false) {
+  if (esDireccionIP(host)) return null;
+  const ruta = slug && slug !== 'flashealo' ? `/${slug}` : '';
+  return `https://reservas.${hostPrincipal(host)}${ruta}${admin ? '/admin' : ''}`;
+}

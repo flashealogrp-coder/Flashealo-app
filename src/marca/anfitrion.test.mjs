@@ -39,3 +39,11 @@ test('el admin único vive en la dirección principal', () => {
   assert.equal(urlAdminPrincipal('sport.flashealo.do'), 'https://www.flashealo.do/admin');
   assert.equal(urlAdminPrincipal('localhost:5173'), '/admin');
 });
+
+import { urlReservas } from './anfitrion.js';
+test('urlReservas: la empresa en la raíz, cada fotógrafo en su carpeta', () => {
+  assert.equal(urlReservas('www.flashealo.do', 'flashealo'), 'https://reservas.flashealo.do');
+  assert.equal(urlReservas('www.flashealo.do', 'ana-foto'), 'https://reservas.flashealo.do/ana-foto');
+  assert.equal(urlReservas('www.flashealo.do', 'ana-foto', true), 'https://reservas.flashealo.do/ana-foto/admin');
+  assert.equal(urlReservas('localhost:5173', 'ana-foto'), null);
+});

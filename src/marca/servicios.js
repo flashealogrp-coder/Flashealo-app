@@ -22,7 +22,7 @@ export const SERVICIOS = [
     detallePrecio: 'por 5 horas',
     acento: '#e4a0a8',
     estado: 'activa',
-    href: '/f/flashealo',
+    href: 'https://reservas.flashealo.do',
   },
   {
     id: 'sesiones',
@@ -32,7 +32,7 @@ export const SERVICIOS = [
     detallePrecio: 'por 1 hora',
     acento: '#c8b99a',
     estado: 'activa',
-    href: '/f/flashealo',
+    href: 'https://reservas.flashealo.do',
   },
   {
     id: 'deportes',

@@ -110,25 +110,8 @@ const THEMES = {
   }
 };
 
-const SERVICIOS_BASE = [
-  { nombre: 'Sesión Lifestyle / Pareja' },
-  { nombre: 'Cobertura de Boda / Elopement' },
-  { nombre: 'Sesión de Estudio / Moda' },
-  { nombre: 'Retrato Corporativo' },
-  { nombre: 'Fotografía de Producto' },
-];
-const soloDigitos = (v) => String(v || '').replace(/\D/g, '');
-
-// `fotografo` (opcional): datos públicos de un fotógrafo. Sin él se muestra la web anterior de Flashealo, tal cual.
-// Con él, es el mismo diseño pero con su nombre, sus servicios, su WhatsApp y sus reservas.
-const FlashealoApp = ({ fotografo = null }) => {
+const FlashealoApp = () => {
   const navigate = useNavigate();
-  const esEmpresa = !fotografo || fotografo.slug === 'flashealo';
-  const slugReserva = fotografo ? fotografo.slug : 'flashealo';
-  const numeroWa = fotografo ? soloDigitos(fotografo.whatsapp) : '18292856200';
-  const serviciosForm = fotografo && fotografo.servicios && fotografo.servicios.length ? fotografo.servicios : (fotografo ? [] : SERVICIOS_BASE);
-  const reservasAbiertas = !fotografo || fotografo.reservas_abiertas !== false;
-  const [errorReserva, setErrorReserva] = useState('');
   const [scrolled, setScrolled] = useState(false);
   
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
@@ -141,18 +124,14 @@ const FlashealoApp = ({ fotografo = null }) => {
     nombre: '', 
     correo: '', 
     telefono: '', 
-    servicio: serviciosForm.length ? serviciosForm[0].nombre : (fotografo ? 'Otro' : 'Sesión Lifestyle / Pareja'), 
+    servicio: 'Sesión Lifestyle / Pareja', 
     fecha: '', 
     mensaje: '',
     contactar_whatsapp: true
   });
   
   const [seccionActiva, setSeccionActiva] = useState('sesiones');
-  const base = THEMES[seccionActiva];
-  const theme = fotografo && seccionActiva === 'sesiones'
-    ? { ...base, logoText: fotografo.nombre.toUpperCase(), aboutText: fotografo.bio || '', ...(esEmpresa ? {} : { testimonials: null, portfolio: null }) }
-    : base;
-  useEffect(() => { if (fotografo) document.title = `${fotografo.nombre} · Reservas`; }, [fotografo]);
+  const theme = THEMES[seccionActiva];
 
   useEffect(() => {
     const handleResize = () => {
@@ -170,41 +149,29 @@ const FlashealoApp = ({ fotografo = null }) => {
   }, []);
 
   const abrirWhatsApp = () => {
-    if (!numeroWa) return;
-    const mensaje = encodeURIComponent(`¡Hola! Me gustaría obtener más información sobre los servicios de ${fotografo ? fotografo.nombre : 'Flashealo'}.`);
-    window.open(`https://wa.me/${numeroWa}?text=${mensaje}`, '_blank');
-  };
-
-  // Si el fotógrafo cerró las reservas, los botones llevan a su WhatsApp.
-  const abrirReserva = () => {
-    if (!reservasAbiertas && numeroWa) { abrirWhatsApp(); return; }
-    setErrorReserva('');
-    setModalReserva(true);
+    const numero = "18292856200";
+    const mensaje = encodeURIComponent("¡Hola! Me gustaría obtener más información sobre los servicios de Flashealo.");
+    window.open(`https://wa.me/${numero}?text=${mensaje}`, '_blank');
   };
 
   const enviarReserva = async (e) => {
     e.preventDefault();
     setEnviando(true);
-    setErrorReserva('');
 
     const { nombre, correo, telefono, servicio, fecha, mensaje, contactar_whatsapp } = formData;
 
-    const { error } = await supabase.rpc('crear_reserva', {
-      p_slug: slugReserva, p_nombre: nombre, p_correo: correo, p_telefono: telefono,
-      p_servicio: servicio, p_fecha: fecha || null, p_mensaje: mensaje, p_whatsapp: contactar_whatsapp,
-    });
+    const { error } = await supabase
+      .from('reservas')
+      .insert([{ nombre, correo, telefono, servicio, fecha: fecha || null, mensaje, contactar_whatsapp }]);
 
     setEnviando(false);
 
     if (error) {
       console.error("Error de Supabase:", error);
-      if (numeroWa) {
-        const msjAuxiliar = encodeURIComponent(`Hola ${fotografo ? fotografo.nombre : 'Flashealo'}, solicito un presupuesto:\n\n*Nombre:* ${nombre}\n*Servicio:* ${servicio}\n*Fecha:* ${fecha || 'Por definir'}\n*Email:* ${correo}\n*Tel:* ${telefono}\n*Mensaje:* ${mensaje}`);
-        window.open(`https://wa.me/${numeroWa}?text=${msjAuxiliar}`, '_blank');
-        cerrarModal();
-      } else {
-        setErrorReserva('No se pudo enviar la solicitud. Inténtalo de nuevo en un momento.');
-      }
+      const numero = "18292856200";
+      const msjAuxiliar = encodeURIComponent(`Hola Flashealo, solicito un presupuesto:\n\n*Nombre:* ${nombre}\n*Servicio:* ${servicio}\n*Fecha:* ${fecha || 'Por definir'}\n*Email:* ${correo}\n*Tel:* ${telefono}\n*Mensaje:* ${mensaje}`);
+      window.open(`https://wa.me/${numero}?text=${msjAuxiliar}`, '_blank');
+      cerrarModal();
     } else {
       setReservaExitosa(true);
     }
@@ -212,14 +179,14 @@ const FlashealoApp = ({ fotografo = null }) => {
 
   const generarCalendarioGoogle = () => {
     const { nombre, correo, telefono, servicio, fecha, mensaje } = formData;
-    const titulo = encodeURIComponent(`Cita ${fotografo ? fotografo.nombre : 'Flashealo'}: ${nombre} - ${servicio}`);
-    const correoFlashealo = esEmpresa ? "info@flashealo.do" : "";
+    const titulo = encodeURIComponent(`Cita Flashealo: ${nombre} - ${servicio}`);
+    const correoFlashealo = "info@flashealo.do";
     const detalles = encodeURIComponent(`📌 CLIENTE: ${nombre}\n📧 CORREO: ${correo}\n📞 TELÉFONO: ${telefono}\n📸 SERVICIO: ${servicio}\n\n📝 MENSAJE:\n${mensaje}`);
     
     if (fecha) {
       const dateStr = fecha.replace(/-/g, '');
       const dates = `${dateStr}/${dateStr}`; 
-      const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${titulo}&details=${detalles}&dates=${dates}${correoFlashealo ? `&add=${correoFlashealo}` : ''}`;
+      const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${titulo}&details=${detalles}&dates=${dates}&add=${correoFlashealo}`;
       window.open(url, '_blank');
     }
   };
@@ -228,7 +195,7 @@ const FlashealoApp = ({ fotografo = null }) => {
     setModalReserva(false);
     setTimeout(() => {
       setReservaExitosa(false);
-      setFormData({ nombre: '', correo: '', telefono: '', servicio: serviciosForm.length ? serviciosForm[0].nombre : (fotografo ? 'Otro' : 'Sesión Lifestyle / Pareja'), fecha: '', mensaje: '', contactar_whatsapp: true });
+      setFormData({ nombre: '', correo: '', telefono: '', servicio: 'Sesión Lifestyle / Pareja', fecha: '', mensaje: '', contactar_whatsapp: true });
     }, 400);
   };
 
@@ -245,7 +212,6 @@ const FlashealoApp = ({ fotografo = null }) => {
     transition: { duration: 0.8, ease: [0.22, 1, 0.36, 1] }
   };
 
-  const urlInstagram = fotografo ? (fotografo.instagram ? `https://www.instagram.com/${fotografo.instagram}/` : '') : 'https://www.instagram.com/flashealo.studio/?utm_source=ig_web_button_share_sheet';
   const isSport = seccionActiva === 'sport';
   const isNavSolid = scrolled || menuAbierto || isSport;
   const navColor = isSport ? WHITE : (isNavSolid ? theme.text : WHITE);
@@ -293,7 +259,7 @@ const FlashealoApp = ({ fotografo = null }) => {
         
         {!isMobile && (
           <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-            {(fotografo ? [] : [{ id: 'sesiones', label: 'Sesiones' }, { id: 'estudio', label: 'Estudio' }, { id: 'sport', label: 'Sport' }]).map(tab => {
+            {[{ id: 'sesiones', label: 'Sesiones' }, { id: 'estudio', label: 'Estudio' }, { id: 'sport', label: 'Sport' }].map(tab => {
               const isTabActive = seccionActiva === tab.id;
               return (
                 <button key={tab.id} onClick={() => cambiarSeccion(tab.id)} style={{
@@ -320,15 +286,15 @@ const FlashealoApp = ({ fotografo = null }) => {
       <AnimatePresence>
         {isMobile && menuAbierto && (
           <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.3 }} style={{ position: 'fixed', inset: 0, background: isSport ? '#181816' : theme.bg, zIndex: 90, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 40 }}>
-            {(fotografo ? [] : [{ id: 'sesiones', label: 'Sesiones' }, { id: 'estudio', label: 'Estudio' }, { id: 'sport', label: 'Sport' }]).map(tab => (
+            {[{ id: 'sesiones', label: 'Sesiones' }, { id: 'estudio', label: 'Estudio' }, { id: 'sport', label: 'Sport' }].map(tab => (
               <button key={tab.id} onClick={() => cambiarSeccion(tab.id)} style={{ background: 'transparent', border: 'none', color: seccionActiva === tab.id ? (isSport ? '#A3392B' : theme.accent) : (isSport ? WHITE : theme.text), fontSize: 20, letterSpacing: '0.2em', textTransform: 'uppercase', fontFamily: 'var(--fl-serif)', opacity: seccionActiva === tab.id ? 1 : 0.5 }}>
                 {tab.label}
               </button>
             ))}
             <div style={{ width: 40, height: 1, background: theme.accent, margin: '20px 0' }} />
             <div style={{ display: 'flex', gap: 24, color: isSport ? WHITE : theme.text, opacity: 0.5 }}>
-              {urlInstagram && <a href={urlInstagram} target="_blank" rel="noreferrer" style={{ color: 'inherit' }}><SiInstagram size={20} /></a>}
-              {esEmpresa && <a href="mailto:info@flashealo.do" style={{ color: 'inherit' }}><Mail size={22} strokeWidth={1.5} /></a>}
+              <a href="https://www.instagram.com/flashealo.studio/?utm_source=ig_web_button_share_sheet" target="_blank" rel="noreferrer" style={{ color: 'inherit' }}><SiInstagram size={20} /></a>
+              <a href="mailto:info@flashealo.do" style={{ color: 'inherit' }}><Mail size={22} strokeWidth={1.5} /></a>
             </div>
           </motion.div>
         )}
@@ -375,9 +341,11 @@ const FlashealoApp = ({ fotografo = null }) => {
                     
                     <div>
                       <select style={inputStyle} value={formData.servicio} onChange={e => setFormData({...formData, servicio: e.target.value})} disabled={enviando}>
-                        {serviciosForm.map((sv, i) => (
-                          <option key={i} value={sv.nombre}>{sv.nombre}{sv.precio ? ` · desde ${sv.precio}` : ''}</option>
-                        ))}
+                        <option value="Sesión Lifestyle / Pareja">Sesión Lifestyle / Pareja</option>
+                        <option value="Cobertura de Boda">Cobertura de Boda / Elopement</option>
+                        <option value="Sesión de Estudio / Moda">Sesión de Estudio / Moda</option>
+                        <option value="Retrato Corporativo">Retrato Corporativo</option>
+                        <option value="Fotografía de Producto">Fotografía de Producto</option>
                         <option value="Otro">Otro servicio</option>
                       </select>
                     </div>
@@ -401,8 +369,6 @@ const FlashealoApp = ({ fotografo = null }) => {
                       />
                       <span>Prefiero que me contacten por WhatsApp 🇩🇴</span>
                     </label>
-
-                    {errorReserva && <p role="alert" style={{ color: '#A3392B', fontSize: 13, margin: 0 }}>{errorReserva}</p>}
 
                     <button type="submit" disabled={enviando} style={{
                       background: theme.text, color: theme.bg, marginTop: 12,
@@ -480,8 +446,8 @@ const FlashealoApp = ({ fotografo = null }) => {
                   <motion.div {...scrollAnim} style={{ flex: '1 1 400px' }}>
                     <p style={{ fontSize: 10, letterSpacing: '0.3em', color: theme.accent, textTransform: 'uppercase', fontWeight: 700, marginBottom: 20 }}>{theme.aboutTag}</p>
                     <h2 style={{ fontFamily: 'var(--fl-serif)', fontSize: 'clamp(32px, 4vw, 44px)', fontWeight: 300, lineHeight: 1.2, marginBottom: 32 }}>{theme.aboutTitle}</h2>
-                    {theme.aboutText && <p style={{ fontSize: 15, lineHeight: 1.8, opacity: 0.7, marginBottom: 40 }}>{theme.aboutText}</p>}
-                    <button onClick={abrirReserva} style={{
+                    <p style={{ fontSize: 15, lineHeight: 1.8, opacity: 0.7, marginBottom: 40 }}>{theme.aboutText}</p>
+                    <button onClick={() => setModalReserva(true)} style={{
                       background: 'transparent', color: theme.text, border: `1px solid ${theme.text}40`,
                       padding: '16px 36px', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.2em',
                       cursor: 'pointer', transition: 'all 0.3s ease',
@@ -502,7 +468,7 @@ const FlashealoApp = ({ fotografo = null }) => {
               </div>
 
               {/* PORTAFOLIO */}
-              {theme.portfolio && <div style={{ padding: isMobile ? '80px 24px' : '80px 48px', background: CREAM, color: '#181816' }}>
+              <div style={{ padding: isMobile ? '80px 24px' : '80px 48px', background: CREAM, color: '#181816' }}>
                 <div style={{ maxWidth: 1400, margin: '0 auto' }}>
                   <motion.div {...scrollAnim} style={{ textAlign: 'center', marginBottom: 60 }}>
                     <h3 style={{ fontSize: 11, letterSpacing: '0.25em', textTransform: 'uppercase', margin: 0, opacity: 0.6, fontWeight: 600 }}>{theme.galleryTitle}</h3>
@@ -516,7 +482,7 @@ const FlashealoApp = ({ fotografo = null }) => {
                     ))}
                   </motion.div>
                 </div>
-              </div>}
+              </div>
 
               {/* ── SECCIÓN DE TESTIMONIOS ── */}
               {theme.testimonials && (
@@ -568,7 +534,7 @@ const FlashealoApp = ({ fotografo = null }) => {
                   <h2 style={{ fontFamily: 'var(--fl-serif)', fontSize: 'clamp(28px, 5vw, 56px)', fontWeight: 300, marginBottom: 20 }}>{theme.ctaTitle}</h2>
                   <p style={{ fontSize: 14, opacity: 0.8, marginBottom: 50, letterSpacing: '0.05em' }}>{theme.ctaText}</p>
                   
-                  <button onClick={abrirReserva} style={{
+                  <button onClick={() => setModalReserva(true)} style={{
                     background: theme.bg, color: theme.text, padding: '18px 48px', fontSize: 11, fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.2em', border: 'none', cursor: 'pointer', transition: 'transform 0.3s ease', display: 'inline-flex', alignItems: 'center', gap: 12
                   }} onMouseEnter={e => !isMobile && (e.currentTarget.style.transform = 'translateY(-4px)')} onMouseLeave={e => !isMobile && (e.currentTarget.style.transform = 'translateY(0)')}>
                     <Calendar size={16} /> SOLICITAR PRESUPUESTO
@@ -593,7 +559,7 @@ const FlashealoApp = ({ fotografo = null }) => {
       {seccionActiva !== 'sport' && (
         <div style={{ position: 'fixed', bottom: isMobile ? 24 : 32, right: isMobile ? 24 : 32, display: 'flex', flexDirection: 'column', gap: 12, zIndex: 10 }}>
           
-          <button onClick={abrirReserva} style={{
+          <button onClick={() => setModalReserva(true)} style={{
             width: 50, height: 50, borderRadius: '50%', background: 'rgba(255,255,255,0.1)', 
             backdropFilter: 'blur(12px)', border: `1px solid ${theme.text}33`,
             display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
@@ -602,14 +568,14 @@ const FlashealoApp = ({ fotografo = null }) => {
             <Calendar size={20} strokeWidth={1.5} />
           </button>
 
-          {numeroWa && <button onClick={abrirWhatsApp} style={{
+          <button onClick={abrirWhatsApp} style={{
             width: 50, height: 50, borderRadius: '50%', background: 'rgba(255,255,255,0.1)', 
             backdropFilter: 'blur(12px)', border: `1px solid ${theme.text}33`,
             display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
             color: theme.text, boxShadow: '0 8px 32px rgba(0,0,0,0.1)', transition: 'all 0.3s ease'
           }} title="Contactar por WhatsApp" onMouseEnter={e => !isMobile && (e.currentTarget.style.transform = 'scale(1.08)')} onMouseLeave={e => !isMobile && (e.currentTarget.style.transform = 'scale(1)')}>
             <SiWhatsapp size={22} />
-          </button>}
+          </button>
         </div>
       )}
 
@@ -619,18 +585,18 @@ const FlashealoApp = ({ fotografo = null }) => {
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
               <span style={{ width: 2, height: 16, background: theme.accent, display: 'inline-block', transition: 'background-color 0.5s ease' }} />
-              <span style={{ fontFamily: 'var(--fl-serif)', fontSize: 14, letterSpacing: '0.18em', textTransform: 'uppercase', color: WHITE }}>{fotografo ? fotografo.nombre : 'Flashealo'}</span>
+              <span style={{ fontFamily: 'var(--fl-serif)', fontSize: 14, letterSpacing: '0.18em', textTransform: 'uppercase', color: WHITE }}>Flashealo</span>
             </div>
-            <p style={{ fontSize: 8, color: 'rgba(255, 255, 255, 0.43)', letterSpacing: '0.22em', textTransform: 'uppercase', margin: 0 }}>{fotografo ? <>Página creada con <a href="/" style={{ color: 'inherit' }}>Flashealo</a></> : 'Estudio & Sports Technology'}</p>
+            <p style={{ fontSize: 8, color: 'rgba(255, 255, 255, 0.43)', letterSpacing: '0.22em', textTransform: 'uppercase', margin: 0 }}>Estudio &amp; Sports Technology</p>
           </div>
           
           <div style={{ display: 'flex', gap: 28, alignItems: 'center' }}>
-            {urlInstagram && <a href={urlInstagram} target="_blank" rel="noreferrer" style={{ color: 'rgba(255,255,255,0.4)', transition: 'color 0.4s ease', display: 'flex', alignItems: 'center' }} onMouseEnter={e => e.currentTarget.style.color = WHITE} onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.4)'}>
+            <a href="https://www.instagram.com/flashealo.studio/?utm_source=ig_web_button_share_sheet" target="_blank" rel="noreferrer" style={{ color: 'rgba(255,255,255,0.4)', transition: 'color 0.4s ease', display: 'flex', alignItems: 'center' }} onMouseEnter={e => e.currentTarget.style.color = WHITE} onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.4)'}>
               <SiInstagram size={18} />
-            </a>}
-            {esEmpresa && <a href="mailto:info@flashealo.do" style={{ color: 'rgba(255,255,255,0.4)', transition: 'color 0.4s ease', display: 'flex', alignItems: 'center' }} onMouseEnter={e => e.currentTarget.style.color = WHITE} onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.4)'}>
+            </a>
+            <a href="mailto:info@flashealo.do" style={{ color: 'rgba(255,255,255,0.4)', transition: 'color 0.4s ease', display: 'flex', alignItems: 'center' }} onMouseEnter={e => e.currentTarget.style.color = WHITE} onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.4)'}>
               <Mail size={18} strokeWidth={1.5} />
-            </a>}
+            </a>
           </div>
         </div>
       </footer>

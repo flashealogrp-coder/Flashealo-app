@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from './supabaseClient';
 import { urlFotoPublica } from './urlFotos';
@@ -42,6 +42,7 @@ const GaleriaCliente = () => {
   const [fotosReales, setFotosReales] = useState([]);
   const [fotosGenerales, setFotosGenerales] = useState([]);
   const [mostrarCantidadGenerales, setMostrarCantidadGenerales] = useState(12);
+  const centinelaRef = useRef(null);
   
   const [identidadSeleccionada, setIdentidadSeleccionada] = useState(null);
   const [identidadesEvento, setIdentidadesEvento] = useState([]);
@@ -92,6 +93,17 @@ const GaleriaCliente = () => {
     };
     if (slug) fetchEventoPorSlug();
   }, [slug]);
+
+  // Carga continua: al acercarse al final de la cuadrícula se muestran más fotos, hasta completar el total.
+  useEffect(() => {
+    const el = centinelaRef.current;
+    if (!el || mostrarCantidadGenerales >= fotosGenerales.length) return undefined;
+    const obs = new IntersectionObserver((entradas) => {
+      if (entradas.some((e) => e.isIntersecting)) setMostrarCantidadGenerales((prev) => prev + 24);
+    }, { rootMargin: '1200px 0px' });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [mostrarCantidadGenerales, fotosGenerales.length, modoVista, autenticado]);
 
   const cargarAvatares = async (eventoId) => {
     setCargando(true);
@@ -418,11 +430,8 @@ const GaleriaCliente = () => {
                     )}
                     
                     {mostrarCantidadGenerales < fotosGenerales.length && (
-                      /* Redujimos el mt-16 a mt-12 */
-                      <div className="flex justify-center mt-12">
-                        <button type="button" onClick={() => setMostrarCantidadGenerales(prev => prev + 12)} className="px-12 py-4 bg-fl-lino border border-fl-borde text-[#181816] text-[10px] uppercase tracking-[0.3em] hover:border-fl-texto hover:bg-fl-arena transition-all duration-500 font-bold">
-                          Cargar más fotografías
-                        </button>
+                      <div ref={centinelaRef} aria-hidden="true" className="flex justify-center py-10">
+                        <Loader2 className="animate-spin text-[#C8B69E]" size={24} strokeWidth={1} />
                       </div>
                     )}
                   </section>

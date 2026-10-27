@@ -453,6 +453,9 @@ useEffect(() => {
   };
 
   const entrarAlEvento = async (ev) => {
+    if (estadoSubida.activa) { setMensaje({ tipo: 'error', texto: `Hay una subida en curso en "${eventoActivo?.nombre || 'otra colección'}". Espera a que termine para abrir otra.` }); return; }
+    // Cada colección empieza limpia: sin archivos en cola ni el cargador abierto de la anterior.
+    setArchivosUploader([]); setMostrarUploader(false); setArrastrando(false);
     setEventoActivo(ev); setFotosSeleccionadas([]); setSeccionDashboard('fotos'); setVista('dashboard'); setScrolledPastBanner(false);
     let { data: carpetasData } = await supabase.from('carpetas_evento').select('*').eq('evento_id', ev.id).order('created_at', { ascending: true });
     if (!carpetasData || carpetasData.length === 0) {
@@ -1650,6 +1653,7 @@ const destruirPerfilFalso = async () => {
                                         return <span style={{ fontSize: 11, color: TAUPE, marginBottom: 14 }}>{nuevos > 0 ? `Se llenará "${carpetaActiva?.nombre}" y se crearán ${nuevos} sets nuevos (${tr.filter(t => t.destino === 'nuevo').map(t => t.nombre).join(', ')})` : `Todo cabe en "${carpetaActiva?.nombre}"`}</span>;
                                       })()}
                                       <button onClick={iniciarSubidaMasiva} style={{ background: INK, color: WHITE, border: 'none', padding: '12px 32px', borderRadius: 4, cursor: 'pointer', fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Iniciar Subida</button>
+                                      <button onClick={() => setArchivosUploader([])} style={{ marginTop: 10, background: 'none', border: 'none', color: TAUPE, fontSize: 11, cursor: 'pointer', textDecoration: 'underline' }}>Vaciar cola</button>
                                     </div>
                                   )}
                                 </div>

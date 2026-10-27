@@ -320,7 +320,7 @@ const GaleriaCliente = () => {
         onClick={() => openLightbox(arrayOrigen, index)}
       >
         <img src={foto.src} alt="Galería" decoding="async" className={imgClass}
-          style={{ transform: 'translateZ(0)', ...(modoVista === 'editorial' && centrosCara[foto.path] ? { objectPosition: `${centrosCara[foto.path].x}% ${centrosCara[foto.path].y}%` } : {}) }} />
+          style={{ ...(modoVista === 'editorial' && centrosCara[foto.path] ? { objectPosition: `${centrosCara[foto.path].x}% ${centrosCara[foto.path].y}%` } : {}) }} />
         
         {/* Hover Efecto Completo */}
         <div className="absolute inset-0 bg-fl-texto/0 group-hover:bg-fl-texto/30 active:bg-fl-texto/30 transition-colors duration-500 opacity-0 group-hover:opacity-100 active:opacity-100 flex items-center justify-center pointer-events-none z-20">

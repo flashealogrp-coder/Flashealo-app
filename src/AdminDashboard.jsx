@@ -454,12 +454,24 @@ useEffect(() => {
       Object.keys(datosGuardar).forEach(key => { if (datosGuardar[key] === '') datosGuardar[key] = null; });
       if (!eventoEditandoId) delete datosGuardar.id; 
 
+      // El enlace público (/g/<enlace>) es único en toda la plataforma: dos fotógrafos pueden llamar igual a su colección.
+      const enlaceEnUso = (er) => er && er.code === '23505' && /url_slug/.test(`${er.message || ''} ${er.details || ''}`);
       if (eventoEditandoId) {
-        await supabase.from('eventos').update(datosGuardar).eq('id', eventoEditandoId);
+        const { error: errU } = await supabase.from('eventos').update(datosGuardar).eq('id', eventoEditandoId);
+        if (enlaceEnUso(errU)) throw new Error('Ese enlace público ya lo usa otra colección. Cambia el enlace y guarda de nuevo.');
+        if (errU) throw errU;
         setMensaje({ tipo: 'exito', texto: 'Colección actualizada' });
       } else {
-        await supabase.from('eventos').insert([datosGuardar]);
-        setMensaje({ tipo: 'exito', texto: 'Colección creada exitosamente' });
+        let intento = { ...datosGuardar };
+        const base = datosGuardar.url_slug || 'coleccion';
+        let res;
+        for (let i = 0; i < 6; i++) {
+          res = await supabase.from('eventos').insert([intento]);
+          if (!enlaceEnUso(res.error)) break;
+          intento = { ...intento, url_slug: `${base}-${Math.random().toString(36).slice(2, 5)}` };
+        }
+        if (res.error) throw res.error;
+        setMensaje({ tipo: 'exito', texto: intento.url_slug !== datosGuardar.url_slug ? `Colección creada. Ese enlace ya existía, así que el tuyo es /g/${intento.url_slug} (puedes cambiarlo al editar).` : 'Colección creada exitosamente' });
       }
       await cargarEventos(); setVista('grid'); setPortadaFile(null); setLogoFile(null); setEventoEditandoId(null);
     } catch (error) { 

@@ -7,8 +7,7 @@
 .fs-hero{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:clamp(1.5rem,4vw,4rem);align-items:stretch}
 .fs-titulo{font-family:var(--fs-depo);font-weight:800;font-style:italic;text-transform:uppercase;line-height:.92;letter-spacing:-.005em;
   font-size:clamp(3.1rem,8.6vw,8.2rem);margin:0 0 1.5rem;color:var(--fs-carbon)}
-.fs-titulo .fs-palabra{display:inline-block;min-width:3.4em;color:var(--fs-carbon);position:relative}
-.fs-titulo .fs-palabra::after{content:'';position:absolute;left:0;right:0;bottom:.04em;height:.07em;background:var(--fs-carbon);transform:skewX(-18deg)}
+.fs-titulo .fs-palabra{display:inline-block;min-width:3.4em;color:#B5483A;position:relative}
 .fs-lead{font-size:1rem;line-height:1.65;color:var(--fl-grafito);max-width:34rem;margin:0 0 2rem}
 
 /* Barra de acción */

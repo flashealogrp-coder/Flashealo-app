@@ -3,7 +3,7 @@ import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { generarDerivadas, escribirAtomico, rutasDerivadas } from './procesar.mjs';
+import { generarDerivadas, escribirAtomico, rutasDerivadas, AJUSTES } from './procesar.mjs';
 import { crearCola } from './cola.mjs';
 
 const log = (nivel, msg, extra = {}) => console.log(JSON.stringify({ t: new Date().toISOString(), nivel, msg, ...extra }));
@@ -118,7 +118,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const sharpMod = (await import('sharp')).default;
   sharpMod.concurrency(Number(env.SHARP_HILOS || 2));
   sharpMod.cache({ memory: 128, files: 0, items: 50 });
-  const servicio = crearServicio({ datos, cola, marcaPng, intervaloMs: Number(env.INTERVALO_S || 20) * 1000, concurrencia: Number(env.CONCURRENCIA || 2) });
+  const servicio = crearServicio({ datos, cola, marcaPng, intervaloMs: Number(env.INTERVALO_S || 20) * 1000, concurrencia: Number(env.CONCURRENCIA || 2), ajustes: { ...AJUSTES, marcaAgua: env.MARCA_AGUA === '1' } });
   const srv = crearHttp(servicio, env.INTERNAL_TOKEN || '');
   srv.listen(Number(env.PORT || 3100), () => log('info', 'derivadas escuchando'));
   servicio.iniciar();

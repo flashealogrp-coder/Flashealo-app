@@ -2560,7 +2560,7 @@ const destruirPerfilFalso = async () => {
                         <p style={{ color: TAUPE, fontSize: 13, margin: 0 }}>Esta colección todavía no tiene fotos. Sube alguna o usa "Subir imagen".</p>
                       ) : (
                         <>
-                          <p style={{ color: TAUPE, fontSize: 12, margin: '0 0 14px' }}>Elige una foto. En el siguiente paso ajustas el encuadre. El público la verá con la marca de agua.</p>
+                          <p style={{ color: TAUPE, fontSize: 12, margin: '0 0 14px' }}>Elige una foto. En el siguiente paso ajustas el encuadre.</p>
                           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: 8 }}>
                             {fotosEvento.slice(0, portadaMostrar).map((f) => (
                               <button key={f.id} onClick={() => elegirFotoParaPortada(f)} title="Usar como portada" style={{ padding: 0, border: `1px solid ${BORDER}`, background: '#E2DFD9', borderRadius: 3, cursor: 'pointer', aspectRatio: '4 / 3', overflow: 'hidden' }}>
@@ -2596,7 +2596,7 @@ const destruirPerfilFalso = async () => {
                 <div role="dialog" aria-modal="true" aria-label="Encuadre de la portada" onClick={() => setModalPortada(null)} style={{ position: 'fixed', inset: 0, zIndex: 310, background: 'rgba(24,24,22,0.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
                   <div onClick={(e) => e.stopPropagation()} style={{ background: WHITE, width: '100%', maxWidth: 720, maxHeight: '92vh', overflowY: 'auto', borderRadius: 6, padding: 24 }}>
                     <h2 style={{ margin: '0 0 6px', fontSize: 18, fontWeight: 500, fontFamily: 'var(--fl-serif)' }}>Encuadra la portada</h2>
-                    <p style={{ margin: '0 0 16px', fontSize: 12, color: TAUPE }}>Arrastra la imagen para elegir qué parte se ve. Aquí ves la marca de agua, pero el público verá la portada limpia.</p>
+                    <p style={{ margin: '0 0 16px', fontSize: 12, color: TAUPE }}>Arrastra la imagen para elegir qué parte se ve.</p>
                     <div onPointerDown={handlePointerDown} onPointerMove={handlePointerMove} style={{ position: 'relative', width: '100%', aspectRatio: '16 / 9', background: INK, overflow: 'hidden', borderRadius: 4, cursor: isDraggingPortada ? 'grabbing' : 'grab', touchAction: 'none', userSelect: 'none' }}>
                       <img src={origen || ''} alt="" draggable={false} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: posCss, pointerEvents: 'none' }} />
                     </div>

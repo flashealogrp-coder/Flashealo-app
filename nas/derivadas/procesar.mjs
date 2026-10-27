@@ -1,11 +1,12 @@
-// Genera, a partir del original, la versión web con marca de agua y la miniatura.
+// Genera, a partir del original, la versión web (1600 px) y la miniatura. Por decisión de Flashealo NO lleva marca de agua
+// (AJUSTES.marcaAgua = false; se puede reactivar con MARCA_AGUA=1 en el servicio de derivadas).
 // El original nunca se modifica ni se sirve al público.
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import sharp from 'sharp';
 
-export const AJUSTES = { webPx: 1600, thumbPx: 480, calidadWeb: 80, calidadThumb: 72, opacidadMarca: 0.34 };
+export const AJUSTES = { webPx: 1600, thumbPx: 480, calidadWeb: 80, calidadThumb: 72, opacidadMarca: 0.34, marcaAgua: false };
 
 // o/<resto>  ->  watermarks/<resto>.jpg  y  miniaturas/<resto>.jpg
 export function rutasDerivadas(urlOriginal) {
@@ -33,9 +34,10 @@ export async function generarDerivadas(origen, marcaPng, ajustes = AJUSTES) {
     .resize({ width: ajustes.webPx, height: ajustes.webPx, fit: 'inside', withoutEnlargement: true })
     .toBuffer({ resolveWithObject: true });
 
+  let colocar = [];
+  if (ajustes.marcaAgua) {
   const { marca, w, h } = await prepararMarca(marcaPng, info.width, ajustes.opacidadMarca);
   // Rejilla escalonada: recortar la foto no elimina la marca.
-  const colocar = [];
   const filas = 3, cols = 3;
   for (let r = 0; r < filas; r++) {
     for (let c = 0; c < cols; c++) {
@@ -46,7 +48,9 @@ export async function generarDerivadas(origen, marcaPng, ajustes = AJUSTES) {
       colocar.push({ input: marca, left, top });
     }
   }
-  const conMarca = await sharp(redim).composite(colocar).jpeg({ quality: ajustes.calidadWeb, mozjpeg: true, progressive: true }).toBuffer();
+  }
+  const base2 = colocar.length ? sharp(redim).composite(colocar) : sharp(redim);
+  const conMarca = await base2.jpeg({ quality: ajustes.calidadWeb, mozjpeg: true, progressive: true }).toBuffer();
   const thumb = await sharp(conMarca).resize({ width: ajustes.thumbPx, height: ajustes.thumbPx, fit: 'inside', withoutEnlargement: true })
     .jpeg({ quality: ajustes.calidadThumb, mozjpeg: true }).toBuffer();
   return { web: conMarca, thumb, ancho: info.width, alto: info.height };

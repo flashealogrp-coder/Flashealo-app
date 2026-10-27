@@ -227,11 +227,6 @@ const GaleriaCliente = () => {
       >
         <img src={foto.src} alt="Galería" loading="lazy" className={imgClass} />
         
-        {/* Marca de Agua */}
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-          <span style={{ fontFamily: 'var(--fl-serif)', fontSize: 'clamp(24px, 4vw, 48px)', letterSpacing: '0.3em', textTransform: 'uppercase', color: WHITE, opacity: 0.35, transform: 'rotate(-25deg)', mixBlendMode: 'overlay', userSelect: 'none' }}>Flashealo</span>
-        </div>
-
         {/* Hover Efecto Completo */}
         <div className="absolute inset-0 bg-fl-texto/0 group-hover:bg-fl-texto/30 active:bg-fl-texto/30 transition-colors duration-500 opacity-0 group-hover:opacity-100 active:opacity-100 flex items-center justify-center pointer-events-none z-20">
           <span className="text-white text-[10px] uppercase tracking-[0.2em] backdrop-blur-md bg-fl-lino/10 px-8 py-3 shadow-2xl border border-white/20 transform translate-y-4 group-hover:translate-y-0 transition-all duration-500">

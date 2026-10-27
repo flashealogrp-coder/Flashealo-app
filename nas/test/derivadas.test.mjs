@@ -5,7 +5,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import sharp from 'sharp';
-import { generarDerivadas, rutasDerivadas } from '../derivadas/procesar.mjs';
+import { generarDerivadas, rutasDerivadas, AJUSTES } from '../derivadas/procesar.mjs';
 import { crearCola } from '../derivadas/cola.mjs';
 import { crearServicio, crearHttp } from '../derivadas/index.mjs';
 
@@ -26,7 +26,7 @@ test('rutasDerivadas: mapea o/... y rechaza lo raro', () => {
 
 test('generarDerivadas: tamaños, marca visible y metadatos eliminados', async () => {
   const origen = await jpeg(4000, 3000);
-  const d = await generarDerivadas(origen, MARCA);
+  const d = await generarDerivadas(origen, MARCA, { ...AJUSTES, marcaAgua: true });
   const mw = await sharp(d.web).metadata(), mt = await sharp(d.thumb).metadata();
   assert.equal(mw.width, 1600); assert.equal(mw.height, 1200);
   assert.equal(mt.width, 480); assert.equal(mt.height, 360);
@@ -40,6 +40,14 @@ test('generarDerivadas: tamaños, marca visible y metadatos eliminados', async (
   const st = await sharp(d.thumb).stats();
   assert.ok(st.channels[0].stdev > 5);
   assert.ok(d.web.length < origen.length * 3);
+});
+
+test('generarDerivadas: por defecto NO pone marca de agua', async () => {
+  const origen = await jpeg(4000, 3000);
+  const d = await generarDerivadas(origen, MARCA);
+  const plano = await sharp(await sharp(origen).resize(1600).jpeg({ quality: 80 }).toBuffer()).stats();
+  const limpia = await sharp(d.web).stats();
+  assert.ok(Math.abs(limpia.channels[0].stdev - plano.channels[0].stdev) < 3, `stdev ${limpia.channels[0].stdev} vs ${plano.channels[0].stdev}`);
 });
 
 test('generarDerivadas: respeta la orientación EXIF y no agranda fotos pequeñas', async () => {

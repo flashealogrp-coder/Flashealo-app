@@ -100,21 +100,20 @@ const FlashealoSport = ({ isMobile }) => {
     try {
       setModalCamaraAbierto(false); 
       
-      const URL_API = `${import.meta.env.VITE_IA_PUBLICA || 'https://api.flashealo.do'}/vectorizar-selfie/`;      
-      
-      // 🚨 VOLVEMOS A TU CÓDIGO ORIGINAL (Enviando JSON con Base64)
+      // La selfie se procesa en el NAS (servicio de rostros propio), por la misma dirección de la web.
+      const URL_API = '/api/selfie';
+
       const response = await fetch(URL_API, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imagen_base64: fotosBiometricas.frente }) 
+        body: JSON.stringify({ imagen_base64: fotosBiometricas.frente })
       });
 
-      if (!response.ok) {
-         throw new Error("No pudimos procesar el rostro.");
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !Array.isArray(data.vector)) {
+        throw new Error(data.error || "No pudimos procesar el rostro.");
       }
 
-      const data = await response.json();
-      
       // Viajamos a la nueva página llevando la selfie y el vector
       navigate('/mis-resultados', { 
         state: { 
@@ -125,7 +124,7 @@ const FlashealoSport = ({ isMobile }) => {
 
     } catch (error) {
       console.error(error);
-      alert("Error al analizar el rostro. Revisa tu conexión o iluminación.");
+      alert(error.message && error.message.length < 140 ? error.message : "Error al analizar el rostro. Revisa tu conexión o iluminación.");
     }
   };
 

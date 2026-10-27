@@ -17,6 +17,7 @@ export function leerConfig(env = process.env) {
     tokenInterno: env.INTERNAL_TOKEN || '',
     iaUrl: env.IA_MODAL_URL || '',
     iaClave: env.IA_SHARED_KEY || '',
+    selfieUrl: (env.SELFIE_URL || '').replace(/\/$/, ''),            // servicio interno de rostros (flashealo-selfie)
     webPublica: (env.WEB_PUBLIC_URL || '').replace(/\/$/, ''),          // p. ej. https://www.flashealo.do (para los enlaces que recibe la IA)
     iaUrlTtlMs: num(env.IA_URL_TTL_S, 10800) * 1000,
   };

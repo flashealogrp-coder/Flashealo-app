@@ -442,12 +442,37 @@ useEffect(() => {
     setCargando(false);
   };
 
+  // Borrado físico de archivos en el almacenamiento de Supabase (avatares de rostros, portadas, logos).
+  const borrarDeStorage = async (bucket, rutas) => {
+    const limpias = [...new Set((rutas || []).filter(r => typeof r === 'string' && r && !r.startsWith('http') && !r.includes('default.jpg')))];
+    if (!limpias.length) return;
+    try { await supabase.storage.from(bucket).remove(limpias); } catch (e) { console.error('No se pudo borrar de storage', e); }
+  };
+  const borrarCarpetaStorage = async (bucket, carpeta) => {
+    try {
+      for (let ronda = 0; ronda < 200; ronda++) {
+        const { data } = await supabase.storage.from(bucket).list(carpeta, { limit: 1000 });
+        const archivos = (data || []).filter(o => o.name && o.id !== null).map(o => `${carpeta}/${o.name}`);
+        if (!archivos.length) break;
+        await supabase.storage.from(bucket).remove(archivos);
+        if (archivos.length < 1000) break;
+      }
+    } catch (e) { console.error('No se pudo vaciar la carpeta de storage', e); }
+  };
+  // De una portada/logo guardada ("portadas/x.jpg@50,50" o una URL) devuelve la ruta dentro del bucket assets, si lo es.
+  const rutaAssets = (valor) => { const m = /(?:^|\/)((?:portadas|logos)\/[^@?#]+)/.exec(String(valor || '')); return m ? m[1] : null; };
+
   const eliminarColeccionCompleta = async () => {
     if (textoConfirmacion !== formData.nombre) return;
     setCargando(true);
     try {
       const prefijoCarpeta = formData.url_slug || formData.id; 
-      await supabase.from('eventos').delete().eq('id', eventoEditandoId);
+      const evBorrar = listaEventos.find(e => e.id === eventoEditandoId) || {};
+      const { error: errBorrar } = await supabase.from('eventos').delete().eq('id', eventoEditandoId);
+      if (errBorrar) { setMensaje({ tipo: 'error', texto: `No se pudo eliminar la colección (¿tiene ventas registradas?): ${errBorrar.message}` }); setCargando(false); return; }
+      // Ya sin el evento en la base: se borran del disco los rostros, la portada y el logo (las fotos las borra el NAS).
+      await borrarCarpetaStorage('fotos', `avatares/${eventoEditandoId}`);
+      await borrarDeStorage('assets', [evBorrar.portada_url, evBorrar.url_portada, evBorrar.logo_url, evBorrar.banner_url, formData.portada_url, formData.logo_url].map(rutaAssets));
       try { await llamarIA({ accion: "eliminar_coleccion", prefijo: prefijoCarpeta }); } catch (err) { }
       setMensaje({ tipo: 'exito', texto: 'Colección e imágenes eliminadas.' });
       setVista('grid'); setEventoEditandoId(null); setMostrarConfirmacionBorrar(false); setTextoConfirmacion(''); await cargarEventos();
@@ -537,6 +562,7 @@ const fusionarConJugador = async (idDestino) => {
       try {
         await llamarIA({ accion: "eliminar_fotos", rutas: [avatarABorrar] });
       } catch (err) { console.error("Error borrando avatar físico:", err); }
+      await borrarDeStorage('fotos', [avatarABorrar]);
     }
 
     setJugadorSeleccionado(null); 
@@ -557,6 +583,7 @@ const destruirPerfilFalso = async () => {
       try {
         await llamarIA({ accion: "eliminar_fotos", rutas: [avatarABorrar] });
       } catch (err) { console.error("Error borrando avatar físico:", err); }
+      await borrarDeStorage('fotos', [avatarABorrar]);
     }
 
     setJugadorSeleccionado(null); 
@@ -850,10 +877,12 @@ const destruirPerfilFalso = async () => {
   };
 
   const hacerPortada = async (valor) => {
+    const anterior = rutaAssets(eventoActivo?.portada_url);
     const { error } = await supabase.from('eventos').update({ portada_url: valor }).eq('id', eventoActivo.id);
     if (error) { setMensaje({ tipo: 'error', texto: 'No se pudo guardar la portada.' }); return false; }
     setEventoActivo(prev => ({ ...prev, portada_url: valor }));
     setListaEventos(prev => prev.map(ev => ev.id === eventoActivo.id ? { ...ev, portada_url: valor } : ev));
+    if (anterior && anterior !== rutaAssets(valor)) await borrarDeStorage('assets', [anterior]);   // no deja la portada vieja en el disco
     setMensaje({ tipo: 'exito', texto: 'Portada actualizada.' });
     return true;
   };

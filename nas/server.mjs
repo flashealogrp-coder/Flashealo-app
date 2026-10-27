@@ -10,6 +10,7 @@ import { manejadorIA } from './lib/ia.mjs';
 import { manejadorFotoIA } from './lib/fotosIA.mjs';
 import { manejadorSelfie } from './lib/selfie.mjs';
 import { manejadorDescargaSolicitud, manejadorDescargaArchivo } from './lib/descargas.mjs';
+import { purgarPapelera } from './lib/borrado.mjs';
 import { manejadorZipSolicitud, manejadorZipArchivo } from './lib/descargaZip.mjs';
 
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.ico': 'image/x-icon', '.json': 'application/json', '.webmanifest': 'application/manifest+json', '.woff2': 'font/woff2', '.webp': 'image/webp', '.txt': 'text/plain' };
@@ -104,5 +105,11 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   srv.requestTimeout = 0;            // las subidas de video pueden tardar
   srv.headersTimeout = 30_000;
   srv.listen(cfg.puerto, () => console.log(JSON.stringify({ nivel: 'info', msg: `web escuchando en ${cfg.puerto}` })));
+  // Vacía la papelera heredada (con PAPELERA_DIAS=0 se borra todo) y revisa cada 24 h.
+  const limpiarPapelera = () => purgarPapelera(cfg.datos, cfg.papeleraDias)
+    .then((n) => { if (n) console.log(JSON.stringify({ nivel: 'info', msg: `papelera: ${n} carpetas de día eliminadas` })); })
+    .catch((e) => console.error(JSON.stringify({ nivel: 'error', msg: 'no se pudo limpiar la papelera', error: String(e && e.message) })));
+  limpiarPapelera();
+  setInterval(limpiarPapelera, 24 * 3600_000).unref();
   for (const s of ['SIGTERM', 'SIGINT']) process.on(s, () => srv.close(() => process.exit(0)));
 }

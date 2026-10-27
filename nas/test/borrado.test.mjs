@@ -25,9 +25,9 @@ test('claves: acepta o/, watermarks/ y miniaturas/; rechaza lo ajeno', () => {
   for (const m of ['', null, 'avatares/a.jpg', 'o/../../etc/passwd', 'o/a b', 'https://x/o/a', 'watermarks/a.png', 'o/']) assert.equal(claves(m), null, String(m));
 });
 
-test('borrarFotos: manda original y derivadas a la papelera, no las elimina', async () => {
+test('borrarFotos con papelera opcional: manda original y derivadas a la papelera', async () => {
   const d = datos();
-  const r = await borrarFotos(d, ['o/fiesta/a/1_x.png', 'avatares/x.jpg', 'o/no/existe.jpg']);
+  const r = await borrarFotos(d, ['o/fiesta/a/1_x.png', 'avatares/x.jpg', 'o/no/existe.jpg'], { papelera: true });
   assert.equal(r.movidos, 3); assert.equal(r.omitidas, 1);
   assert.ok(!fs.existsSync(path.join(d, 'originales/fiesta/a/1_x.png')));
   assert.ok(!fs.existsSync(path.join(d, 'watermarks/fiesta/a/1_x.png.jpg')));
@@ -35,13 +35,13 @@ test('borrarFotos: manda original y derivadas a la papelera, no las elimina', as
   assert.ok(fs.existsSync(path.join(d, 'originales/fiesta/a/2_y.jpg')), 'las demás fotos no se tocan');
   // borrar dos veces el mismo nombre no pierde nada
   fs.writeFileSync(path.join(d, 'originales/fiesta/a/1_x.png'), 'nuevo');
-  await borrarFotos(d, ['o/fiesta/a/1_x.png']);
+  await borrarFotos(d, ['o/fiesta/a/1_x.png'], { papelera: true });
   assert.equal(fs.readdirSync(path.join(d, 'papelera', hoy, 'originales/fiesta/a')).length, 2);
 });
 
-test('borrarColeccion: mueve la carpeta del evento completa y valida el prefijo', async () => {
+test('borrarColeccion con papelera opcional: mueve la carpeta del evento y valida el prefijo', async () => {
   const d = datos();
-  const r = await borrarColeccion(d, 'fiesta');
+  const r = await borrarColeccion(d, 'fiesta', { papelera: true });
   assert.equal(r.movidos, 3);
   assert.ok(!fs.existsSync(path.join(d, 'originales/fiesta')));
   assert.ok(fs.existsSync(path.join(d, 'originales/otra/b/3_z.jpg')));
@@ -59,6 +59,29 @@ test('purgarPapelera: elimina solo días de más de 30 días', async () => {
   assert.ok(!fs.existsSync(path.join(d, 'papelera/2020-01-01')));
   assert.ok(fs.existsSync(path.join(d, 'papelera', hoy)));
   assert.equal(await purgarPapelera(path.join(d, 'no-hay'), 30), 0);
+});
+
+test('borrado por defecto: elimina de verdad, sin papelera, y limpia carpetas vacías', async () => {
+  const d = datos();
+  const r = await borrarFotos(d, ['o/fiesta/a/1_x.png']);
+  assert.equal(r.movidos, 3);
+  assert.ok(!fs.existsSync(path.join(d, 'originales/fiesta/a/1_x.png')));
+  assert.ok(!fs.existsSync(path.join(d, 'papelera')), 'no debe crear papelera');
+  assert.ok(!fs.existsSync(path.join(d, 'watermarks/fiesta')), 'la carpeta vacía se quita');
+  assert.ok(fs.existsSync(path.join(d, 'originales/fiesta/a/2_y.jpg')), 'las demás fotos siguen');
+  assert.ok(fs.existsSync(path.join(d, 'originales')) && fs.existsSync(path.join(d, 'watermarks')), 'las carpetas raíz se conservan');
+  const c = await borrarColeccion(d, 'otra');
+  assert.equal(c.movidos, 2);
+  assert.ok(!fs.existsSync(path.join(d, 'originales/otra')) && !fs.existsSync(path.join(d, 'watermarks/otra')));
+  assert.ok(!fs.existsSync(path.join(d, 'papelera')));
+});
+
+test('purgarPapelera con 0 días vacía toda la papelera heredada', async () => {
+  const d = datos();
+  for (const dia of ['2020-01-01', hoy, 'texto']) fs.mkdirSync(path.join(d, 'papelera', dia), { recursive: true });
+  assert.equal(await purgarPapelera(d, 0), 2);
+  assert.ok(!fs.existsSync(path.join(d, 'papelera', hoy)) && !fs.existsSync(path.join(d, 'papelera/2020-01-01')));
+  assert.ok(fs.existsSync(path.join(d, 'papelera/texto')), 'no toca carpetas que no son fechas');
 });
 
 test('API /api/ia eliminar_*: solo admin y sin tocar nada si no lo es', async () => {

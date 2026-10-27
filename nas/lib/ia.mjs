@@ -16,14 +16,14 @@ export function manejadorIA(cfg, esAdmin, fetchFn = fetch) {
     if (!(await esAdmin(req))) return json(res, 401, { error: 'No autorizado' });
     const { evento_id, accion, tipo_reconocimiento, rutas, prefijo } = req.body || {};
 
-    // Borrado físico: lo hace el propio NAS (a la papelera), no el motor externo.
+    // Borrado físico: lo hace el propio NAS (se elimina del disco), no el motor externo.
     if (accion === 'eliminar_fotos') {
       if (!Array.isArray(rutas) || rutas.some((r) => typeof r !== 'string')) return json(res, 400, { error: 'rutas inválidas' });
-      return json(res, 200, { ok: true, ...(await borrarFotos(cfg.datos, rutas)) });
+      return json(res, 200, { ok: true, ...(await borrarFotos(cfg.datos, rutas, { papelera: cfg.papeleraDias > 0 })) });
     }
     if (accion === 'eliminar_coleccion') {
       if (typeof prefijo !== 'string') return json(res, 400, { error: 'prefijo inválido' });
-      const r = await borrarColeccion(cfg.datos, prefijo);
+      const r = await borrarColeccion(cfg.datos, prefijo, { papelera: cfg.papeleraDias > 0 });
       return json(res, r.error ? 400 : 200, { ok: !r.error, ...r });
     }
 

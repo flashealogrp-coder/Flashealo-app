@@ -19,6 +19,7 @@ export function leerConfig(env = process.env) {
     iaClave: env.IA_SHARED_KEY || '',
     selfieUrl: (env.SELFIE_URL || '').replace(/\/$/, ''),            // servicio interno de rostros (flashealo-selfie)
     webPublica: (env.WEB_PUBLIC_URL || '').replace(/\/$/, ''),          // p. ej. https://www.flashealo.do (para los enlaces que recibe la IA)
+    papeleraDias: Math.max(0, Number(env.PAPELERA_DIAS) || 0),          // 0 = borrar de verdad; >0 = papelera esos días
     iaUrlTtlMs: num(env.IA_URL_TTL_S, 10800) * 1000,
   };
 }

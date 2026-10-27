@@ -26,7 +26,7 @@ export const SERVICIOS = [
   },
   {
     id: 'sesiones',
-    nombre: 'Sesiones fuera del estudio',
+    nombre: 'Sesiones',
     descripcion: 'Navidad en casa y sesiones a domicilio, en el lugar donde te sientes tú.',
     desde: 'RD$5,000',
     detallePrecio: 'por 1 hora',

@@ -194,7 +194,7 @@ export default function AdminDashboard() {
 
   const [mostrarUploader, setMostrarUploader] = useState(false);
   const [archivosUploader, setArchivosUploader] = useState([]);
-  const [estadoSubida, setEstadoSubida] = useState({ activa: false, progreso: 0, total: 0 });
+  const [estadoSubida, setEstadoSubida] = useState({ activa: false, progreso: 0, total: 0, carpetaId: null, carpetaNombre: '' });
   const [arrastrando, setArrastrando] = useState(false);
   const fileInputRef = useRef(null);
   const [procesandoIA, setProcesandoIA] = useState(false);
@@ -611,6 +611,58 @@ const destruirPerfilFalso = async () => {
     if (data) { setCarpetas([...carpetas, data[0]]); setCarpetaActiva(data[0]); }
   };
 
+  const renombrarCarpeta = async (carpeta) => {
+    const entrada = window.prompt('Nuevo nombre del set:', carpeta.nombre);
+    if (entrada === null) return;
+    const nombre = entrada.trim().slice(0, 60);
+    if (!nombre || nombre === carpeta.nombre) return;
+    if (carpetas.some(c => c.id !== carpeta.id && c.nombre.trim().toLowerCase() === nombre.toLowerCase())) {
+      setMensaje({ tipo: 'error', texto: `Ya existe un set llamado "${nombre}".` });
+      return;
+    }
+    const { error } = await supabase.from('carpetas_evento').update({ nombre }).eq('id', carpeta.id);
+    if (error) { setMensaje({ tipo: 'error', texto: 'No se pudo renombrar el set.' }); return; }
+    setCarpetas(prev => prev.map(c => c.id === carpeta.id ? { ...c, nombre } : c));
+    setCarpetaActiva(prev => (prev && prev.id === carpeta.id ? { ...prev, nombre } : prev));
+    setMensaje({ tipo: 'exito', texto: 'Set renombrado.' });
+  };
+
+  const eliminarCarpeta = async (carpeta) => {
+    if (carpetas.length <= 1) { setMensaje({ tipo: 'error', texto: 'El evento necesita al menos un set.' }); return; }
+    if (estadoSubida.activa && estadoSubida.carpetaId === carpeta.id) { setMensaje({ tipo: 'error', texto: 'Hay una subida en curso en este set. Espera a que termine.' }); return; }
+    const fotos = fotosEvento.filter(f => f.carpeta_id === carpeta.id);
+    if (fotos.length === 0) {
+      if (!window.confirm(`¿Eliminar el set "${carpeta.nombre}"?`)) return;
+    } else {
+      const escrito = window.prompt(`El set "${carpeta.nombre}" tiene ${fotos.length} fotos. Se eliminarán de forma permanente, junto con el set.\n\nPara confirmar, escribe el nombre del set:`);
+      if (escrito === null) return;
+      if (escrito.trim().toLowerCase() !== carpeta.nombre.trim().toLowerCase()) { setMensaje({ tipo: 'error', texto: 'El nombre no coincide. No se eliminó nada.' }); return; }
+      const ids = fotos.map(f => f.id);
+      for (let i = 0; i < ids.length; i += 100) {
+        const { error } = await supabase.from('fotografias').delete().in('id', ids.slice(i, i + 100));
+        if (error) { setMensaje({ tipo: 'error', texto: 'No se pudieron eliminar todas las fotos. El set se conserva.' }); return; }
+      }
+      setFotosEvento(prev => prev.filter(f => f.carpeta_id !== carpeta.id));
+      const rutas = fotos.map(f => f.url_original).filter(Boolean);
+      if (rutas.length > 0) { try { await llamarIA({ accion: 'eliminar_fotos', rutas }); } catch (err) {} }
+    }
+    const { error } = await supabase.from('carpetas_evento').delete().eq('id', carpeta.id);
+    if (error) { setMensaje({ tipo: 'error', texto: 'No se pudo eliminar el set.' }); return; }
+    const restantes = carpetas.filter(c => c.id !== carpeta.id);
+    setCarpetas(restantes);
+    if (carpetaActiva?.id === carpeta.id) { setCarpetaActiva(restantes[0] || null); setMostrarUploader(false); setArchivosUploader([]); }
+    setFotosSeleccionadas([]);
+    setMensaje({ tipo: 'exito', texto: `Set "${carpeta.nombre}" eliminado.` });
+  };
+
+  const abrirUploader = () => {
+    if (estadoSubida.activa && estadoSubida.carpetaId !== carpetaActiva?.id) {
+      setMensaje({ tipo: 'error', texto: `Ya hay una subida en curso en "${estadoSubida.carpetaNombre}". Espera a que termine.` });
+      return;
+    }
+    setMostrarUploader(true);
+  };
+
   const manejarSeleccionArchivos = (e) => { setArchivosUploader(prev => [...prev, ...Array.from(e.target.files)]); };
   const prevenirDefault = (e) => { e.preventDefault(); e.stopPropagation(); };
 
@@ -631,10 +683,11 @@ const destruirPerfilFalso = async () => {
   };
 
   const iniciarSubidaMasiva = async () => {
-    if (archivosUploader.length === 0 || !carpetaActiva) return;
-    setEstadoSubida({ activa: true, progreso: 0, total: archivosUploader.length });
+    if (archivosUploader.length === 0 || !carpetaActiva || estadoSubida.activa) return;
+    const carpetaDestino = carpetaActiva;
+    setEstadoSubida({ activa: true, progreso: 0, total: archivosUploader.length, carpetaId: carpetaDestino.id, carpetaNombre: carpetaDestino.nombre });
     let subidasExitosas = 0;
-    const baseR2Path = `${eventoActivo.url_slug || eventoActivo.id}/${carpetaActiva.nombre.toLowerCase().replace(/ /g, '-')}`;
+    const baseR2Path = `${eventoActivo.url_slug || eventoActivo.id}/${carpetaDestino.nombre.toLowerCase().replace(/ /g, '-')}`;
 
     for (let i = 0; i < archivosUploader.length; i++) {
       const file = archivosUploader[i];
@@ -643,15 +696,15 @@ const destruirPerfilFalso = async () => {
         const resURL = await fetch("/api/upload-url", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${sesionSubida?.access_token || ''}` }, body: JSON.stringify({ fileName: file.name, fileType: file.type, carpetaR2: baseR2Path }) });
         const data = await resURL.json();
         const uploadRes = await fetch(data.url, { method: "PUT", headers: { "Content-Type": file.type }, body: file });
-        if (uploadRes.ok) { await supabase.from('fotografias').insert([{ evento_id: eventoActivo.id, carpeta_id: carpetaActiva.id, url_original: data.path }]); subidasExitosas++; }
+        if (uploadRes.ok) { await supabase.from('fotografias').insert([{ evento_id: eventoActivo.id, carpeta_id: carpetaDestino.id, url_original: data.path }]); subidasExitosas++; }
       } catch (error) {}
       setEstadoSubida(prev => ({ ...prev, progreso: i + 1 }));
     }
 
     const { data: fotosNuevas } = await supabase.from('fotografias').select('*').eq('evento_id', eventoActivo.id);
     if (fotosNuevas) setFotosEvento(fotosNuevas);
-    setArchivosUploader([]); setEstadoSubida({ activa: false, progreso: 0, total: 0 }); setMostrarUploader(false);
-    setMensaje({ tipo: 'exito', texto: `${subidasExitosas} fotos subidas. Optimizando en la nube...` });
+    setArchivosUploader([]); setEstadoSubida({ activa: false, progreso: 0, total: 0, carpetaId: null, carpetaNombre: '' }); setMostrarUploader(false);
+    setMensaje({ tipo: 'exito', texto: `${subidasExitosas} fotos subidas. Preparando miniaturas...` });
     try { await llamarIA({ evento_id: eventoActivo.id, accion: "miniaturas" }); } catch (err) {}
   };
 
@@ -1196,24 +1249,57 @@ const destruirPerfilFalso = async () => {
                       {carpetas.map(carpeta => {
                         const cant = fotosEvento.filter(f => f.carpeta_id === carpeta.id).length;
                         const isActiva = seccionDashboard === 'fotos' && carpetaActiva?.id === carpeta.id;
+                        const subiendoAqui = estadoSubida.activa && estadoSubida.carpetaId === carpeta.id;
                         return (
-                          <button
-                            key={carpeta.id}
-                            onClick={() => { setCarpetaActiva(carpeta); setSeccionDashboard('fotos'); }}
-                            className={`w-full flex items-center justify-between px-3 py-2.5 text-xs rounded-sm transition-all text-left ${
-                              isActiva 
-                                ? 'bg-[#181816] text-white font-medium shadow-sm' 
-                                : 'text-[#181816] hover:bg-[#F9F8F5]'
-                            }`}
-                          >
-                            <div className="flex items-center gap-2.5 truncate">
-                              <Folder size={14} className={isActiva ? 'text-[#C8B69E]' : 'text-[#5A5955]'} />
-                              <span className="truncate">{carpeta.nombre}</span>
-                            </div>
-                            <span className={`text-[10px] px-1.5 py-0.5 rounded font-mono ${isActiva ? 'bg-fl-lino/20 text-white' : 'bg-[#E2DFD9] text-[#181816]'}`}>
-                              {cant}
+                          <div key={carpeta.id} className="group relative">
+                            <button
+                              onClick={() => {
+                                if (!estadoSubida.activa) { setMostrarUploader(false); setArchivosUploader([]); }
+                                setCarpetaActiva(carpeta); setSeccionDashboard('fotos');
+                              }}
+                              className={`w-full flex items-center justify-between px-3 py-2.5 text-xs rounded-sm transition-all text-left ${
+                                isActiva 
+                                  ? 'bg-[#181816] text-white font-medium shadow-sm' 
+                                  : 'text-[#181816] hover:bg-[#F9F8F5]'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2.5 truncate">
+                                <Folder size={14} className={isActiva ? 'text-[#C8B69E]' : 'text-[#5A5955]'} />
+                                <span className="truncate">{carpeta.nombre}</span>
+                              </div>
+                              {subiendoAqui ? (
+                                <span className="flex items-center gap-1 text-[10px] font-mono text-[#C8B69E]">
+                                  <Loader2 size={11} className="animate-spin" /> {estadoSubida.progreso}/{estadoSubida.total}
+                                </span>
+                              ) : (
+                                <span className={`text-[10px] px-1.5 py-0.5 rounded font-mono ${isActiva ? 'bg-fl-lino/20 text-white' : 'bg-[#E2DFD9] text-[#181816]'}`}>
+                                  {cant}
+                                </span>
+                              )}
+                            </button>
+                            {!subiendoAqui && (
+                            <span className={`absolute right-11 top-1/2 -translate-y-1/2 flex items-center gap-0.5 transition-opacity ${isActiva ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 focus-within:opacity-100'}`}>
+                              <button
+                                type="button"
+                                onClick={(e) => { e.stopPropagation(); renombrarCarpeta(carpeta); }}
+                                title="Renombrar set"
+                                aria-label={`Renombrar ${carpeta.nombre}`}
+                                className={`p-1 rounded-sm ${isActiva ? 'text-white/70 hover:text-white hover:bg-white/10' : 'text-[#5A5955] hover:text-[#181816] hover:bg-[#E2DFD9]'}`}
+                              >
+                                <Edit2 size={12} />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={(e) => { e.stopPropagation(); eliminarCarpeta(carpeta); }}
+                                title="Eliminar set"
+                                aria-label={`Eliminar ${carpeta.nombre}`}
+                                className={`p-1 rounded-sm ${isActiva ? 'text-white/70 hover:text-white hover:bg-white/10' : 'text-[#5A5955] hover:text-[#A3392B] hover:bg-[#E2DFD9]'}`}
+                              >
+                                <Trash2 size={12} />
+                              </button>
                             </span>
-                          </button>
+                            )}
+                          </div>
                         );
                       })}
                     </div>
@@ -1349,7 +1435,7 @@ const destruirPerfilFalso = async () => {
 
                           {/* Botón de Añadir Fotos */}
                           <button 
-                            onClick={() => setMostrarUploader(true)} 
+                            onClick={abrirUploader} 
                             style={{ 
                               background: INK, 
                               color: WHITE, 
@@ -1372,7 +1458,7 @@ const destruirPerfilFalso = async () => {
                       {/* AREA DE FOTOS */}
                       <div style={{ padding: 28, flex: 1, position: 'relative' }}>
                         <AnimatePresence>
-                          {mostrarUploader && (
+                          {mostrarUploader && (!estadoSubida.activa || estadoSubida.carpetaId === carpetaActiva?.id) && (
                             <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} style={{ position: 'absolute', inset: 0, background: 'rgba(250,250,250,0.95)', zIndex: 50, padding: 40, display: 'flex', flexDirection: 'column' }}>
                               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 24 }}>
                                 <h2 style={{ fontSize: 18, fontWeight: 500, margin: 0 }}>Subir a: {carpetaActiva?.nombre}</h2>
@@ -1381,8 +1467,8 @@ const destruirPerfilFalso = async () => {
                               {estadoSubida.activa ? (
                                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
                                   <Loader2 size={40} className="animate-spin" color={SAND} style={{ marginBottom: 16 }} />
-                                  <h3 style={{ fontSize: 16, color: INK, margin: '0 0 8px 0' }}>Subiendo archivos a Cloudflare R2</h3>
-                                  <p style={{ color: TAUPE, fontSize: 13 }}>Procesando {estadoSubida.progreso} de {estadoSubida.total}...</p>
+                                  <h3 style={{ fontSize: 16, color: INK, margin: '0 0 8px 0' }}>Subiendo fotos a &quot;{estadoSubida.carpetaNombre}&quot;</h3>
+                                  <p style={{ color: TAUPE, fontSize: 13 }}>Subiendo {estadoSubida.progreso} de {estadoSubida.total}...</p>
                                   <div style={{ width: '100%', maxWidth: 400, height: 6, background: BORDER, borderRadius: 4, marginTop: 24, overflow: 'hidden' }}>
                                     <div style={{ height: '100%', background: SAND, width: `${(estadoSubida.progreso / estadoSubida.total) * 100}%`, transition: 'width 0.3s' }} />
                                   </div>

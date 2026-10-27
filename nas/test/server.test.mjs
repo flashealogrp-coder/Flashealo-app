@@ -326,3 +326,19 @@ test('uso de espacio por fotógrafo: solo superadmin y solo carpetas válidas', 
   assert.equal((await post(e.base, '/api/ia', { accion: 'uso_fotografos', slugs: ['ana'] })).status, 401);
   await e.fin();
 });
+
+test('mi espacio: el fotógrafo ve lo que usa y lo que le queda; sin sesión no; el admin no tiene cuota', async () => {
+  const e = await entorno();
+  try {
+    const dir = path.join(e.datos, 'originales', 'chica'); fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(path.join(dir, 'a.jpg'), Buffer.alloc(300));
+    const get = (token) => fetch(e.base + '/api/mi-espacio', { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+    assert.equal((await get()).status, 401);
+    assert.equal((await get('pendiente')).status, 401);
+    const r = await (await get('chica')).json();
+    assert.deepEqual(r, { usado_bytes: 300, cuota_bytes: 1000, libre_bytes: 700 });
+    const sinLimite = await (await get('ana')).json();
+    assert.equal(sinLimite.cuota_bytes, null); assert.equal(sinLimite.libre_bytes, null);
+    assert.deepEqual(await (await get('admin')).json(), { admin: true });
+  } finally { await e.fin(); }
+});

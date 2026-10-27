@@ -4,6 +4,7 @@ import { urlAdmin } from './urlFotos';
 import PanelFotografos from './PanelFotografos';
 import PanelReservasPortal from './PanelReservasPortal';
 import SelectorFecha from './components/SelectorFecha';
+import MiEspacio from './MiEspacio';
 import { planificarReparto, MAX_POR_SET } from './marca/reparto';
 import { leerTodo } from './marca/paginar';
 import { separarPortada, unirPortada } from './marca/portada';
@@ -1173,6 +1174,7 @@ const destruirPerfilFalso = async () => {
             </button>
           )}
         </nav>
+        {miSlug && !esSuper && sidebarOpen && <MiEspacio actualizar={estadoSubida.activa} />}
         <div className="p-4 border-t" style={{ borderColor: BORDER }}>
           <button onClick={cerrarSesion} className="flex items-center text-xs text-fl-grafito hover:text-red-500 transition-colors" style={{ justifyContent: sidebarOpen ? 'flex-start' : 'center' }}>
             <LogOut size={16} /> {sidebarOpen && <span className="ml-2 uppercase tracking-widest">Cerrar Sesión</span>}

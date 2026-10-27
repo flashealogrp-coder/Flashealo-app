@@ -1,8 +1,7 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   CONTACTO,
-  FOTO_PORTADA,
   PORTAFOLIO,
   SERVICIOS,
   visibles,
@@ -52,81 +51,146 @@ function Flecha() {
   );
 }
 
-function ItemMenu({ servicio, alElegir }) {
-  const { nombre, estado, subdominio } = servicio;
+// Enlace a una línea de Flashealo para clientes (eventos, sesiones, deportes), en el pie de página.
+function EnlaceLinea({ servicio }) {
+  const { nombre, subdominio } = servicio;
   const host = typeof window !== 'undefined' ? window.location.host : '';
   const href = subdominio ? urlDeLinea(subdominio, host, servicio.href) : servicio.href;
-  const activa = estado === 'activa' && href;
-
-  if (!activa) {
-    return (
-      <li className="fh-item fh-item-pausado">
-        <span className="fh-item-interior" aria-label={`${nombre}, próximamente`}>
-          {nombre}
-        </span>
-      </li>
-    );
-  }
-  const enlace = href.startsWith('/') ? (
-    <Link className="fh-item-interior" to={href} onClick={alElegir}>
-      {nombre}
-    </Link>
-  ) : (
-    <a className="fh-item-interior" href={href} onClick={alElegir}>
-      {nombre}
-    </a>
-  );
-  return <li className="fh-item">{enlace}</li>;
+  if (!href) return null;
+  return href.startsWith('/') ? <Link to={href}>{nombre}</Link> : <a href={href}>{nombre}</a>;
 }
+
+const MENSAJE_ACCESO = 'Hola, soy fotógrafo/a y quiero solicitar acceso al portal de Flashealo.';
+
+// Lo que hace el panel de cada fotógrafo. Todo esto existe hoy en el sistema.
+const INCLUYE = [
+  {
+    titulo: 'Subida masiva',
+    texto: 'Arrastra una carpeta completa. Las fotos se reparten solas en sets de hasta 500, y si una falla se reintenta sin detener las demás.',
+  },
+  {
+    titulo: 'Sets en pestañas',
+    texto: 'Divide un cumpleaños en invitados, decoración o familia. Tu cliente entra directo al set que busca.',
+  },
+  {
+    titulo: 'Cada persona encuentra sus fotos',
+    texto: 'El reconocimiento facial agrupa a cada persona y tus clientes se encuentran con una selfie, sin revisar miles de fotos. En el mosaico, las fotos se encuadran sobre las caras.',
+  },
+  {
+    titulo: 'Tú decides la descarga',
+    texto: 'Un interruptor por colección para bajar fotos en tamaño real y otro para llevarse todo en un zip. Las fotos se ven sin marca de agua.',
+  },
+  {
+    titulo: 'Tu diseño',
+    texto: 'Portada, tipografía, colores y orden de la galería, con vista previa antes de publicar.',
+  },
+  {
+    titulo: 'Privado y separado',
+    texto: 'Contraseña por colección. Cada fotógrafo ve solo sus colecciones, sus clientes y sus archivos, y lo que borras se elimina de verdad.',
+  },
+];
 
 const PASOS = [
   {
-    titulo: 'Pides tu fecha',
-    texto: 'Nos escribes por WhatsApp o llenas la solicitud con el día y el lugar. Te respondemos si está libre.',
+    titulo: 'Pides acceso',
+    texto: 'Nos escribes por WhatsApp con tu nombre y el tipo de fotografía que haces.',
   },
   {
-    titulo: 'Apartamos tu fecha',
-    texto: 'Cuando confirmamos, tu fecha queda apartada. Solo falta el pago para dejarla confirmada.',
+    titulo: 'Activamos tu espacio',
+    texto: 'Revisamos tu solicitud y creamos tu cuenta, con tu nombre y tu espacio de almacenamiento.',
   },
   {
-    titulo: 'Recibes tu enlace privado',
-    texto: 'Después del evento subimos las fotos a una galería privada. Se abre desde el celular y se comparte por WhatsApp.',
+    titulo: 'Subes y compartes',
+    texto: 'Creas tu colección, subes tus fotos y envías el enlace a tus clientes.',
   },
 ];
+
+const PREGUNTAS = [
+  {
+    p: '¿Cuánto cuesta?',
+    r: 'Todavía estamos definiendo los planes junto al primer grupo de fotógrafos. Escríbenos y te contamos cómo es el acceso inicial.',
+  },
+  {
+    p: '¿Mis clientes tienen que crear una cuenta?',
+    r: 'No. Entran con el enlace de la colección, y con contraseña si tú decides ponerla.',
+  },
+  {
+    p: '¿Puedo cobrar las descargas?',
+    r: 'Estamos conectando los pagos con tarjetas locales. Mientras tanto, tú decides si la descarga de cada colección está abierta o cerrada.',
+  },
+  {
+    p: '¿Dónde se guardan mis fotos?',
+    r: 'En los servidores de Flashealo, no en plataformas de terceros. El público nunca ve tus originales: la galería usa una versión liviana de cada foto.',
+  },
+];
+
+// Ejemplo ilustrativo del producto: una colección con sets en pestañas. Cada bloque de color es una foto.
+const SETS = [
+  { id: 'todas', nombre: 'Todas', total: '1.240' },
+  { id: 'invitados', nombre: 'Invitados', total: '560' },
+  { id: 'decoracion', nombre: 'Decoración', total: '280' },
+  { id: 'familia', nombre: 'Familia', total: '400' },
+];
+const BLOQUES = [
+  { set: 'invitados', clase: 'g', tono: 0 },
+  { set: 'familia', clase: 'p', tono: 2 },
+  { set: 'decoracion', clase: 'a', tono: 1 },
+  { set: 'invitados', clase: 'p', tono: 3 },
+  { set: 'familia', clase: 'p', tono: 0 },
+  { set: 'invitados', clase: 'a', tono: 2 },
+  { set: 'decoracion', clase: 'p', tono: 3 },
+  { set: 'familia', clase: 'a', tono: 1 },
+  { set: 'invitados', clase: 'p', tono: 1 },
+  { set: 'decoracion', clase: 'a', tono: 0 },
+];
+
+function EjemploColeccion() {
+  const [activo, setActivo] = useState('todas');
+  const bloques = BLOQUES.filter((b) => activo === 'todas' || b.set === activo);
+  return (
+    <figure className="fh-isla">
+      <div className="fh-isla-marco" aria-hidden="true">
+        <div className="fh-isla-cabecera">
+          <span className="fh-isla-titulo">Cumpleaños de Sofía</span>
+          <span className="fh-isla-interruptores">
+            <span className="fh-chip">Descarga: sí</span>
+            <span className="fh-chip fh-chip-apagado">Zip completo: no</span>
+          </span>
+        </div>
+        <div className="fh-isla-sets" role="tablist" aria-label="Sets de la colección de ejemplo">
+          {SETS.map((s) => (
+            <button
+              key={s.id}
+              type="button"
+              role="tab"
+              tabIndex={-1}
+              aria-selected={activo === s.id}
+              className={`fh-isla-set${activo === s.id ? ' fh-activo' : ''}`}
+              onClick={() => setActivo(s.id)}
+            >
+              {s.nombre} <span>{s.total}</span>
+            </button>
+          ))}
+        </div>
+        <div className="fh-isla-mosaico">
+          {bloques.map((b, i) => (
+            <span key={`${activo}-${i}`} className={`fh-bloque fh-bloque-${b.clase} fh-tono-${b.tono}`} />
+          ))}
+        </div>
+      </div>
+      <figcaption className="fl-etiqueta fh-isla-nota">
+        Ejemplo ilustrativo. Toca un set para ver cómo lo recorre tu cliente.
+      </figcaption>
+    </figure>
+  );
+}
 
 export default function HomeEmpresa() {
   // `revelar` decide la entrada con telón; el telón se quita solo al terminar.
   const [revelar] = useState(debeDestellar);
   const [telon, setTelon] = useState(revelar);
-  const servicios = visibles(SERVICIOS);
-  const [menu, setMenu] = useState(false);
-  const cajaMenu = useRef(null);
-  const botonMenu = useRef(null);
-
-  useEffect(() => {
-    if (!menu) return undefined;
-    const cerrarFuera = (e) => {
-      if (cajaMenu.current && !cajaMenu.current.contains(e.target)) setMenu(false);
-    };
-    const cerrarEsc = (e) => {
-      if (e.key === 'Escape') {
-        setMenu(false);
-        botonMenu.current?.focus();
-      }
-    };
-    document.addEventListener('pointerdown', cerrarFuera);
-    document.addEventListener('keydown', cerrarEsc);
-    return () => {
-      document.removeEventListener('pointerdown', cerrarFuera);
-      document.removeEventListener('keydown', cerrarEsc);
-    };
-  }, [menu]);
-
-  const abrirMenu = (e) => {
-    e.preventDefault();
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    setMenu(true);
-  };
+  const lineas = visibles(SERVICIOS).filter((s) => s.estado === 'activa');
+  const acceso = whatsappUrl(MENSAJE_ACCESO);
 
   useEffect(() => {
     if (!revelar) return;
@@ -136,8 +200,6 @@ export default function HomeEmpresa() {
       /* sin almacenamiento: la entrada puede repetirse, no pasa nada */
     }
   }, [revelar]);
-
-  const estiloPortada = FOTO_PORTADA ? { '--fh-foto': `url(${FOTO_PORTADA})` } : undefined;
 
   return (
     <div className={`fh${revelar ? ' fh-con-telon' : ''}`}>
@@ -152,59 +214,45 @@ export default function HomeEmpresa() {
           FLASHEALO
         </a>
         <nav className="fh-nav" aria-label="Principal">
-          <div className="fh-menu" ref={cajaMenu}>
-            <button
-              type="button"
-              ref={botonMenu}
-              className="fl-etiqueta fh-menu-boton"
-              aria-expanded={menu}
-              aria-controls="menu-servicios"
-              onClick={() => setMenu((v) => !v)}
-            >
-              Servicios <span className={`fh-menu-flecha${menu ? ' fh-abierto' : ''}`} aria-hidden="true" />
-            </button>
-            {menu && (
-              <div className="fh-menu-panel" id="menu-servicios">
-                <ul className="fh-items">
-                  {servicios.map((s) => (
-                    <ItemMenu key={s.id} servicio={s} alElegir={() => setMenu(false)} />
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
+          <a className="fl-etiqueta" href="#incluye">
+            Qué incluye
+          </a>
           <a className="fl-etiqueta" href="#como">
-            Cómo funciona
+            Cómo empiezas
           </a>
-          <a className="fl-etiqueta" href="#contacto">
-            Contacto
+          <a className="fl-etiqueta" href="#preguntas">
+            Preguntas
           </a>
-          <a className="fl-boton fl-boton-pildora" href={whatsappUrl()} target="_blank" rel="noreferrer">
-            WhatsApp <Flecha />
+          <a className="fl-boton fl-boton-pildora" href={acceso} target="_blank" rel="noreferrer">
+            Solicitar acceso <Flecha />
           </a>
         </nav>
       </header>
 
       <main>
-        <section className="fh-portada" style={estiloPortada}>
+        <section className="fh-portada">
           <div className="fh-contenedor fh-portada-rejilla">
             <h1 className="fl-titulo fh-titulo fh-aparece" style={{ '--d': '0.8s' }}>
-              Fotografía para los momentos que importan.
+              Cada fotógrafo dominicano, con su propio espacio.
             </h1>
             <div className="fh-portada-lado fh-aparece" style={{ '--d': '1.05s' }}>
               <p className="fl-parrafo">
-                Cumpleaños, sesiones y eventos deportivos. Recibes tus fotos en un enlace privado, listo para compartir
-                por WhatsApp.
+                Sube miles de fotos, arma galerías privadas con tu marca y deja que tus clientes encuentren las suyas con
+                una selfie. Tu trabajo queda separado del de los demás.
               </p>
               <div className="fh-acciones">
-                <a className="fl-boton" href={whatsappUrl()} target="_blank" rel="noreferrer">
-                  Escribir por WhatsApp <Flecha />
+                <a className="fl-boton" href={acceso} target="_blank" rel="noreferrer">
+                  Solicitar acceso <Flecha />
                 </a>
-                <a className="fl-boton fl-boton-linea" href="#servicios" onClick={abrirMenu}>
-                  Ver servicios <Flecha />
+                <a className="fl-boton fl-boton-linea" href="#incluye">
+                  Ver qué incluye <Flecha />
                 </a>
               </div>
+              <p className="fh-nota">Abrimos por invitación, con un grupo reducido de fotógrafos.</p>
             </div>
+          </div>
+          <div className="fh-contenedor fh-aparece" style={{ '--d': '1.3s' }}>
+            <EjemploColeccion />
           </div>
         </section>
 
@@ -220,10 +268,26 @@ export default function HomeEmpresa() {
           </section>
         )}
 
+        <section className="fh-seccion" id="incluye" aria-labelledby="t-incluye">
+          <div className="fh-contenedor fh-incluye">
+            <h2 className="fl-titulo fh-h2 fh-incluye-titulo" id="t-incluye">
+              Lo que haces desde tu panel
+            </h2>
+            <ul className="fh-filas">
+              {INCLUYE.map((f) => (
+                <li key={f.titulo} className="fh-fila">
+                  <h3>{f.titulo}</h3>
+                  <p className="fl-parrafo">{f.texto}</p>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+
         <section className="fh-seccion fh-arena" id="como" aria-labelledby="t-como">
           <div className="fh-contenedor">
             <h2 className="fl-titulo fh-h2" id="t-como">
-              Así recibes tus fotos
+              Cómo empiezas
             </h2>
             <ol className="fh-pasos">
               {PASOS.map((p, i) => (
@@ -239,20 +303,33 @@ export default function HomeEmpresa() {
           </div>
         </section>
 
+        <section className="fh-seccion" id="preguntas" aria-labelledby="t-preguntas">
+          <div className="fh-contenedor fh-incluye">
+            <h2 className="fl-titulo fh-h2 fh-incluye-titulo" id="t-preguntas">
+              Preguntas
+            </h2>
+            <div className="fh-faq">
+              {PREGUNTAS.map((q) => (
+                <details key={q.p} className="fh-pregunta">
+                  <summary>{q.p}</summary>
+                  <p className="fl-parrafo">{q.r}</p>
+                </details>
+              ))}
+            </div>
+          </div>
+        </section>
+
         <section className="fh-seccion fh-contacto" id="contacto" aria-labelledby="t-contacto">
           <div className="fh-contenedor">
             <h2 className="fl-titulo fh-h2 fh-h2-grande" id="t-contacto">
-              Cuéntanos tu fecha.
+              Solicita tu espacio.
             </h2>
             <p className="fl-parrafo fh-contacto-texto">
-              Atendemos los viernes desde las 6 pm, y los sábados y domingos todo el día.
+              Cuéntanos qué fotografía haces y cuántos eventos cubres al mes. Te respondemos personalmente.
             </p>
             <div className="fh-acciones">
-              <a className="fl-boton" href={whatsappUrl()} target="_blank" rel="noreferrer">
+              <a className="fl-boton" href={acceso} target="_blank" rel="noreferrer">
                 Escribir por WhatsApp <Flecha />
-              </a>
-              <a className="fl-boton fl-boton-linea" href="https://reservas.flashealo.do">
-                Solicitar una reserva <Flecha />
               </a>
             </div>
             <ul className="fh-contactos">
@@ -279,6 +356,12 @@ export default function HomeEmpresa() {
       <footer className="fh-pie">
         <div className="fh-contenedor fh-pie-fila">
           <span className="fh-marca">FLASHEALO</span>
+          <nav className="fh-pie-lineas" aria-label="Fotografía con Flashealo">
+            <span className="fl-etiqueta">¿Buscas fotógrafo?</span>
+            {lineas.map((s) => (
+              <EnlaceLinea key={s.id} servicio={s} />
+            ))}
+          </nav>
           <span className="fl-etiqueta">© {new Date().getFullYear()}</span>
         </div>
       </footer>

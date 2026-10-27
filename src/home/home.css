@@ -72,28 +72,14 @@
 
 /* ── Portada: titular grande a la izquierda, texto abajo a la derecha ─────── */
 .fh-portada {
-  position: relative;
-  display: flex;
-  align-items: flex-end;
-  padding: clamp(7rem, 15vh, 9.5rem) 0 clamp(3rem, 8vh, 5rem);
-}
-
-/* Con foto o video de portada, ocupa la pantalla; sin foto, se ajusta al contenido */
-.fh-portada[style] {
-  min-height: 82vh;
-  min-height: 82svh;
-}
-
-.fh-portada[style] {
-  background:
-    linear-gradient(to top, rgba(249, 248, 245, 0.96) 12%, rgba(249, 248, 245, 0.2) 70%),
-    var(--fh-foto) center / cover no-repeat;
+  padding: clamp(7rem, 15vh, 9.5rem) 0 clamp(3rem, 8vw, 6rem);
 }
 
 .fh-portada-rejilla {
   display: grid;
   gap: 2.5rem;
   align-items: end;
+  margin-bottom: clamp(3rem, 7vw, 5rem);
 }
 
 .fh-titulo {
@@ -221,97 +207,6 @@
   line-height: 1.02;
 }
 
-/* ── Menú de Servicios (desplegable en la barra) ───────────────────────────── */
-.fh-menu {
-  position: relative;
-  display: inline-flex;
-}
-
-.fh-nav > a.fl-etiqueta,
-.fh-menu-boton {
-  white-space: nowrap;
-}
-
-.fh-menu-boton {
-  color: var(--fl-texto);
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  padding: 0.5rem 0;
-  border: 0;
-  background: none;
-  cursor: pointer;
-  transition: color 0.2s ease;
-}
-
-.fh-menu-boton:hover,
-.fh-menu-boton[aria-expanded='true'] {
-  color: var(--fl-texto);
-}
-
-.fh-menu-flecha {
-  width: 0.45rem;
-  height: 0.45rem;
-  border-right: 1.5px solid currentColor;
-  border-bottom: 1.5px solid currentColor;
-  transform: translateY(-0.15rem) rotate(45deg);
-  transition: transform 0.2s ease;
-}
-
-.fh-menu-flecha.fh-abierto {
-  transform: translateY(0.1rem) rotate(-135deg);
-}
-
-.fh-menu-panel {
-  position: absolute;
-  top: calc(100% + 1.1rem);
-  left: 50%;
-  min-width: 19.5rem;
-  max-width: calc(100vw - 2rem);
-  padding: 0.4rem;
-  border: 1px solid var(--fl-borde);
-  border-radius: calc(var(--fl-radio) + 6px);
-  background: var(--fl-lino);
-  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.12);
-  transform: translateX(-50%);
-  animation: fh-menu-entra 0.18s ease-out;
-}
-
-@keyframes fh-menu-entra {
-  from {
-    opacity: 0;
-    transform: translate(-50%, -6px);
-  }
-}
-
-.fh-items {
-  display: grid;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.fh-item-interior {
-  display: block;
-  padding: 0.85rem 1rem;
-  border-radius: var(--fl-radio);
-  font-family: var(--fl-serif);
-  font-size: 1.35rem;
-  line-height: 1.15;
-  color: var(--fl-texto);
-  text-decoration: none;
-  transition: background 0.18s ease;
-}
-
-a.fh-item-interior:hover,
-a.fh-item-interior:focus-visible {
-  background: var(--fl-arena);
-}
-
-.fh-item-pausado .fh-item-interior {
-  opacity: 0.45;
-}
-
 @media (max-width: 480px) {
   .fh .fl-pildora {
     gap: 0.5rem;
@@ -343,11 +238,7 @@ a.fh-item-interior:focus-visible {
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .fh-menu-panel {
-    animation: none;
-  }
-}
+
 
 /* ── Portafolio (solo si hay fotos): verticales 4:5 con tomas horizontales ─── */
 .fh-galeria {
@@ -495,4 +386,304 @@ a.fh-item-interior:focus-visible {
 
 .fh-pie .fh-marca {
   font-size: 0.95rem;
+}
+
+/* ── Portada: nota bajo los botones ───────────────────────────────────────── */
+.fh-nota {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--fl-grafito);
+}
+
+/* ── Ejemplo de colección: lo que verá tu cliente ─────────────────────────── */
+.fh-isla {
+  margin: 0;
+}
+
+.fh-isla-marco {
+  padding: clamp(1rem, 3vw, 1.75rem);
+  border: 1px solid var(--fl-borde);
+  border-radius: calc(var(--fl-radio) + 4px);
+  background: var(--fl-arena);
+  box-shadow: 0 30px 70px -40px rgba(24, 24, 22, 0.35);
+}
+
+.fh-isla-cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1.5rem;
+  padding-bottom: 1.25rem;
+}
+
+.fh-isla-titulo {
+  font-family: var(--fl-serif);
+  font-size: clamp(1.5rem, 3.4vw, 2.1rem);
+  font-weight: 400;
+  line-height: 1.1;
+}
+
+.fh-isla-interruptores {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.fh-chip {
+  padding: 0.4rem 0.85rem;
+  border: 1px solid var(--fl-texto);
+  border-radius: 999px;
+  background: var(--fl-texto);
+  color: var(--fl-lino);
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.fh-chip-apagado {
+  background: transparent;
+  color: var(--fl-grafito);
+  border-color: var(--fl-laton);
+}
+
+.fh-isla-sets {
+  display: flex;
+  gap: 1.5rem;
+  margin-bottom: 1rem;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--fl-laton);
+  scrollbar-width: none;
+}
+
+.fh-isla-sets::-webkit-scrollbar {
+  display: none;
+}
+
+.fh-isla-set {
+  flex: none;
+  padding: 0.6rem 0 0.7rem;
+  margin-bottom: -1px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: none;
+  color: var(--fl-grafito);
+  font-family: var(--fl-sans);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+
+.fh-isla-set span {
+  margin-left: 0.35rem;
+  font-size: 0.75rem;
+  opacity: 0.7;
+}
+
+.fh-isla-set:hover {
+  color: var(--fl-texto);
+}
+
+.fh-isla-set.fh-activo {
+  color: var(--fl-texto);
+  border-bottom-color: var(--fl-texto);
+  font-weight: 500;
+}
+
+.fh-isla-mosaico {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-auto-rows: clamp(4.5rem, 12vw, 8.5rem);
+  grid-auto-flow: dense;
+  gap: 0.5rem;
+}
+
+@media (min-width: 760px) {
+  .fh-isla-mosaico {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 0.75rem;
+  }
+}
+
+/* Cada bloque es una foto; el destello claro marca la cara, siempre centrada. */
+.fh-bloque {
+  --c1: #e6dccd;
+  --c2: #c8b69e;
+  border-radius: var(--fl-radio);
+  background:
+    radial-gradient(circle at 50% 40%, rgba(255, 255, 255, 0.7) 0 9%, rgba(255, 255, 255, 0) 10%),
+    radial-gradient(ellipse at 50% 100%, rgba(24, 24, 22, 0.28) 0 38%, rgba(24, 24, 22, 0) 39%),
+    linear-gradient(160deg, var(--c1), var(--c2));
+  animation: fh-bloque 0.45s ease both;
+}
+
+.fh-tono-1 { --c1: #d9d3c8; --c2: #b3a590; }
+.fh-tono-2 { --c1: #cfc4b3; --c2: #9d907c; }
+.fh-tono-3 { --c1: #ece6da; --c2: #d2c3ab; }
+
+.fh-bloque-g { grid-column: span 2; grid-row: span 2; }
+.fh-bloque-a { grid-column: span 2; }
+.fh-bloque-p { grid-column: span 1; }
+
+@keyframes fh-bloque {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+}
+
+.fh-isla-nota {
+  display: block;
+  margin-top: 0.9rem;
+  letter-spacing: 0.12em;
+  text-transform: none;
+  font-size: 0.8125rem;
+}
+
+/* ── Qué incluye: título fijo a la izquierda, filas con línea a la derecha ─── */
+.fh-incluye {
+  display: grid;
+  gap: 2rem;
+}
+
+.fh-incluye-titulo {
+  margin: 0;
+}
+
+.fh-filas {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fh-fila {
+  display: grid;
+  gap: 0.4rem 2rem;
+  padding: 1.5rem 0;
+  border-top: 1px solid var(--fl-laton);
+}
+
+.fh-fila:last-child {
+  border-bottom: 1px solid var(--fl-laton);
+}
+
+.fh-fila h3 {
+  margin: 0;
+  font-family: var(--fl-serif);
+  font-size: 1.6rem;
+  font-weight: 400;
+  line-height: 1.15;
+}
+
+.fh-fila .fl-parrafo {
+  margin: 0;
+  max-width: 34rem;
+}
+
+@media (min-width: 900px) {
+  .fh-incluye {
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.4fr);
+    gap: clamp(2rem, 6vw, 6rem);
+    align-items: start;
+  }
+  .fh-incluye-titulo {
+    position: sticky;
+    top: 6rem;
+  }
+  .fh-fila {
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.2fr);
+    align-items: baseline;
+  }
+}
+
+/* ── Preguntas ────────────────────────────────────────────────────────────── */
+.fh-faq {
+  display: grid;
+}
+
+.fh-pregunta {
+  border-top: 1px solid var(--fl-laton);
+}
+
+.fh-pregunta:last-child {
+  border-bottom: 1px solid var(--fl-laton);
+}
+
+.fh-pregunta summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.25rem 0;
+  font-family: var(--fl-serif);
+  font-size: 1.45rem;
+  line-height: 1.2;
+  cursor: pointer;
+  list-style: none;
+}
+
+.fh-pregunta summary::-webkit-details-marker {
+  display: none;
+}
+
+.fh-pregunta summary::after {
+  content: '+';
+  flex: none;
+  font-family: var(--fl-sans);
+  font-size: 1.4rem;
+  font-weight: 300;
+  transition: transform 0.2s ease;
+}
+
+.fh-pregunta[open] summary::after {
+  transform: rotate(45deg);
+}
+
+.fh-pregunta .fl-parrafo {
+  max-width: 38rem;
+  margin: 0 0 1.5rem;
+}
+
+/* ── Pie: enlaces para quien busca un fotógrafo ───────────────────────────── */
+.fh-pie-fila {
+  flex-wrap: wrap;
+}
+
+.fh-pie-lineas {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 1.25rem;
+}
+
+.fh-pie-lineas a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+  font-size: 0.9375rem;
+  color: var(--fl-grafito);
+  border-bottom: 1px solid transparent;
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+
+.fh-pie-lineas a:hover {
+  color: var(--fl-texto);
+  border-bottom-color: var(--fl-laton);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fh-bloque {
+    animation: none;
+  }
+}
+
+/* La barra de la home lleva más enlaces que otras páginas: se ensancha y no parte las palabras. */
+.fh .fl-pildora {
+  width: min(calc(100% - 2rem), 54rem);
+}
+
+.fh-nav > a,
+.fh-nav .fl-boton-pildora {
+  white-space: nowrap;
 }

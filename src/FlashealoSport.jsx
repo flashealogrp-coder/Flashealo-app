@@ -1,18 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
 import { useNavigate } from 'react-router-dom';
-import { Loader2, ArrowUpRight, Search, Camera } from 'lucide-react';
+import { Loader2, ArrowUpRight, Search, Camera, Hash, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 // IMPORTAMOS EL NUEVO MÓDULO
-import CameraBiometrica from './CameraBiometrica'; 
+import CameraBiometrica from './CameraBiometrica';
+import { HERO_SPORT } from './marca/sport';
+import './sport/sport.css';
 
 const PALABRAS_RULETA = [
-  'Baseball', 'Fútbol', 'Maratón', 'Pádel', 'Surf', 
-  'HYROX', 'Pickleball', 'Triatlón', 'Ciclismo', 'Baloncesto', 
-  'CrossFit', 'Tenis', 'Voleibol', 'Natación', 'Running', 
-  'Karate', 'Golf', 'Gimnasia', 'Rugby', 'Atletismo', 
-  'Kickboxing', 'Softbol', 'Automovilismo', 'Rally', 
-  'tu evento deportivo'
+  'Baseball', 'Fútbol', 'Maratón', 'Pádel', 'Surf',
+  'HYROX', 'Pickleball', 'Triatlón', 'Ciclismo', 'Baloncesto',
+  'CrossFit', 'Tenis', 'Voleibol', 'Natación', 'Running',
+  'Karate', 'Golf', 'Gimnasia', 'Atletismo',
+  'Kickboxing', 'Softbol', 'Automovilismo', 'Rally',
+  'Rugby'
 ];
 
 const FlashealoSport = ({ isMobile }) => {
@@ -21,6 +23,11 @@ const FlashealoSport = ({ isMobile }) => {
   const [cargandoEventos, setCargandoEventos] = useState(false);
   const [busquedaEvento, setBusquedaEvento] = useState('');
   const [indicePalabra, setIndicePalabra] = useState(0);
+  const [modo, setModo] = useState('selfie');
+  const [dorsal, setDorsal] = useState('');
+  const [buscandoDorsal, setBuscandoDorsal] = useState(false);
+  const [dorsalActivo, setDorsalActivo] = useState(null); // { numero, eventos:Set<string> }
+  const [conteoFotos, setConteoFotos] = useState({});
 
   // Estado que controla si el modal de la cámara se muestra o no
   const [modalCamaraAbierto, setModalCamaraAbierto] = useState(false);
@@ -58,6 +65,28 @@ const FlashealoSport = ({ isMobile }) => {
     };
     fetchEventosSport();
   }, []);
+
+  // Fotos disponibles por evento (solo lectura, para la credencial).
+  useEffect(() => {
+    let vivo = true;
+    eventosSport.slice(0, 12).forEach(async (ev) => {
+      const { count } = await supabase.from('fotografias').select('id', { count: 'exact', head: true }).eq('evento_id', ev.id);
+      if (vivo && typeof count === 'number') setConteoFotos((p) => ({ ...p, [ev.id]: count }));
+    });
+    return () => { vivo = false; };
+  }, [eventosSport]);
+
+  // Búsqueda por dorsal: lee las etiquetas públicas y deja visibles los eventos donde aparece ese número.
+  const buscarDorsal = async (e) => {
+    e.preventDefault();
+    const numero = dorsal.trim().toUpperCase().replace(/^#/, '').replace(/[^A-Z0-9-]/g, '');
+    if (!numero) return;
+    setBuscandoDorsal(true);
+    const { data } = await supabase.from('etiquetas_fotos').select('evento_id, fotografias(evento_id)').ilike('dorsal', numero).limit(2000);
+    const ids = new Set((data || []).map((r) => r.evento_id || r.fotografias?.evento_id).filter(Boolean));
+    setDorsalActivo({ numero, eventos: ids });
+    setBuscandoDorsal(false);
+  };
 
   const abrirEvento = (evento) => {
     const ruta = evento.url_slug ? `/g/${evento.url_slug}` : `/g/${evento.id}`;
@@ -100,100 +129,164 @@ const FlashealoSport = ({ isMobile }) => {
     }
   };
 
-  const scrollAnim = {
-    initial: { opacity: 0, y: 30 },
-    whileInView: { opacity: 1, y: 0 },
-    viewport: { once: true },
-    transition: { duration: 0.8, ease: [0.22, 1, 0.36, 1] }
-  };
 
-  const eventosFiltrados = eventosSport.filter(evento => 
-    evento.nombre.toLowerCase().includes(busquedaEvento.toLowerCase())
+  const eventosFiltrados = eventosSport.filter(evento =>
+    evento.nombre.toLowerCase().includes(busquedaEvento.toLowerCase()) &&
+    (!dorsalActivo || dorsalActivo.eventos.has(evento.id))
   );
 
+  const hoy = new Date().toISOString().slice(0, 10);
+  const etiquetaDe = (ev) => {
+    if (String(ev.fecha_evento || '').slice(0, 10) === hoy) return { clase: 'vivo', texto: 'En vivo' };
+    const dias = (Date.now() - new Date(ev.created_at || 0).getTime()) / 86400000;
+    return dias <= 7 ? { clase: 'nuevo', texto: 'Nuevo' } : null;
+  };
+  const fechaCorta = (f) => {
+    const d = new Date(`${String(f).slice(0, 10)}T12:00:00`);
+    return isNaN(d) ? '' : d.toLocaleDateString('es-DO', { day: 'numeric', month: 'long', year: 'numeric' });
+  };
+
   return (
-    <div style={{ paddingTop: isMobile ? 120 : 160, paddingBottom: 120, maxWidth: 1400, margin: '0 auto', paddingLeft: isMobile ? 24 : 48, paddingRight: isMobile ? 24 : 48 }}>
-      
-      <motion.div {...scrollAnim} style={{ marginBottom: isMobile ? 60 : 90, maxWidth: 900 }}>
-        
-        <h1 style={{ fontFamily: 'var(--fl-serif)', fontSize: 'clamp(40px, 7vw, 92px)', fontWeight: 300, lineHeight: 1.04, margin: '0 0 28px 0', letterSpacing: '-0.015em', color: '#181816' }}>
-          Encuentra tus fotos de{' '}
-          <span style={{ position: 'relative', display: 'inline-block', color: '#181816', fontStyle: 'italic', verticalAlign: 'bottom', minWidth: isMobile ? '180px' : '440px' }}>
-            <AnimatePresence mode="wait">
-              <motion.span
-                key={PALABRAS_RULETA[indicePalabra]}
-                initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -20, opacity: 0 }}
-                transition={{ duration: 0.08, ease: "easeOut" }} style={{ display: 'inline-block', whiteSpace: 'nowrap' }}
-              >
-                {PALABRAS_RULETA[indicePalabra]}
-              </motion.span>
-            </AnimatePresence>
-          </span>
-          <br /> al instante.
-        </h1>
+    <div className="fs">
+      <div className="fs-ancho">
 
-        <p style={{ fontSize: isMobile ? 15 : 17, lineHeight: 1.7, color: '#5A5955', maxWidth: 560, margin: 0 }}>
-          Sube una selfie o ingresa tu número de dorsal para encontrar automáticamente todas tus fotografías del evento en cuestión de segundos.
-        </p>
+        <section className="fs-hero">
+          <div>
+            <h1 className="fs-titulo">
+              Encuentra tus fotos de{' '}
+              <span className="fs-palabra" aria-live="off">
+                <AnimatePresence mode="wait">
+                  <motion.span
+                    key={PALABRAS_RULETA[indicePalabra]}
+                    initial={{ y: 14, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -14, opacity: 0 }}
+                    transition={{ duration: 0.08, ease: 'easeOut' }} style={{ display: 'inline-block', whiteSpace: 'nowrap' }}
+                  >
+                    {PALABRAS_RULETA[indicePalabra]}
+                  </motion.span>
+                </AnimatePresence>
+              </span>{' '}
+              al instante.
+            </h1>
+            <p className="fs-lead">
+              Una selfie o tu número de dorsal. Reconocemos tu rostro y tu número para reunir todas tus fotografías del evento en segundos.
+            </p>
 
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2, duration: 0.6 }} style={{ marginTop: 40, maxWidth: 480 }}>
-          
-          <button onClick={() => setModalCamaraAbierto(true)} className="fl-boton" style={{ width: '100%', marginBottom: 16, minHeight: '3.5rem' }}>
-            <Camera size={18} color="#F9F8F5" /> Búsqueda por selfie <ArrowUpRight size={14} />
-          </button>
+            <div className="fs-barra">
+              <div className="fs-modos" role="tablist" aria-label="Tipo de búsqueda">
+                <button type="button" role="tab" aria-selected={modo === 'selfie'} className="fs-modo" onClick={() => setModo('selfie')}>
+                  <Camera size={16} /> Búsqueda por selfie
+                </button>
+                <button type="button" role="tab" aria-selected={modo === 'dorsal'} className="fs-modo" onClick={() => setModo('dorsal')}>
+                  <Hash size={16} /> Búsqueda por dorsal
+                </button>
+              </div>
 
-          <div style={{ position: 'relative' }}>
-            <Search size={22} style={{ position: 'absolute', left: 20, top: '50%', transform: 'translateY(-50%)', color: '#5A5955' }} />
-            <input type="text" placeholder="Buscar evento, lugar o actividad..." value={busquedaEvento} onChange={e => setBusquedaEvento(e.target.value)}
-              className="fl-campo" style={{ padding: '18px 20px 18px 56px', minHeight: '3.5rem' }}
-            />
+              <div className="fs-panel">
+                {modo === 'selfie' ? (
+                  <>
+                    <button type="button" className="fs-accion" onClick={() => setModalCamaraAbierto(true)}>
+                      <Camera size={18} /> Tomar mi selfie <ArrowUpRight size={14} />
+                    </button>
+                    <p className="fs-ayuda">Buena luz, sin gorra ni lentes. La selfie solo se usa para buscar tus fotos.</p>
+                  </>
+                ) : (
+                  <form className="fs-fila" onSubmit={buscarDorsal}>
+                    <label className="fs-input">
+                      <Hash size={18} />
+                      <input className="fs-dorsal" inputMode="text" autoComplete="off" maxLength={8} placeholder="Ej. 214" aria-label="Número de dorsal" value={dorsal} onChange={(e) => setDorsal(e.target.value)} />
+                    </label>
+                    <button type="submit" className="fs-accion" disabled={buscandoDorsal || !dorsal.trim()}>
+                      {buscandoDorsal ? <Loader2 size={16} className="animate-spin" /> : 'Buscar'}
+                    </button>
+                  </form>
+                )}
+
+                <label className="fs-input">
+                  <Search size={18} />
+                  <input type="text" placeholder="Buscar evento, lugar o actividad…" aria-label="Buscar evento" value={busquedaEvento} onChange={(e) => setBusquedaEvento(e.target.value)} />
+                </label>
+              </div>
+
+              <div className="fs-estado"><span className="fs-punto" aria-hidden="true" /> <Zap size={13} aria-hidden="true" /> Reconocimiento IA activo</div>
+            </div>
+
+            {dorsalActivo && (
+              <p className="fs-aviso" role="status">
+                <span>
+                  {dorsalActivo.eventos.size > 0
+                    ? `Dorsal #${dorsalActivo.numero}: aparece en ${dorsalActivo.eventos.size} ${dorsalActivo.eventos.size === 1 ? 'evento' : 'eventos'}.`
+                    : `No encontramos el dorsal #${dorsalActivo.numero} todavía. Las fotos pueden estar en proceso; prueba con tu selfie.`}
+                </span>
+                <button type="button" onClick={() => { setDorsalActivo(null); setDorsal(''); }}>Limpiar</button>
+              </p>
+            )}
           </div>
-        </motion.div>
-      </motion.div>
 
-      <div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32, borderBottom: '1px solid #E2DFD9', paddingBottom: 16 }}>
-          <span style={{ fontSize: 11, letterSpacing: '0.2em', textTransform: 'uppercase', fontWeight: 500, color: '#181816' }}>Eventos recientes &amp; Activos</span>
-          <span style={{ fontSize: 11, color: '#5A5955', fontWeight: 500, letterSpacing: '0.2em', textTransform: 'uppercase' }}>{eventosFiltrados.length} eventos</span>
-        </div>
+          <figure className="fs-visual" style={{ margin: 0 }}>
+            {HERO_SPORT.video ? (
+              <video src={HERO_SPORT.video} poster={HERO_SPORT.imagen || undefined} autoPlay muted loop playsInline preload="metadata" aria-hidden="true" />
+            ) : HERO_SPORT.imagen ? (
+              <img src={HERO_SPORT.imagen} alt="" />
+            ) : (
+              <div className="fs-lineas" aria-hidden="true" />
+            )}
+            <figcaption className="fs-visual-pie">
+              <strong>Cada jugada, tu foto.</strong>
+              <span>{HERO_SPORT.pie}</span>
+            </figcaption>
+          </figure>
+        </section>
 
-        {cargandoEventos ? (
-          <div style={{ display: 'flex', justifyContent: 'center', padding: '120px 0' }}><Loader2 size={36} className="animate-spin" style={{ color: '#5A5955' }} strokeWidth={1.5} /></div>
-        ) : eventosFiltrados.length === 0 ? (
-          <motion.div {...scrollAnim} style={{ border: '1px dashed #C8B69E', padding: '80px 20px', textAlign: 'center', borderRadius: 2 }}>
-            <p style={{ color: '#5A5955', fontFamily: 'var(--fl-serif)', fontSize: 22, margin: 0 }}>{busquedaEvento ? 'No encontramos ningún evento con ese nombre.' : 'No hay eventos deportivos disponibles.'}</p>
-          </motion.div>
-        ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: isMobile ? '36px' : '56px 40px' }}>
-            {eventosFiltrados.map((evento, i) => (
-              <motion.div key={evento.id} initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-50px' }} transition={{ duration: 0.5, delay: isMobile ? 0 : (i % 3) * 0.1 }} onClick={() => abrirEvento(evento)} style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 0 }}>
-                <div style={{ width: '100%', paddingBottom: '120%', position: 'relative', overflow: 'hidden', background: '#EFECE6', borderRadius: 2 }}>
-                  <img src={evento.portada_url || 'https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?q=80&w=800&auto=format&fit=crop'} alt={evento.nombre} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 1.2s cubic-bezier(0.22,1,0.36,1)', filter: 'saturate(0.95)' }} onMouseEnter={e => !isMobile && (e.currentTarget.style.transform = 'scale(1.05)')} onMouseLeave={e => !isMobile && (e.currentTarget.style.transform = 'scale(1)')} />
-                  <div style={{ position: 'absolute', top: 16, left: 16, display: 'flex', gap: 8 }}><span style={{ background: 'rgba(24,24,22,0.78)', backdropFilter: 'blur(12px)', color: '#F9F8F5', fontSize: 10, padding: '6px 12px', borderRadius: 2, fontWeight: 500, letterSpacing: '0.18em', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 6 }}><Camera size={12} color="#C8B69E" /> Búsqueda por selfie</span></div>
-                  <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.85) 0%, transparent 100%)', padding: '40px 24px 20px' }}>
-                    <span style={{ color: '#C8B69E', fontSize: 10, letterSpacing: '0.2em', textTransform: 'uppercase', display: 'block', marginBottom: 6, fontWeight: 500 }}>{evento.fecha_evento}</span>
-                    <span style={{ color: '#F9F8F5', fontFamily: 'var(--fl-serif)', fontSize: 28, letterSpacing: '-0.01em', fontWeight: 400, lineHeight: 1.1 }}>{evento.nombre}</span>
-                  </div>
-                </div>
-                <div style={{ paddingTop: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #E2DFD9' }}>
-                  <span style={{ fontSize: 10, color: '#181816', letterSpacing: '0.2em', textTransform: 'uppercase', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 6 }}><Search size={13} color="#181816" /> Buscar mis fotografías</span>
-                  <ArrowUpRight size={16} style={{ color: '#181816' }} strokeWidth={1.5} />
-                </div>
-              </motion.div>
-            ))}
+        <section className="fs-seccion" aria-labelledby="fs-recientes">
+          <div className="fs-cab">
+            <h2 id="fs-recientes">Eventos recientes</h2>
+            <span>{eventosFiltrados.length} {eventosFiltrados.length === 1 ? 'evento' : 'eventos'}</span>
           </div>
-        )}
+
+          {cargandoEventos ? (
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '5rem 0' }}><Loader2 size={34} className="animate-spin" style={{ color: '#5A5955' }} strokeWidth={1.5} /></div>
+          ) : eventosFiltrados.length === 0 ? (
+            <div className="fs-vacio">
+              <strong>{busquedaEvento || dorsalActivo ? 'Sin resultados' : 'Pronto, nuevos eventos'}</strong>
+              {busquedaEvento ? 'No encontramos ningún evento con ese nombre.' : dorsalActivo ? 'Ningún evento coincide con ese dorsal.' : 'Aquí aparecerán las galerías en cuanto se publiquen.'}
+            </div>
+          ) : (
+            <div className="fs-carril">
+              {eventosFiltrados.map((evento) => {
+                const sello = etiquetaDe(evento);
+                const fotos = conteoFotos[evento.id];
+                return (
+                  <button type="button" key={evento.id} className="fs-ticket" onClick={() => abrirEvento(evento)}>
+                    <div className="fs-portada">
+                      {(evento.portada_url || evento.url_portada) && <img src={evento.portada_url || evento.url_portada} alt="" loading="lazy" />}
+                      {sello && <span className={`fs-sello ${sello.clase}`}>{sello.texto}</span>}
+                    </div>
+                    <div className="fs-corte" aria-hidden="true" />
+                    <div className="fs-cuerpo">
+                      <span className="fs-fecha">{fechaCorta(evento.fecha_evento)}{evento.ubicacion ? ` · ${evento.ubicacion}` : ''}</span>
+                      <h3 className="fs-nombre">{evento.nombre}</h3>
+                      <div className="fs-pie">
+                        {fotos > 0 ? <span className="fs-fotos">{fotos.toLocaleString('es-DO')} fotos disponibles</span> : <span />}
+                        <span className="fs-ir">Explorar galería <ArrowUpRight size={14} /></span>
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </section>
+
       </div>
 
       {/* RENDERIZAMOS EL MÓDULO DE LA CÁMARA */}
       <AnimatePresence>
-        <CameraBiometrica 
-          isOpen={modalCamaraAbierto} 
-          onClose={() => setModalCamaraAbierto(false)} 
-          onComplete={manejarFotosCapturadas} 
+        <CameraBiometrica
+          isOpen={modalCamaraAbierto}
+          onClose={() => setModalCamaraAbierto(false)}
+          onComplete={manejarFotosCapturadas}
         />
       </AnimatePresence>
-
     </div>
   );
 };

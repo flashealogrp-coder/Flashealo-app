@@ -92,12 +92,12 @@ const INCLUYE = [
 
 const PASOS = [
   {
-    titulo: 'Pides acceso',
-    texto: 'Nos escribes por WhatsApp con tu nombre y el tipo de fotografía que haces.',
+    titulo: 'Creas tu cuenta',
+    texto: 'Te registras con tu nombre, tu correo y el usuario que será tu carpeta.',
   },
   {
     titulo: 'Activamos tu espacio',
-    texto: 'Revisamos tu solicitud y creamos tu cuenta, con tu nombre y tu espacio de almacenamiento.',
+    texto: 'Revisamos tu solicitud y activamos tu espacio de almacenamiento.',
   },
   {
     titulo: 'Subes y compartes',
@@ -190,7 +190,8 @@ export default function HomeEmpresa() {
   const [revelar] = useState(debeDestellar);
   const [telon, setTelon] = useState(revelar);
   const lineas = visibles(SERVICIOS).filter((s) => s.estado === 'activa');
-  const acceso = whatsappUrl(MENSAJE_ACCESO);
+  const acceso = '/registro';
+  const accesoWhatsapp = whatsappUrl(MENSAJE_ACCESO);
 
   useEffect(() => {
     if (!revelar) return;
@@ -223,7 +224,7 @@ export default function HomeEmpresa() {
           <a className="fl-etiqueta" href="#preguntas">
             Preguntas
           </a>
-          <a className="fl-boton fl-boton-pildora" href={acceso} target="_blank" rel="noreferrer">
+          <a className="fl-boton fl-boton-pildora" href={acceso}>
             Solicitar acceso <Flecha />
           </a>
         </nav>
@@ -241,14 +242,14 @@ export default function HomeEmpresa() {
                 una selfie. Tu trabajo queda separado del de los demás.
               </p>
               <div className="fh-acciones">
-                <a className="fl-boton" href={acceso} target="_blank" rel="noreferrer">
+                <a className="fl-boton" href={acceso}>
                   Solicitar acceso <Flecha />
                 </a>
                 <a className="fl-boton fl-boton-linea" href="#incluye">
                   Ver qué incluye <Flecha />
                 </a>
               </div>
-              <p className="fh-nota">Abrimos por invitación, con un grupo reducido de fotógrafos.</p>
+              <p className="fh-nota">Revisamos cada solicitud a mano y te avisamos cuando tu espacio esté listo.</p>
             </div>
           </div>
           <div className="fh-contenedor fh-aparece" style={{ '--d': '1.3s' }}>
@@ -328,7 +329,7 @@ export default function HomeEmpresa() {
               Cuéntanos qué fotografía haces y cuántos eventos cubres al mes. Te respondemos personalmente.
             </p>
             <div className="fh-acciones">
-              <a className="fl-boton" href={acceso} target="_blank" rel="noreferrer">
+              <a className="fl-boton" href={accesoWhatsapp} target="_blank" rel="noreferrer">
                 Escribir por WhatsApp <Flecha />
               </a>
             </div>

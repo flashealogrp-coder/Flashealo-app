@@ -10,6 +10,7 @@ import Cliente from './ClientGallery';
 import ResultadosAtleta from './ResultadosAtleta'; 
 import HomeEmpresa from './home/HomeEmpresa';
 import PaginaSport from './PaginaSport';
+import RegistroFotografo from './RegistroFotografo';
 import { lineaDelHost, ADMIN_EN_PRINCIPAL, urlAdminPrincipal } from './marca/anfitrion';
 
 // En una línea (sport.*) no hay panel propio: se envía al admin único de la empresa.
@@ -35,6 +36,9 @@ const App = () => {
       {/* RUTA 2: Dashboard Administrativo */}
       <Route path="/admin" element={linea && ADMIN_EN_PRINCIPAL ? <IrAlAdmin /> : <AdminDashboard />} />
       
+      {/* Alta de fotógrafos: queda pendiente hasta que el superadmin la aprueba */}
+      <Route path="/registro" element={<RegistroFotografo />} />
+
       {/* RUTA 3: Galería del Cliente */}
       <Route path="/cliente" element={<Cliente />} />
 

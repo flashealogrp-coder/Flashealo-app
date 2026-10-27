@@ -30,10 +30,11 @@ async function leerJson(req, limite = 1e5) {
 
 export function crearServidor(cfg = leerConfig(), deps = {}) {
   const ctx = deps.contexto || crearContexto(cfg, deps.fetch || fetch);
-  const uploadUrl = manejadorUploadUrl(cfg, ctx, crearCuotas(cfg));
+  const cuotas = crearCuotas(cfg);
+  const uploadUrl = manejadorUploadUrl(cfg, ctx, cuotas);
   const subir = manejadorSubir(cfg);
   const fotoIA = manejadorFotoIA(cfg);
-  const ia = manejadorIA(cfg, ctx, deps.fetch || fetch);
+  const ia = manejadorIA(cfg, ctx, deps.fetch || fetch, cuotas);
   const selfie = manejadorSelfie(cfg, deps.fetch || fetch);
   const descargaSolicitud = manejadorDescargaSolicitud(cfg, deps.fetch || fetch);
   const descargaArchivo = manejadorDescargaArchivo(cfg);

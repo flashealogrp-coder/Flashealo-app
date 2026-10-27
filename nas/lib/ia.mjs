@@ -12,12 +12,21 @@ const ACCIONES_IA = new Set(['ia']);
 // ¿la ruta guardada en la base (o/<slug>/…, watermarks/<slug>/…, miniaturas/<slug>/…) está dentro de la carpeta del fotógrafo?
 const rutaDe = (r, slug) => new RegExp(`^(o|watermarks|miniaturas)/${slug}/`).test(String(r).trim().replace(/^\/+/, '')) && !String(r).includes('..');
 
-export function manejadorIA(cfg, ctx, fetchFn = fetch) {
+export function manejadorIA(cfg, ctx, fetchFn = fetch, cuotas = null) {
   return async function (req, res) {
     if (req.method !== 'POST') return json(res, 405, { error: 'Método no permitido' });
     const c = await ctx.contexto(req);
     if (!c || !c.permitido) return json(res, 401, { error: 'No autorizado' });
-    const { evento_id, accion, tipo_reconocimiento, rutas, prefijo } = req.body || {};
+    const { evento_id, accion, tipo_reconocimiento, rutas, prefijo, slugs } = req.body || {};
+
+    // Espacio que ocupa cada fotógrafo en el NAS (solo superadmin; lo usa el panel de fotógrafos).
+    if (accion === 'uso_fotografos') {
+      if (!c.admin) return json(res, 403, { error: 'Solo el superadministrador' });
+      if (!cuotas || !Array.isArray(slugs)) return json(res, 400, { error: 'Datos inválidos' });
+      const uso = {};
+      for (const sl of slugs.slice(0, 200)) if (typeof sl === 'string' && /^[a-z0-9][a-z0-9-]{2,30}$/.test(sl)) uso[sl] = await cuotas.uso(sl);
+      return json(res, 200, { uso });
+    }
 
     // Borrado físico: lo hace el propio NAS (se elimina del disco), no el motor externo.
     if (accion === 'eliminar_fotos') {

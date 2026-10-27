@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from './supabaseClient';
 import { urlAdmin } from './urlFotos';
+import PanelFotografos from './PanelFotografos';
 import { planificarReparto, MAX_POR_SET } from './marca/reparto';
 import { leerTodo } from './marca/paginar';
 import { separarPortada, unirPortada } from './marca/portada';
@@ -10,7 +11,7 @@ import {
   ChevronLeft, ChevronRight as ChevronRightIcon, Eye, Heart, Maximize2, X, 
   PanelLeftClose, PanelLeft, UploadCloud, ChevronDown, ChevronUp, MapPin, 
   AlertTriangle, Zap, User, Copy, LogOut, Hash, UserMinus, Combine, Check, 
-  ScanFace, ScanLine, Share2, Edit2, Columns, LayoutGrid, Square, Info, Camera, Sliders, HardDrive, Monitor, Smartphone, Mail, Download
+  ScanFace, ScanLine, Share2, Edit2, Columns, LayoutGrid, Square, Info, Camera, Sliders, HardDrive, Monitor, Smartphone, Mail, Download, Users
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -1085,6 +1086,7 @@ const destruirPerfilFalso = async () => {
             <input type="email" placeholder="Correo electrónico" required value={email} onChange={e=>setEmail(e.target.value)} className="w-full p-4 bg-[#F9F8F5] outline-none border-b border-fl-texto/10 focus:border-fl-texto transition-colors" />
             <input type="password" placeholder="Contraseña" required value={password} onChange={e=>setPassword(e.target.value)} className="w-full p-4 bg-[#F9F8F5] outline-none border-b border-fl-texto/10 focus:border-fl-texto transition-colors" />
             <button type="submit" className="w-full bg-[#181816] text-white p-4 text-xs uppercase tracking-widest font-bold mt-4 hover:bg-fl-texto transition-colors">Ingresar al Sistema</button>
+            <a href="/registro" className="text-center text-[11px] text-[#5A5955] underline underline-offset-4 mt-1">Crear cuenta de fotógrafo</a>
           </form>
         </div>
       </div>
@@ -1136,6 +1138,11 @@ const destruirPerfilFalso = async () => {
           <button onClick={() => { setVista('grid'); setEventoActivo(null); }} className="flex items-center w-full p-3 hover:bg-fl-arena transition-colors" style={{ color: !eventoActivo ? INK : TAUPE, paddingLeft: sidebarOpen ? 20 : 0, justifyContent: sidebarOpen ? 'flex-start' : 'center' }}>
             <Grid size={18} strokeWidth={1.5}/> {sidebarOpen && <span className="ml-3 text-[13px]">Colecciones</span>}
           </button>
+          {esSuper && (
+            <button onClick={() => { setVista('fotografos'); setEventoActivo(null); }} className="flex items-center w-full p-3 hover:bg-fl-arena transition-colors" style={{ color: vista === 'fotografos' ? INK : TAUPE, paddingLeft: sidebarOpen ? 20 : 0, justifyContent: sidebarOpen ? 'flex-start' : 'center', background: 'none', border: 'none', cursor: 'pointer' }}>
+              <Users size={18} strokeWidth={1.5}/> {sidebarOpen && <span className="ml-3 text-[13px]">Fotógrafos</span>}
+            </button>
+          )}
         </nav>
         <div className="p-4 border-t" style={{ borderColor: BORDER }}>
           <button onClick={cerrarSesion} className="flex items-center text-xs text-fl-grafito hover:text-red-500 transition-colors" style={{ justifyContent: sidebarOpen ? 'flex-start' : 'center' }}>
@@ -1177,6 +1184,8 @@ const destruirPerfilFalso = async () => {
             }} 
             className="custom-scrollbar"
           >        
+          {vista === 'fotografos' && esSuper && <PanelFotografos avisar={(tipo, texto) => setMensaje({ tipo, texto })} />}
+
           {vista === 'grid' && (
             <div style={{ maxWidth: 1200, margin: '0 auto', padding: '28px 32px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>

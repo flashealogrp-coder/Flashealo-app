@@ -312,3 +312,17 @@ test('fotógrafos: /api/ia borra solo lo suyo y solo procesa colecciones propias
   assert.equal((await ia('admin', { evento_id: ajena, accion: 'miniaturas' })).status, 202);
   await e.fin();
 });
+
+test('uso de espacio por fotógrafo: solo superadmin y solo carpetas válidas', async () => {
+  const e = await entorno();
+  fs.mkdirSync(path.join(e.datos, 'originales', 'ana', 'ev'), { recursive: true });
+  fs.writeFileSync(path.join(e.datos, 'originales', 'ana', 'ev', 'a.jpg'), Buffer.alloc(300));
+  fs.mkdirSync(path.join(e.datos, 'miniaturas', 'ana', 'ev'), { recursive: true });
+  fs.writeFileSync(path.join(e.datos, 'miniaturas', 'ana', 'ev', 'a.jpg'), Buffer.alloc(20));
+  const r = await post(e.base, '/api/ia', { accion: 'uso_fotografos', slugs: ['ana', 'nadie', '../x'] }, 'admin');
+  assert.equal(r.status, 200);
+  assert.deepEqual((await r.json()).uso, { ana: 320, nadie: 0 });
+  assert.equal((await post(e.base, '/api/ia', { accion: 'uso_fotografos', slugs: ['ana'] }, 'ana')).status, 403);
+  assert.equal((await post(e.base, '/api/ia', { accion: 'uso_fotografos', slugs: ['ana'] })).status, 401);
+  await e.fin();
+});

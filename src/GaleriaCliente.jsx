@@ -63,7 +63,7 @@ const GaleriaCliente = () => {
     const fetchEventoPorSlug = async () => {
       setCargandoInicial(true);
       const esUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slug);
-      let query = supabase.from('eventos').select('id,nombre,descripcion,logo_url,banner_url,es_gratis,precio_galeria,fecha_evento,estado,created_at,tipo_reconocimiento,slug,portada_url,configuracion_ui,precio_foto,moneda,requiere_pago_para_ver,ubicacion,url_slug,titulo_about,categoria,url_portada,tiene_clave');
+      let query = supabase.from('eventos').select('id,nombre,descripcion,logo_url,banner_url,es_gratis,precio_galeria,fecha_evento,estado,created_at,tipo_reconocimiento,slug,portada_url,configuracion_ui,precio_foto,moneda,requiere_pago_para_ver,ubicacion,url_slug,titulo_about,categoria,url_portada,tiene_clave,permitir_descarga');
       query = esUUID ? query.eq('id', slug) : query.eq('url_slug', slug);
 
       const { data, error } = await query.single();
@@ -192,9 +192,26 @@ const GaleriaCliente = () => {
     if (!error && ok === true) {
       setAutenticado(true);
       sessionStorage.setItem(`auth_${evento.id}`, 'true'); // Memoria activada
+      try { sessionStorage.setItem(`clave_${evento.id}`, passwordInput); } catch { /* sin almacenamiento */ }
     } else {
       setErrorBuscador("Contraseña incorrecta");
     }
+  };
+
+  const [descargando, setDescargando] = useState(false);
+  const [errorDescarga, setErrorDescarga] = useState('');
+  const descargarFoto = async (foto) => {
+    if (!foto || descargando) return;
+    setDescargando(true); setErrorDescarga('');
+    try {
+      let clave = '';
+      try { clave = sessionStorage.getItem(`clave_${evento.id}`) || ''; } catch { /* sin almacenamiento */ }
+      const r = await fetch('/api/descarga', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ p: foto.path, clave }) });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok || !j.url) throw new Error(j.error || 'No se pudo descargar.');
+      window.location.assign(j.url);   // el servidor responde como archivo adjunto: la página no cambia
+    } catch (e) { setErrorDescarga(e.message || 'No se pudo descargar.'); }
+    finally { setDescargando(false); }
   };
 
   const openLightbox = (fotosArray, i) => setLightboxData({ fotos: fotosArray, index: i });
@@ -587,6 +604,12 @@ const GaleriaCliente = () => {
             
             <div style={{ position: 'absolute', bottom: 24, left: 0, right: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, zIndex: 70 }}>
               <div style={{ fontSize: 10, letterSpacing: '0.3em', color: TAUPE }}>{lightboxData.index + 1} / {lightboxData.fotos.length}</div>
+              {evento?.permitir_descarga && (
+                <button type="button" disabled={descargando} onClick={(e) => { e.stopPropagation(); descargarFoto(lightboxData.fotos[lightboxData.index]); }} style={{ background: INK, color: WHITE, border: 'none', padding: '10px 22px', fontSize: 10, letterSpacing: '0.25em', textTransform: 'uppercase', cursor: descargando ? 'wait' : 'pointer', opacity: descargando ? 0.6 : 1 }}>
+                  {descargando ? 'Preparando…' : 'Descargar tamaño real'}
+                </button>
+              )}
+              {errorDescarga && <div style={{ fontSize: 12, color: '#A3392B' }}>{errorDescarga}</div>}
               
               {/* ROSTROS DETECTADOS EN ESTA FOTO */}
               {(() => {

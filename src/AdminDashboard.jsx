@@ -9,7 +9,7 @@ import {
   ChevronLeft, ChevronRight as ChevronRightIcon, Eye, Heart, Maximize2, X, 
   PanelLeftClose, PanelLeft, UploadCloud, ChevronDown, ChevronUp, MapPin, 
   AlertTriangle, Zap, User, Copy, LogOut, Hash, UserMinus, Combine, Check, 
-  ScanFace, ScanLine, Share2, Edit2, Columns, LayoutGrid, Square, Info, Camera, Sliders, HardDrive, Monitor, Smartphone, Mail
+  ScanFace, ScanLine, Share2, Edit2, Columns, LayoutGrid, Square, Info, Camera, Sliders, HardDrive, Monitor, Smartphone, Mail, Download
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -803,6 +803,16 @@ const destruirPerfilFalso = async () => {
     setSelectorPortada(false);
   };
 
+  const cambiarDescarga = async () => {
+    const nuevo = !eventoActivo.permitir_descarga;
+    if (nuevo && !window.confirm('¿Permitir que los clientes descarguen las fotos en tamaño real? Podrás apagarlo cuando quieras.')) return;
+    const { error } = await supabase.from('eventos').update({ permitir_descarga: nuevo }).eq('id', eventoActivo.id);
+    if (error) { setMensaje({ tipo: 'error', texto: 'No se pudo cambiar la descarga. ¿Ya aplicaste la migración 0006?' }); return; }
+    setEventoActivo(prev => ({ ...prev, permitir_descarga: nuevo }));
+    setListaEventos(prev => prev.map(ev => ev.id === eventoActivo.id ? { ...ev, permitir_descarga: nuevo } : ev));
+    setMensaje({ tipo: 'exito', texto: nuevo ? 'Descarga activada: los clientes pueden bajar las fotos en tamaño real.' : 'Descarga desactivada.' });
+  };
+
   const cambiarEstadoEvento = async (nuevo) => {
     if (nuevo === 'activo' && !window.confirm(`¿Publicar "${eventoActivo.nombre}"? Será visible para todo el público.`)) return;
     const { error } = await supabase.from('eventos').update({ estado: nuevo }).eq('id', eventoActivo.id);
@@ -1280,6 +1290,7 @@ const destruirPerfilFalso = async () => {
                       {eventoActivo.estado === 'oculto' ? <><Unlock size={13} /> Publicar</> : <><Lock size={13} /> Ocultar</>}
                     </button>
                     <button onClick={abrirSelectorPortada} style={{ background: 'rgba(255,255,255,0.15)', color: WHITE, border: 'none', padding: '10px 18px', borderRadius: 4, cursor: 'pointer', fontSize: 11, display: 'flex', alignItems: 'center', gap: 6 }}><ImageIcon size={13} /> Cambiar portada</button>
+                    <button onClick={cambiarDescarga} title="Permitir que el cliente descargue las fotos en tamaño real" style={{ background: eventoActivo.permitir_descarga ? WHITE : 'rgba(255,255,255,0.15)', color: eventoActivo.permitir_descarga ? INK : WHITE, border: 'none', padding: '10px 18px', borderRadius: 4, cursor: 'pointer', fontSize: 11, display: 'flex', alignItems: 'center', gap: 6 }}><Download size={13} /> Descarga: {eventoActivo.permitir_descarga ? 'sí' : 'no'}</button>
                     <button onClick={copiarEnlacePublico} style={{ background: SAND, color: INK, border: 'none', padding: '10px 18px', borderRadius: 4, cursor: 'pointer', fontSize: 11, display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600 }}>
                       <Share2 size={13} /> Copiar Enlace
                     </button>

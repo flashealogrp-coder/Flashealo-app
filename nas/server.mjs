@@ -9,6 +9,7 @@ import { manejadorUploadUrl, manejadorSubir, espacio } from './lib/subidas.mjs';
 import { manejadorIA } from './lib/ia.mjs';
 import { manejadorFotoIA } from './lib/fotosIA.mjs';
 import { manejadorSelfie } from './lib/selfie.mjs';
+import { manejadorDescargaSolicitud, manejadorDescargaArchivo } from './lib/descargas.mjs';
 
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.ico': 'image/x-icon', '.json': 'application/json', '.webmanifest': 'application/manifest+json', '.woff2': 'font/woff2', '.webp': 'image/webp', '.txt': 'text/plain' };
 const CABECERAS = {
@@ -31,6 +32,8 @@ export function crearServidor(cfg = leerConfig(), deps = {}) {
   const fotoIA = manejadorFotoIA(cfg);
   const ia = manejadorIA(cfg, esAdmin, deps.fetch || fetch);
   const selfie = manejadorSelfie(cfg, deps.fetch || fetch);
+  const descargaSolicitud = manejadorDescargaSolicitud(cfg, deps.fetch || fetch);
+  const descargaArchivo = manejadorDescargaArchivo(cfg);
   const DIST = path.resolve(cfg.dist);
 
   return http.createServer(async (req, res) => {
@@ -51,6 +54,11 @@ export function crearServidor(cfg = leerConfig(), deps = {}) {
         return (ruta === '/api/ia' ? ia : uploadUrl)(req, res);
       }
       if (ruta === '/api/selfie') return selfie(req, res);
+      if (ruta === '/api/descarga') {
+        try { req.body = await leerJson(req, 1e4); } catch { return res.writeHead(413).end(); }
+        return descargaSolicitud(req, res);
+      }
+      if (ruta.startsWith('/api/descarga/')) return descargaArchivo(req, res, ruta.slice('/api/descarga/'.length));
       if (ruta.startsWith('/api/foto-ia/')) return fotoIA(req, res, ruta.slice('/api/foto-ia/'.length));
       if (ruta.startsWith('/api/subir/')) return subir(req, res, ruta.slice('/api/subir/'.length));
       if (ruta.startsWith('/api/')) return res.writeHead(404, { 'Content-Type': 'application/json' }).end('{"error":"No existe"}');

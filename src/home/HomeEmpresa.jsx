@@ -233,7 +233,7 @@ export default function HomeEmpresa() {
         <section className="fh-portada">
           <div className="fh-contenedor fh-portada-rejilla">
             <h1 className="fl-titulo fh-titulo fh-aparece" style={{ '--d': '0.8s' }}>
-              Cada fotógrafo dominicano, con su propio espacio.
+              Cada fotógrafo, con su propio espacio.
             </h1>
             <div className="fh-portada-lado fh-aparece" style={{ '--d': '1.05s' }}>
               <p className="fl-parrafo">

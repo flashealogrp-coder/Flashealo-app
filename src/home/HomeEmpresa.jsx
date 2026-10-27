@@ -1,13 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
 import {
   CONTACTO,
   PORTAFOLIO,
-  SERVICIOS,
-  visibles,
   whatsappUrl,
 } from '../marca/servicios.js';
-import { urlDeLinea } from '../marca/anfitrion.js';
 import './home.css';
 
 const CLAVE_DESTELLO = 'flashealo-destello';
@@ -49,15 +45,6 @@ function Flecha() {
       ↗
     </span>
   );
-}
-
-// Enlace a una línea de Flashealo para clientes (eventos, sesiones, deportes), en el pie de página.
-function EnlaceLinea({ servicio }) {
-  const { nombre, subdominio } = servicio;
-  const host = typeof window !== 'undefined' ? window.location.host : '';
-  const href = subdominio ? urlDeLinea(subdominio, host, servicio.href) : servicio.href;
-  if (!href) return null;
-  return href.startsWith('/') ? <Link to={href}>{nombre}</Link> : <a href={href}>{nombre}</a>;
 }
 
 const MENSAJE_ACCESO = 'Hola, soy fotógrafo/a y quiero solicitar acceso al portal de Flashealo.';
@@ -189,7 +176,6 @@ export default function HomeEmpresa() {
   // `revelar` decide la entrada con telón; el telón se quita solo al terminar.
   const [revelar] = useState(debeDestellar);
   const [telon, setTelon] = useState(revelar);
-  const lineas = visibles(SERVICIOS).filter((s) => s.estado === 'activa');
   const acceso = '/registro';
   const accesoWhatsapp = whatsappUrl(MENSAJE_ACCESO);
 
@@ -360,12 +346,6 @@ export default function HomeEmpresa() {
       <footer className="fh-pie">
         <div className="fh-contenedor fh-pie-fila">
           <span className="fh-marca">FLASHEALO</span>
-          <nav className="fh-pie-lineas" aria-label="Fotografía con Flashealo">
-            <span className="fl-etiqueta">¿Buscas fotógrafo?</span>
-            {lineas.map((s) => (
-              <EnlaceLinea key={s.id} servicio={s} />
-            ))}
-          </nav>
           <span className="fl-etiqueta">
             <a href="/mi-espacio" style={{ color: 'inherit' }}>Entrar a mi espacio</a> · © {new Date().getFullYear()}
           </span>

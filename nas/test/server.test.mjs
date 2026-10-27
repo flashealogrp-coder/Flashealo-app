@@ -34,7 +34,13 @@ async function entorno(extra = {}) {
     if (req.url.endsWith('/rpc/mi_contexto')) return res.end(JSON.stringify(PERFILES[t] || { es_admin: false, estado: null, slug: null }));
     if (req.url.endsWith('/rpc/es_dueno_evento')) {
       const ev = JSON.parse(b || '{}').p_evento;
-      return res.end(JSON.stringify(t === 'admin' || (t === 'ana' && ev === '11111111-1111-1111-1111-111111111111')));
+      // El superadmin tampoco es dueño de colecciones ajenas (las de los fotógrafos: 1111… de Ana, 2222… de otro); sí de las suyas.
+      const deFotografo = ev.startsWith('11111111') || ev.startsWith('22222222');
+      return res.end(JSON.stringify((t === 'admin' && !deFotografo) || (t === 'ana' && ev === '11111111-1111-1111-1111-111111111111')));
+    }
+    if (req.url.endsWith('/rpc/carpeta_ajena')) {
+      const seg = JSON.parse(b || '{}').p_segmento;
+      return res.end(JSON.stringify(t === 'admin' ? ['ana', 'chica', 'pend'].includes(seg) : false));
     }
     res.statusCode = 404; res.end('{}');
   });
@@ -232,6 +238,8 @@ test('IA: enlaces temporales de fotos para el motor, y el enlace sirve solo esa 
     pedidos.push(req.url);
     res.setHeader('Content-Type', 'application/json');
     if (req.url.includes('mi_contexto')) return res.end(JSON.stringify({ es_admin: true, estado: null, slug: null }));
+    if (req.url.includes('es_dueno_evento')) return res.end('true');
+    if (req.url.includes('carpeta_ajena')) return res.end('false');
     res.end(JSON.stringify([{ id: 'f1', url_original: 'o/ev/a.jpg' }, { id: 'f2', url_original: 'o/ev/../../secreto.txt' }, { id: 'f3', url_original: 'watermarks/x.jpg' }]));
   });
   const p2 = await escuchar(supa2);
@@ -240,7 +248,7 @@ test('IA: enlaces temporales de fotos para el motor, y el enlace sirve solo esa 
   fs.mkdirSync(path.join(e.datos, 'originales', 'ev'), { recursive: true });
   fs.writeFileSync(path.join(e.datos, 'originales', 'ev', 'a.jpg'), 'JPEGDATA');
   fs.writeFileSync(path.join(e.datos, 'originales', 'otra.jpg'), 'OTRA');
-  const ev = '11111111-1111-1111-1111-111111111111';
+  const ev = '33333333-3333-3333-3333-333333333333';
   const r = await post(e.base, '/api/ia', { evento_id: ev, accion: 'ia', tipo_reconocimiento: 'hibrido' }, 'admin');
   assert.equal(r.status, 202);
   const enviado = e.llamadas.modal[0].body;
@@ -272,7 +280,8 @@ test('fotógrafos: solo escriben en su carpeta, cuentas pendientes no entran y l
   assert.equal((await sube('ana', 'anabanana/x')).status, 403);                    // prefijo parecido, no igual
   assert.equal((await sube('ana', 'boda/novios')).status, 403);                    // sin su carpeta
   assert.equal((await sube('pendiente', 'pend/x')).status, 401);                   // cuenta sin aprobar
-  assert.equal((await sube('admin', 'cualquiera/x')).status, 200);                 // superadmin sin restricción
+  assert.equal((await sube('admin', 'cualquiera/x')).status, 200);                 // el superadmin conserva sus rutas de siempre
+  assert.equal((await sube('admin', 'ana/x')).status, 403);                         // pero no escribe en la carpeta de un fotógrafo
   // cuota de 1000 bytes: ya hay 900 guardados y se pide subir 200 más
   fs.mkdirSync(path.join(e.datos, 'originales', 'chica', 'ev'), { recursive: true });
   fs.writeFileSync(path.join(e.datos, 'originales', 'chica', 'ev', 'x.jpg'), Buffer.alloc(900));
@@ -309,7 +318,10 @@ test('fotógrafos: /api/ia borra solo lo suyo y solo procesa colecciones propias
   assert.equal((await ia('ana', { evento_id: suya, accion: 'miniaturas' })).status, 202);
   assert.equal((await ia('ana', { evento_id: ajena, accion: 'ia' })).status, 403);
   assert.equal((await ia('pendiente', { evento_id: suya, accion: 'miniaturas' })).status, 401);
-  assert.equal((await ia('admin', { evento_id: ajena, accion: 'miniaturas' })).status, 202);
+  assert.equal((await ia('admin', { evento_id: ajena, accion: 'miniaturas' })).status, 403);   // el superadmin tampoco entra en colecciones ajenas
+  assert.equal((await ia('admin', { evento_id: '33333333-3333-3333-3333-333333333333', accion: 'miniaturas' })).status, 202); // sí en las suyas
+  assert.equal((await ia('admin', { accion: 'eliminar_coleccion', prefijo: 'ana/boda' })).status, 403);
+  assert.equal((await ia('admin', { accion: 'eliminar_fotos', rutas: ['o/chica/x.jpg'] })).status, 403);
   await e.fin();
 });
 

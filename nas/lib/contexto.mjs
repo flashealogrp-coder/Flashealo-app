@@ -45,7 +45,7 @@ export function crearContexto(cfg, fetchFn = fetch, ttlMs = 60_000) {
   async function esDueno(req, eventoId) {
     const c = await contexto(req);
     if (!c || !c.permitido) return false;
-    if (c.admin) return true;
+    // Ni siquiera el superadministrador entra en colecciones ajenas: la base de datos decide quién es el dueño.
     const jwt = token(req);
     const k = `d:${hash(jwt)}:${eventoId}`;
     const hit = leer(k);
@@ -55,5 +55,19 @@ export function crearContexto(cfg, fetchFn = fetch, ttlMs = 60_000) {
     return guardar(k, ok, ok ? ttlMs : 5000);
   }
 
-  return { contexto, esDueno };
+  // ¿La carpeta (o su primer tramo) es la de OTRO fotógrafo? Si no se puede comprobar, se trata como ajena.
+  async function carpetaAjena(req, texto) {
+    const seg = String(texto || '').trim().replace(/^\/+/, '').replace(/^(o|watermarks|miniaturas)\//, '').split('/')[0].toLowerCase();
+    if (!/^[a-z0-9][a-z0-9-]{2,30}$/.test(seg)) return false; // no puede ser la carpeta de un fotógrafo
+    const jwt = token(req);
+    const k = `a:${hash(jwt)}:${seg}`;
+    const hit = leer(k);
+    if (hit) return hit.v;
+    let r = null;
+    try { r = await rpc(jwt, 'carpeta_ajena', { p_segmento: seg }); } catch { r = null; }
+    const ajena = r !== false;
+    return guardar(k, ajena, ajena ? 5000 : ttlMs);
+  }
+
+  return { contexto, esDueno, carpetaAjena };
 }

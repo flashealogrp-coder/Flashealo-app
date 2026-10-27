@@ -33,9 +33,12 @@ export default function PanelFotografos({ avisar }) {
 
   const cargar = useCallback(async () => {
     setError('');
-    const { data, error: e } = await supabase.from('fotografos').select('*, eventos(count)').order('creado_en', { ascending: false });
+    const { data, error: e } = await supabase.from('fotografos').select('*').order('creado_en', { ascending: false });
     if (e) { setError('No se pudo cargar la lista. ¿Ya aplicaste la migración 0008?'); setFilas([]); return; }
-    setFilas(data || []);
+    // Solo el número de colecciones de cada fotógrafo: su contenido no es visible ni para el superadministrador.
+    const { data: conteos } = await supabase.rpc('colecciones_por_fotografo');
+    const total = new Map((conteos || []).map((c) => [c.fotografo_id, Number(c.total)]));
+    setFilas((data || []).map((f) => ({ ...f, colecciones: total.get(f.id) ?? 0 })));
     // espacio usado en el NAS (si el servidor no responde, simplemente no se muestra)
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -180,7 +183,7 @@ export default function PanelFotografos({ avisar }) {
                         <div style={{ fontSize: 11, color: TAUPE }}>{f.slug}{f.email ? ` · ${f.email}` : ''}</div>
                       </td>
                       <td style={{ padding: '14px 8px' }}><span style={{ background: et.fondo, color: et.color, fontSize: 11, padding: '3px 10px', borderRadius: 999, fontWeight: 500 }}>{et.texto}</span></td>
-                      <td style={{ padding: '14px 8px', color: INK }}>{f.eventos?.[0]?.count ?? 0}</td>
+                      <td style={{ padding: '14px 8px', color: INK }}>{f.colecciones ?? 0}</td>
                       <td style={{ padding: '14px 8px', minWidth: 190 }}>
                         {editando ? (
                           <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>

@@ -86,7 +86,7 @@ test('purgarPapelera con 0 días vacía toda la papelera heredada', async () => 
 
 test('API /api/ia eliminar_*: solo admin y sin tocar nada si no lo es', async () => {
   const d = datos();
-  const supa = http.createServer((req, res) => { res.setHeader('Content-Type', 'application/json'); res.end(JSON.stringify({ es_admin: (req.headers.authorization || '') === 'Bearer admin', estado: null, slug: null })); });
+  const supa = http.createServer((req, res) => { res.setHeader('Content-Type', 'application/json'); if (req.url.includes('carpeta_ajena')) return res.end('false'); res.end(JSON.stringify({ es_admin: (req.headers.authorization || '') === 'Bearer admin', estado: null, slug: null })); });
   await new Promise((r) => supa.listen(0, '127.0.0.1', r));
   const cfg = leerConfig({ DIST_DIR: d, DATA_DIR: d, SUPABASE_URL: `http://127.0.0.1:${supa.address().port}`, SUPABASE_KEY: 'k', UPLOAD_SECRET: 'x'.repeat(40) });
   const srv = crearServidor(cfg);

@@ -429,7 +429,8 @@ useEffect(() => {
   const cargarEventos = async () => {
     setCargando(true);
     let consulta = supabase.from('eventos').select('*').order('created_at', { ascending: false });
-    if (!esSuper) consulta = consulta.eq('fotografo_id', contexto?.fotografo_id || '00000000-0000-0000-0000-000000000000');
+    // Cada cuenta ve solo sus colecciones (ni el superadministrador ve las de los fotógrafos; la base de datos también lo impone).
+    if (!esSuper || contexto?.fotografo_id) consulta = consulta.eq('fotografo_id', contexto?.fotografo_id || '00000000-0000-0000-0000-000000000000');
     const { data } = await consulta;
     if (data) setListaEventos(data);
     setCargando(false);

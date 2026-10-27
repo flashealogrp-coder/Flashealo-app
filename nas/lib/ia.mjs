@@ -33,10 +33,12 @@ export function manejadorIA(cfg, ctx, fetchFn = fetch, cuotas = null) {
       if (!Array.isArray(rutas) || rutas.some((r) => typeof r !== 'string')) return json(res, 400, { error: 'rutas inválidas' });
       // Un fotógrafo solo borra dentro de su carpeta.
       if (!c.admin && !rutas.every((r) => rutaDe(r, c.slug))) return json(res, 403, { error: 'Esas fotos no son tuyas' });
+      if (c.admin && ctx.carpetaAjena) for (const r of rutas) if (await ctx.carpetaAjena(req, r)) return json(res, 403, { error: 'Esas fotos pertenecen a otro fotógrafo' });
       return json(res, 200, { ok: true, ...(await borrarFotos(cfg.datos, rutas, { papelera: cfg.papeleraDias > 0 })) });
     }
     if (accion === 'eliminar_coleccion') {
       if (typeof prefijo !== 'string') return json(res, 400, { error: 'prefijo inválido' });
+      if (c.admin && ctx.carpetaAjena && await ctx.carpetaAjena(req, prefijo)) return json(res, 403, { error: 'Esa colección pertenece a otro fotógrafo' });
       const r = await borrarColeccion(cfg.datos, prefijo, { papelera: cfg.papeleraDias > 0, base: c.admin ? '' : c.slug });
       return json(res, r.error ? 400 : 200, { ok: !r.error, ...r });
     }

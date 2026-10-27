@@ -41,6 +41,8 @@ export function manejadorUploadUrl(cfg, ctx, cuotas) {
     if (!nombre || !TIPOS.test(fileType || '') || !carpeta) return json(res, 400, { error: 'Datos inválidos' });
     // Un fotógrafo solo escribe dentro de su propia carpeta (<su-slug>/…); el superadmin no tiene esa restricción.
     if (!c.admin && !(carpeta === c.slug || carpeta.startsWith(c.slug + '/'))) return json(res, 403, { error: 'Esa carpeta no es tuya' });
+    // El superadmin conserva sus rutas de siempre, pero no puede escribir en la carpeta de otro fotógrafo.
+    if (c.admin && ctx.carpetaAjena && await ctx.carpetaAjena(req, carpeta)) return json(res, 403, { error: 'Esa carpeta pertenece a otro fotógrafo' });
 
     try {
       const e = await espacio(cfg.datos);

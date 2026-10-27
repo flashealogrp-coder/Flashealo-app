@@ -44,6 +44,8 @@ const App = () => {
       
       {/* RUTA 2: Dashboard Administrativo */}
       <Route path="/admin" element={linea && ADMIN_EN_PRINCIPAL ? <IrAlAdmin /> : <AdminDashboard />} />
+      {/* Entrada de los fotógrafos: misma aplicación, pero fuera de Authelia (la protege su cuenta Flashealo) */}
+      <Route path="/mi-espacio" element={<AdminDashboard />} />
       
       {/* Alta de fotógrafos: queda pendiente hasta que el superadmin la aprueba */}
       <Route path="/registro" element={<RegistroFotografo />} />

@@ -224,7 +224,7 @@ export default function HomeEmpresa() {
           <a className="fl-etiqueta" href="#preguntas">
             Preguntas
           </a>
-          <a className="fl-etiqueta fh-entrar" href="/admin">
+          <a className="fl-etiqueta fh-entrar" href="/mi-espacio">
             Entrar a mi espacio
           </a>
           <a className="fl-boton fl-boton-pildora" href={acceso}>
@@ -367,7 +367,7 @@ export default function HomeEmpresa() {
             ))}
           </nav>
           <span className="fl-etiqueta">
-            <a href="/admin" style={{ color: 'inherit' }}>Entrar a mi espacio</a> · © {new Date().getFullYear()}
+            <a href="/mi-espacio" style={{ color: 'inherit' }}>Entrar a mi espacio</a> · © {new Date().getFullYear()}
           </span>
         </div>
       </footer>

@@ -60,7 +60,7 @@ export default function RegistroFotografo() {
               {estado === 'confirmar' ? 'Te enviamos un correo para confirmar tu dirección. Confírmala y ' : 'Ya puedes iniciar sesión. '}
               Revisamos cada solicitud a mano y activamos tu espacio en cuanto la aprobamos. Mientras tanto no verás tus herramientas.
             </p>
-            <p style={{ marginTop: '2rem' }}><Link className="fl-boton fl-boton-linea" to="/admin">Ir a iniciar sesión</Link></p>
+            <p style={{ marginTop: '2rem' }}><Link className="fl-boton fl-boton-linea" to="/mi-espacio">Ir a iniciar sesión</Link></p>
           </div>
         ) : (
           <form onSubmit={enviar} style={{ display: 'grid', gap: '1rem' }}>
@@ -76,7 +76,7 @@ export default function RegistroFotografo() {
             <input className="fl-campo" required type="password" minLength={8} placeholder="Contraseña (mínimo 8 caracteres)" value={f.password} onChange={(e) => cambiar('password', e.target.value)} autoComplete="new-password" style={marca('password')} aria-invalid={campoError === 'password'} />
             {error && <p role="alert" style={{ color: 'var(--fl-error)', fontSize: '0.9rem', margin: 0 }}>{error}{detalle && <span style={{ display: 'block', opacity: 0.7, fontSize: '0.78rem', marginTop: '0.3rem' }}>Detalle técnico: {detalle}</span>}</p>}
             <button type="submit" className="fl-boton" disabled={estado === 'enviando'}>{estado === 'enviando' ? 'Enviando…' : 'Solicitar acceso'}</button>
-            <p className="fl-parrafo" style={{ fontSize: '0.9rem', margin: '0.5rem 0 0' }}>¿Ya tienes cuenta? <Link to="/admin" style={{ color: 'var(--fl-texto)' }}>Ya tengo cuenta</Link></p>
+            <p className="fl-parrafo" style={{ fontSize: '0.9rem', margin: '0.5rem 0 0' }}>¿Ya tienes cuenta? <Link to="/mi-espacio" style={{ color: 'var(--fl-texto)' }}>Ya tengo cuenta</Link></p>
           </form>
         )}
       </div>

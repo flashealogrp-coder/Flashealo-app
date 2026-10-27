@@ -14,24 +14,15 @@ export default function PaginaSport() {
 
   const inicio = urlPrincipal(typeof window !== 'undefined' ? window.location.host : '');
   return (
-    <div style={{ minHeight: '100vh', background: '#F4F4F5', color: '#09090B' }}>
-      <div
-        style={{
-          background: '#000',
-          color: '#fff',
-          padding: '14px 20px',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-        }}
-      >
-        <a href={inicio} style={{ color: '#fff', textDecoration: 'none', fontFamily: '"Arial Black", Impact, sans-serif', letterSpacing: '0.04em' }}>
-          FLASHEALO SPORT
+    <div style={{ minHeight: '100vh', background: '#F9F8F5', color: '#181816' }}>
+      <header className="fl-pildora">
+        <a href={inicio} className="fl-marca" aria-label="Flashealo, inicio">
+          FLASHEALO <span className="fl-etiqueta" style={{ marginLeft: 10, letterSpacing: '0.2em' }}>Sport</span>
         </a>
-        <a href={inicio} style={{ color: 'rgba(255,255,255,0.7)', textDecoration: 'none', fontSize: 14 }}>
-          Volver al inicio
+        <a href={inicio} className="fl-boton fl-boton-linea fl-boton-pildora">
+          Inicio <span className="fl-flecha" aria-hidden="true">↗</span>
         </a>
-      </div>
+      </header>
       <FlashealoSport isMobile={isMobile} />
     </div>
   );

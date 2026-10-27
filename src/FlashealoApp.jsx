@@ -7,21 +7,21 @@ import { motion, AnimatePresence } from 'framer-motion';
 import FlashealoSport from './FlashealoSport';
 
 /* ─── DESIGN TOKENS (COLORES BASE) ──────────────────────────────────────────── */
-const WHITE  = '#FFFFFF';
-const TAUPE  = '#9A8F82';
-const INK    = '#1C1C1C';
-const SAND   = '#C8B99A';
-const CREAM  = '#F9F8F6';
-const FOOTINK = '#111111';
+const WHITE  = '#F9F8F5';
+const TAUPE  = '#5A5955';
+const INK    = '#181816';
+const SAND   = '#C8B69E';
+const CREAM  = '#F9F8F5';
+const FOOTINK = '#181816';
 
 /* ─── DICCIONARIO DE TEMAS ──────────────────────────────────────────────────── */
 const THEMES = {
   sesiones: {
-    bg: '#FFFFFF', 
-    text: '#222222',
-    accent: '#9A8F82',
+    bg: '#F9F8F5', 
+    text: '#181816',
+    accent: '#5A5955',
     navBg: 'rgba(255,255,255,0.95)',
-    logoFont: 'Georgia, serif',
+    logoFont: 'var(--fl-serif)',
     logoStyle: 'normal',
     logoText: 'FLASHEALO',
     
@@ -45,7 +45,7 @@ const THEMES = {
       'https://images.unsplash.com/photo-1509927083803-4bd519298ac4?auto=format&fit=crop&w=800&h=1200'
     ],
 
-    testimonioBg: '#F4F2EC', 
+    testimonioBg: '#EFECE6', 
     testimonials: [
       { quote: "El talento para capturar tanto los grandes momentos como los detalles pequeños es inigualable. Tienen una forma única de hacer que cada foto se sienta personal.", name: "RACHEL + ALEX" },
       { quote: "No podríamos haber pedido un mejor equipo. Nos hicieron sentir cómodos y entendieron realmente lo que queríamos. Las fotos capturan perfectamente la alegría de nuestro día.", name: "CAROLINE + CHRISTOPHER" },
@@ -57,8 +57,8 @@ const THEMES = {
     ctaText: 'Fechas limitadas disponibles para esta temporada.'
   },
   estudio: {
-    bg: '#111111',
-    text: '#FFFFFF',
+    bg: '#181816',
+    text: '#F9F8F5',
     accent: '#888888',
     navBg: 'rgba(17,17,17,0.95)',
     logoFont: 'system-ui, -apple-system, sans-serif',
@@ -84,7 +84,7 @@ const THEMES = {
       'https://images.unsplash.com/photo-1512413914482-ee7c3fa4a9b6?auto=format&fit=crop&w=800&h=1200'
     ],
 
-    testimonioBg: '#1A1A1A', 
+    testimonioBg: '#181816', 
     testimonials: [
       { quote: "La precisión y el nivel de detalle que manejan en el estudio transformaron por completo la imagen de nuestros productos. Un nivel verdaderamente internacional.", name: "MARCA LOCAL" },
       { quote: "Necesitábamos retratos corporativos que transmitieran liderazgo sin verse anticuados. El resultado superó nuestras expectativas. Entendieron nuestra visión.", name: "GRUPO EMPRESARIAL" },
@@ -96,17 +96,17 @@ const THEMES = {
     ctaText: 'Reserva tu espacio en nuestro estudio comercial.'
   },
   sport: {
-    bg: '#F4F4F5',
-    text: '#09090B',
-    accent: '#E11D48',
-    navBg: '#000000',
+    bg: '#F9F8F5',
+    text: '#181816',
+    accent: '#A3392B',
+    navBg: '#181816',
     logoFont: '"Arial Black", Impact, sans-serif',
     logoStyle: 'normal', // Mantenemos el Flashealo normal
     logoText: 'FLASHEALO SPORT',
     titleMain: 'ACCIÓN',
     titleSub: 'AL LÍMITE.',
     desc: 'Encuentra tus fotografías. Cubrimos los eventos deportivos y maratones más exigentes con tecnología de reconocimiento facial y de dorsales impulsada por IA.',
-    cardBg: '#E4E4E7'
+    cardBg: '#E2DFD9'
   }
 };
 
@@ -238,14 +238,14 @@ const FlashealoApp = () => {
         boxSizing: 'border-box',
       }}>
         <div onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12, position: isMobile ? 'absolute' : 'static', left: isMobile ? '50%' : 'auto', transform: isMobile ? 'translateX(-50%)' : 'none', zIndex: 101 }}>
-          <span style={{ width: 3, height: 18, background: isSport ? '#E11D48' : (scrolled ? theme.accent : WHITE), display: 'inline-block', transition: 'all 0.5s ease' }} />
+          <span style={{ width: 3, height: 18, background: isSport ? '#A3392B' : (scrolled ? theme.accent : WHITE), display: 'inline-block', transition: 'all 0.5s ease' }} />
           
           {/* EL LOGO MAGICO CON SPORT "FAST ACTIVO" */}
           <span style={{ fontFamily: theme.logoFont, fontStyle: theme.logoStyle, fontSize: isMobile ? 13 : 14, fontWeight: isSport ? 900 : 500, letterSpacing: isSport ? '0.1em' : '0.25em', textTransform: 'uppercase', color: navColor, transition: 'color 0.4s ease', display: 'flex', alignItems: 'center', gap: 6 }}>
             {isSport ? (
               <>
                 FLASHEALO 
-                <span style={{ color: '#E11D48', fontStyle: 'italic', transform: 'skewX(-15deg)', display: 'inline-block', fontWeight: 900, paddingLeft: 2 }}>
+                <span style={{ color: '#A3392B', fontStyle: 'italic', transform: 'skewX(-15deg)', display: 'inline-block', fontWeight: 900, paddingLeft: 2 }}>
                   SPORT
                 </span>
               </>
@@ -285,9 +285,9 @@ const FlashealoApp = () => {
       {/* ── MENÚ DESPLEGABLE MÓVIL ── */}
       <AnimatePresence>
         {isMobile && menuAbierto && (
-          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.3 }} style={{ position: 'fixed', inset: 0, background: isSport ? '#000000' : theme.bg, zIndex: 90, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 40 }}>
+          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.3 }} style={{ position: 'fixed', inset: 0, background: isSport ? '#181816' : theme.bg, zIndex: 90, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 40 }}>
             {[{ id: 'sesiones', label: 'Sesiones' }, { id: 'estudio', label: 'Estudio' }, { id: 'sport', label: 'Sport' }].map(tab => (
-              <button key={tab.id} onClick={() => cambiarSeccion(tab.id)} style={{ background: 'transparent', border: 'none', color: seccionActiva === tab.id ? (isSport ? '#E11D48' : theme.accent) : (isSport ? WHITE : theme.text), fontSize: 20, letterSpacing: '0.2em', textTransform: 'uppercase', fontFamily: 'Georgia, serif', opacity: seccionActiva === tab.id ? 1 : 0.5 }}>
+              <button key={tab.id} onClick={() => cambiarSeccion(tab.id)} style={{ background: 'transparent', border: 'none', color: seccionActiva === tab.id ? (isSport ? '#A3392B' : theme.accent) : (isSport ? WHITE : theme.text), fontSize: 20, letterSpacing: '0.2em', textTransform: 'uppercase', fontFamily: 'var(--fl-serif)', opacity: seccionActiva === tab.id ? 1 : 0.5 }}>
                 {tab.label}
               </button>
             ))}
@@ -322,7 +322,7 @@ const FlashealoApp = () => {
               
               {!reservaExitosa ? (
                 <>
-                  <h2 style={{ fontFamily: 'Georgia, serif', fontSize: 28, fontWeight: 300, marginBottom: 8, textAlign: 'center' }}>Agendar Sesión</h2>
+                  <h2 style={{ fontFamily: 'var(--fl-serif)', fontSize: 28, fontWeight: 300, marginBottom: 8, textAlign: 'center' }}>Agendar Sesión</h2>
                   <p style={{ fontSize: 13, opacity: 0.6, marginBottom: 32, textAlign: 'center', lineHeight: 1.5 }}>Déjanos tus datos y nos pondremos en contacto contigo para confirmar los detalles.</p>
                   
                   <form onSubmit={enviarReserva} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -384,7 +384,7 @@ const FlashealoApp = () => {
                   <div style={{ width: 64, height: 64, borderRadius: '50%', background: theme.accent, color: WHITE, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
                     <CheckCircle2 size={32} strokeWidth={2} />
                   </div>
-                  <h2 style={{ fontFamily: 'Georgia, serif', fontSize: 28, fontWeight: 300, marginBottom: 16 }}>¡Solicitud Recibida!</h2>
+                  <h2 style={{ fontFamily: 'var(--fl-serif)', fontSize: 28, fontWeight: 300, marginBottom: 16 }}>¡Solicitud Recibida!</h2>
                   <p style={{ fontSize: 15, opacity: 0.7, marginBottom: 32, lineHeight: 1.6 }}>
                     Gracias por escribirnos, <strong>{formData.nombre.split(' ')[0]}</strong>.<br/> 
                     Hemos guardado tus datos y te contactaremos muy pronto {formData.contactar_whatsapp ? 'vía WhatsApp' : 'por correo'}.
@@ -434,7 +434,7 @@ const FlashealoApp = () => {
                   <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3, duration: 0.8 }} style={{ fontSize: 10, letterSpacing: '0.4em', textTransform: 'uppercase', color: WHITE, marginBottom: 24, fontWeight: 600 }}>
                     {theme.heroTag}
                   </motion.p>
-                  <motion.h1 initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5, duration: 1 }} style={{ fontFamily: 'Georgia, serif', fontSize: 'clamp(36px, 6vw, 72px)', fontWeight: 300, lineHeight: 1.1, color: WHITE, margin: 0, letterSpacing: '-0.02em' }}>
+                  <motion.h1 initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5, duration: 1 }} style={{ fontFamily: 'var(--fl-serif)', fontSize: 'clamp(36px, 6vw, 72px)', fontWeight: 300, lineHeight: 1.1, color: WHITE, margin: 0, letterSpacing: '-0.02em' }}>
                     {theme.heroTitle}
                   </motion.h1>
                 </div>
@@ -445,7 +445,7 @@ const FlashealoApp = () => {
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '60px 8%', alignItems: 'center' }}>
                   <motion.div {...scrollAnim} style={{ flex: '1 1 400px' }}>
                     <p style={{ fontSize: 10, letterSpacing: '0.3em', color: theme.accent, textTransform: 'uppercase', fontWeight: 700, marginBottom: 20 }}>{theme.aboutTag}</p>
-                    <h2 style={{ fontFamily: 'Georgia, serif', fontSize: 'clamp(32px, 4vw, 44px)', fontWeight: 300, lineHeight: 1.2, marginBottom: 32 }}>{theme.aboutTitle}</h2>
+                    <h2 style={{ fontFamily: 'var(--fl-serif)', fontSize: 'clamp(32px, 4vw, 44px)', fontWeight: 300, lineHeight: 1.2, marginBottom: 32 }}>{theme.aboutTitle}</h2>
                     <p style={{ fontSize: 15, lineHeight: 1.8, opacity: 0.7, marginBottom: 40 }}>{theme.aboutText}</p>
                     <button onClick={() => setModalReserva(true)} style={{
                       background: 'transparent', color: theme.text, border: `1px solid ${theme.text}40`,
@@ -468,7 +468,7 @@ const FlashealoApp = () => {
               </div>
 
               {/* PORTAFOLIO */}
-              <div style={{ padding: isMobile ? '80px 24px' : '80px 48px', background: CREAM, color: '#1C1C1C' }}>
+              <div style={{ padding: isMobile ? '80px 24px' : '80px 48px', background: CREAM, color: '#181816' }}>
                 <div style={{ maxWidth: 1400, margin: '0 auto' }}>
                   <motion.div {...scrollAnim} style={{ textAlign: 'center', marginBottom: 60 }}>
                     <h3 style={{ fontSize: 11, letterSpacing: '0.25em', textTransform: 'uppercase', margin: 0, opacity: 0.6, fontWeight: 600 }}>{theme.galleryTitle}</h3>
@@ -511,7 +511,7 @@ const FlashealoApp = () => {
                           flex: isMobile ? '0 0 85%' : 'auto', 
                           display: 'flex', flexDirection: 'column', gap: 20
                         }}>
-                          <p style={{ fontFamily: 'Georgia, serif', fontSize: isMobile ? 13 : 15, lineHeight: isMobile ? 1.6 : 1.8, opacity: 0.7, margin: 0, fontStyle: 'italic' }}>
+                          <p style={{ fontFamily: 'var(--fl-serif)', fontSize: isMobile ? 13 : 15, lineHeight: isMobile ? 1.6 : 1.8, opacity: 0.7, margin: 0, fontStyle: 'italic' }}>
                             "{testimonio.quote}"
                           </p>
                           <span style={{ fontSize: 10, letterSpacing: '0.15em', textTransform: 'uppercase', fontWeight: 600 }}>
@@ -531,7 +531,7 @@ const FlashealoApp = () => {
                 </div>
                 
                 <motion.div {...scrollAnim} style={{ position: 'relative', zIndex: 10, color: theme.bg }}>
-                  <h2 style={{ fontFamily: 'Georgia, serif', fontSize: 'clamp(28px, 5vw, 56px)', fontWeight: 300, marginBottom: 20 }}>{theme.ctaTitle}</h2>
+                  <h2 style={{ fontFamily: 'var(--fl-serif)', fontSize: 'clamp(28px, 5vw, 56px)', fontWeight: 300, marginBottom: 20 }}>{theme.ctaTitle}</h2>
                   <p style={{ fontSize: 14, opacity: 0.8, marginBottom: 50, letterSpacing: '0.05em' }}>{theme.ctaText}</p>
                   
                   <button onClick={() => setModalReserva(true)} style={{
@@ -585,7 +585,7 @@ const FlashealoApp = () => {
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
               <span style={{ width: 2, height: 16, background: theme.accent, display: 'inline-block', transition: 'background-color 0.5s ease' }} />
-              <span style={{ fontFamily: 'Georgia, serif', fontSize: 14, letterSpacing: '0.18em', textTransform: 'uppercase', color: WHITE }}>Flashealo</span>
+              <span style={{ fontFamily: 'var(--fl-serif)', fontSize: 14, letterSpacing: '0.18em', textTransform: 'uppercase', color: WHITE }}>Flashealo</span>
             </div>
             <p style={{ fontSize: 8, color: 'rgba(255, 255, 255, 0.43)', letterSpacing: '0.22em', textTransform: 'uppercase', margin: 0 }}>Estudio &amp; Sports Technology</p>
           </div>
@@ -617,7 +617,7 @@ const FlashealoApp = () => {
           break-inside: avoid;
           margin-bottom: 24px;
           overflow: hidden;
-          background: #E8E4DE;
+          background: #E2DFD9;
         }
 
         @media (max-width: 1024px) { 

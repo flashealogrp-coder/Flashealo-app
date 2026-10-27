@@ -40,54 +40,54 @@ const EventoForm = () => {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 max-w-2xl mx-auto">
-      <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
-        <Sparkles className="text-amber-500" /> Configurar Nuevo Evento
+    <form onSubmit={handleSubmit} className="bg-fl-lino p-8 rounded-sm shadow-sm border border-fl-borde max-w-2xl mx-auto">
+      <h2 className="font-serif text-3xl font-light mb-6 flex items-center gap-2">
+        <Sparkles size={22} className="text-fl-laton" /> Configurar Nuevo Evento
       </h2>
 
       {/* Datos Básicos */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
         <div>
-          <label className="block text-sm font-bold mb-2">Nombre del Evento</label>
+          <label className="fl-etiqueta block mb-2">Nombre del Evento</label>
           <input 
-            className="w-full p-3 rounded-xl border border-gray-200"
+            className="fl-campo"
             onChange={(e) => setFormData({...formData, nombre: e.target.value})}
             placeholder="Ej: Torneo Nacional Pickleball 2026"
           />
         </div>
         <div>
-          <label className="block text-sm font-bold mb-2">Slug (URL)</label>
+          <label className="fl-etiqueta block mb-2">Slug (URL)</label>
           <input 
-            className="w-full p-3 rounded-xl border border-gray-200"
+            className="fl-campo"
             onChange={(e) => setFormData({...formData, slug: e.target.value})}
             placeholder="pickleball-nacional-2026"
           />
         </div>
       </div>
-<div className="bg-gray-50 p-6 rounded-2xl mb-8 border border-gray-100">
-        <h3 className="font-bold mb-4">Logística del Evento</h3>
+<div className="bg-fl-arena p-6 rounded-sm mb-8 border border-fl-borde">
+        <h3 className="font-serif text-xl font-normal mb-4">Logística del Evento</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Fecha</label>
+            <label className="fl-etiqueta block mb-2">Fecha</label>
             <input 
               type="date" 
-              className="w-full p-3 rounded-xl border border-gray-200"
+              className="fl-campo"
               onChange={(e) => setFormData({...formData, fecha_evento: e.target.value})}
             />
           </div>
           <div>
-            <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Ubicación</label>
+            <label className="fl-etiqueta block mb-2">Ubicación</label>
             <input 
-              className="w-full p-3 rounded-xl border border-gray-200"
+              className="fl-campo"
               placeholder="Ej: Centro Olímpico, SD"
               onChange={(e) => setFormData({...formData, ubicacion: e.target.value})}
             />
           </div>
         </div>
         <div className="mt-4">
-          <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Descripción breve</label>
+          <label className="fl-etiqueta block mb-2">Descripción breve</label>
           <textarea 
-            className="w-full p-3 rounded-xl border border-gray-200"
+            className="fl-campo"
             rows="2"
             onChange={(e) => setFormData({...formData, descripcion: e.target.value})}
           />
@@ -96,20 +96,20 @@ const EventoForm = () => {
 
         <div className="grid grid-cols-2 gap-4">
         <div>
-            <label className="block text-xs font-bold uppercase mb-2">Logo (400x400)</label>
+            <label className="fl-etiqueta block mb-2">Logo (400x400)</label>
             <input type="file" onChange={(e) => setLogoFile(e.target.files[0])} />
         </div>
         <div>
-            <label className="block text-xs font-bold uppercase mb-2">Portada (1200x630)</label>
+            <label className="fl-etiqueta block mb-2">Portada (1200x630)</label>
             <input type="file" onChange={(e) => setPortadaFile(e.target.files[0])} />
         </div>
         </div>
 
       {/* Configuración del Motor (Modular) */}
-      <div className="bg-[#F5F2EB] p-6 rounded-2xl mb-8">
-        <h3 className="font-bold mb-4 flex items-center gap-2"><Settings size={18}/> Lógica del Motor de IA</h3>
+      <div className="bg-[#EFECE6] p-6 rounded-sm mb-8">
+        <h3 className="font-serif text-xl font-normal mb-4 flex items-center gap-2"><Settings size={18}/> Lógica del Motor de IA</h3>
         <select 
-          className="w-full p-3 rounded-xl border border-gray-200 mb-4"
+          className="w-full p-3 rounded-sm border border-fl-borde mb-4"
           onChange={(e) => setFormData({...formData, tipo_reconocimiento: e.target.value})}
         >
           <option value="hibrido">Híbrido (Facial + Color + Contexto) - RECOMENDADO</option>
@@ -127,7 +127,7 @@ const EventoForm = () => {
         {!formData.es_gratis && (
           <input 
             type="number" 
-            className="p-2 border rounded-lg w-24"
+            className="p-2 border rounded-sm w-24"
             placeholder="Precio"
             onChange={(e) => setFormData({...formData, precio_foto: e.target.value})}
           />
@@ -136,9 +136,9 @@ const EventoForm = () => {
 
       <button 
         disabled={loading}
-        className="w-full bg-[#1A1A1A] text-white py-4 rounded-full font-bold hover:bg-black transition-all flex items-center justify-center gap-2"
+        className="fl-boton w-full"
       >
-        {loading ? "Guardando..." : <><Save size={20}/> Guardar Configuración del Evento</>}
+        {loading ? "Guardando..." : <><Save size={16}/> Guardar configuración del evento</>}
       </button>
     </form>
   );

@@ -47,6 +47,17 @@
   transform: translateX(-50%);
 }
 
+/* ── Marca escrita ──────────────────────────────────────────────────────── */
+.fl-marca {
+  font-family: var(--fl-serif);
+  font-size: 1.15rem;
+  font-weight: 500;
+  letter-spacing: 0.32em;
+  color: var(--fl-texto);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
 /* ── Botones: borde fino, mayúsculas pequeñas y flecha en diagonal ─────── */
 .fl-boton {
   display: inline-flex;

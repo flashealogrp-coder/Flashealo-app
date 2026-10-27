@@ -11,11 +11,11 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const SAND   = '#C8B99A';
-const TAUPE  = '#9A8F82';
-const INK    = '#1C1C1C';
-const CREAM  = '#FDFCF8'; 
-const WHITE  = '#FFFFFF';
+const SAND   = '#C8B69E';
+const TAUPE  = '#5A5955';
+const INK    = '#181816';
+const CREAM  = '#F9F8F5'; 
+const WHITE  = '#F9F8F5';
 const BORDER = 'rgba(0,0,0,0.06)';
 
 const DOMINIO_R2 = import.meta.env.VITE_R2_DOMINIO || 'https://pub-c4c062c3f8754b2d9ff6de40e9d6d713.r2.dev'; 
@@ -141,7 +141,7 @@ const BoundingBox = ({ bbox, color, label, esCuerpo }) => {
     <div className="absolute z-10 pointer-events-none transition-all duration-300 group" style={{ left: `${box.x}%`, top: `${box.y}%`, width: `${box.w}%`, height: `${box.h}%` }}>
       <div className="absolute inset-0 border-[2px] rounded-sm transition-colors duration-300" style={{ borderColor: color, borderStyle: esCuerpo ? 'dashed' : 'solid', boxShadow: esCuerpo ? 'none' : `0 0 12px ${color}88` }} />
       {!esCuerpo && label && (
-        <div className="absolute -top-7 left-1/2 -translate-x-1/2 flex items-center gap-1 bg-black/90 px-2 py-0.5 rounded-sm whitespace-nowrap">
+        <div className="absolute -top-7 left-1/2 -translate-x-1/2 flex items-center gap-1 bg-fl-texto/90 px-2 py-0.5 rounded-sm whitespace-nowrap">
           <span className="text-white text-[9px] uppercase tracking-widest">{label}</span>
         </div>
       )}
@@ -241,9 +241,9 @@ export default function AdminDashboard() {
     opacidad_overlay: 50,
     fuente_titulo: 'serif', // 'serif' | 'sans' | 'mono'
     tamano_titulo: 'gigante', // 'normal' | 'grande' | 'gigante'
-    color_fondo: '#FDFCF8',
-    color_texto: '#1C1C1C',
-    color_acento: '#C8B99A',
+    color_fondo: '#F9F8F5',
+    color_texto: '#181816',
+    color_acento: '#C8B69E',
     modo_grid_default: 'editorial', // 'editorial' | 'pinterest' | 'large'
     placeholder_buscador: 'Busca tus fotos o ingresa tu nombre...',
     estilo_avatares: 'circulo_dorado' // 'circulo_dorado' | 'cuadrado_minimal'
@@ -725,14 +725,14 @@ const destruirPerfilFalso = async () => {
     const isSelected = fotosSeleccionadas.includes(foto.id);
     const procesandoMiniatura = !foto.url_watermark;
 
-    let containerClass = "group relative rounded-sm overflow-hidden bg-[#E8E4DE] transition-all ";
+    let containerClass = "group relative rounded-sm overflow-hidden bg-[#E2DFD9] transition-all ";
     let imgClass = "transition-opacity duration-300 ";
 
     if (layoutModo === 'masonry') {
       containerClass += "mb-4 break-inside-avoid w-full block ";
       imgClass += "w-full h-auto block ";
     } else if (layoutModo === 'single') {
-      containerClass += "w-full bg-[#FAFAFA] flex items-center justify-center py-4 mb-8 ";
+      containerClass += "w-full bg-[#F9F8F5] flex items-center justify-center py-4 mb-8 ";
       imgClass += "max-w-full max-h-[70vh] object-contain shadow-sm ";
     } else {
       // grid-small y grid-big (Mantienen el espacio sin deformar)
@@ -754,20 +754,20 @@ const destruirPerfilFalso = async () => {
         
         {/* Capa de hover con cursor de dedito normal */}
         <div 
-          className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer" 
+          className="absolute inset-0 bg-fl-texto/5 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer" 
           onClick={() => setLightboxIndex(fotosActuales.findIndex(f => f.id === foto.id))}
         >
-          {/* Botón de selección con opacidad baja (bg-white/40) */}
+          {/* Botón de selección con opacidad baja (bg-fl-lino/40) */}
           <div className="absolute top-2 left-2 z-10" onClick={(e) => toggleFotoSeleccion(foto.id, e)}>
-            <div className={`w-6 h-6 rounded-full flex items-center justify-center transition-all hover:bg-white ${isSelected ? 'bg-[#C8B99A]' : 'bg-white/40'}`}>
+            <div className={`w-6 h-6 rounded-full flex items-center justify-center transition-all hover:bg-fl-lino ${isSelected ? 'bg-[#C8B69E]' : 'bg-fl-lino/40'}`}>
               {isSelected && <Check size={14} color={WHITE} />}
             </div>
           </div>
           
           {/* Corazón con opacidad baja */}
           <div className="absolute bottom-2 right-2 z-10" onClick={(e) => toggleFavorito(foto.id, e)}>
-            <div className="w-6 h-6 rounded-full flex items-center justify-center bg-white/40 hover:bg-white transition-all">
-                <Heart size={14} fill={foto.es_favorita ? '#E74C3C' : 'none'} color={foto.es_favorita ? '#E74C3C' : INK} />
+            <div className="w-6 h-6 rounded-full flex items-center justify-center bg-fl-lino/40 hover:bg-fl-lino transition-all">
+                <Heart size={14} fill={foto.es_favorita ? '#A3392B' : 'none'} color={foto.es_favorita ? '#A3392B' : INK} />
             </div>
           </div>
         </div>
@@ -787,7 +787,7 @@ const destruirPerfilFalso = async () => {
 
     return (
       <div className="mb-12">
-        {title && <h3 className="text-[10px] uppercase tracking-widest text-[#9A8F82] mb-6 font-bold flex items-center gap-2">{title} <span className="px-2 py-0.5 bg-[#E8E4DE] text-[#1C1C1C] rounded-sm">{fotos.length}</span></h3>}
+        {title && <h3 className="text-[10px] uppercase tracking-widest text-[#5A5955] mb-6 font-bold flex items-center gap-2">{title} <span className="px-2 py-0.5 bg-[#E2DFD9] text-[#181816] rounded-sm">{fotos.length}</span></h3>}
         <div className={gridClass}>
           {fotos.map((foto) => {
             const globalIdx = fotosActuales.findIndex(f => f.id === foto.id);
@@ -799,16 +799,16 @@ const destruirPerfilFalso = async () => {
   };
 
 
-  if (cargandoLogin) return <div className="h-screen w-full flex items-center justify-center bg-[#FDFCF8]"><Loader2 className="animate-spin text-[#9A8F82]" size={32}/></div>;
+  if (cargandoLogin) return <div className="h-screen w-full flex items-center justify-center bg-[#F9F8F5]"><Loader2 className="animate-spin text-[#5A5955]" size={32}/></div>;
   if (!session) {
     return (
-      <div className="h-screen w-full flex items-center justify-center bg-[#FDFCF8] font-sans">
-        <div className="bg-white p-12 shadow-2xl border border-black/5 w-full max-w-md">
-          <div className="text-center mb-8"><span className="w-4 h-12 bg-[#C8B99A] inline-block mb-4"></span><h1 className="text-3xl font-serif text-[#1C1C1C]">Flashealo</h1><p className="text-[10px] uppercase tracking-[0.3em] text-[#9A8F82] mt-2">Acceso Administrativo</p></div>
+      <div className="h-screen w-full flex items-center justify-center bg-[#F9F8F5] font-sans">
+        <div className="bg-fl-lino p-12 shadow-2xl border border-fl-texto/5 w-full max-w-md">
+          <div className="text-center mb-8"><span className="w-4 h-12 bg-[#C8B69E] inline-block mb-4"></span><h1 className="text-3xl font-serif text-[#181816]">Flashealo</h1><p className="text-[10px] uppercase tracking-[0.3em] text-[#5A5955] mt-2">Acceso Administrativo</p></div>
           <form onSubmit={iniciarSesion} className="flex flex-col gap-5">
-            <input type="email" placeholder="Correo electrónico" required value={email} onChange={e=>setEmail(e.target.value)} className="w-full p-4 bg-[#FDFCF8] outline-none border-b border-black/10 focus:border-black transition-colors" />
-            <input type="password" placeholder="Contraseña" required value={password} onChange={e=>setPassword(e.target.value)} className="w-full p-4 bg-[#FDFCF8] outline-none border-b border-black/10 focus:border-black transition-colors" />
-            <button type="submit" className="w-full bg-[#1C1C1C] text-white p-4 text-xs uppercase tracking-widest font-bold mt-4 hover:bg-black transition-colors">Ingresar al Sistema</button>
+            <input type="email" placeholder="Correo electrónico" required value={email} onChange={e=>setEmail(e.target.value)} className="w-full p-4 bg-[#F9F8F5] outline-none border-b border-fl-texto/10 focus:border-fl-texto transition-colors" />
+            <input type="password" placeholder="Contraseña" required value={password} onChange={e=>setPassword(e.target.value)} className="w-full p-4 bg-[#F9F8F5] outline-none border-b border-fl-texto/10 focus:border-fl-texto transition-colors" />
+            <button type="submit" className="w-full bg-[#181816] text-white p-4 text-xs uppercase tracking-widest font-bold mt-4 hover:bg-fl-texto transition-colors">Ingresar al Sistema</button>
           </form>
         </div>
       </div>
@@ -831,7 +831,7 @@ const destruirPerfilFalso = async () => {
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <span style={{ width: 2, height: 18, background: SAND, flexShrink: 0, borderRadius: 1 }} />
               <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <span style={{ fontFamily: 'Georgia, serif', fontSize: 15, letterSpacing: '0.15em', textTransform: 'uppercase', color: INK, lineHeight: 1 }}>Flashealo</span>
+                <span style={{ fontFamily: 'var(--fl-serif)', fontSize: 15, letterSpacing: '0.15em', textTransform: 'uppercase', color: INK, lineHeight: 1 }}>Flashealo</span>
                 <span style={{ fontSize: 8, letterSpacing: '0.15em', textTransform: 'uppercase', color: TAUPE, marginTop: 3 }}>Admin</span>
               </div>
             </div>
@@ -841,12 +841,12 @@ const destruirPerfilFalso = async () => {
           </button>
         </div>
         <nav style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1, marginTop: 12 }}>
-          <button onClick={() => { setVista('grid'); setEventoActivo(null); }} className="flex items-center w-full p-3 hover:bg-gray-50 transition-colors" style={{ color: !eventoActivo ? INK : TAUPE, paddingLeft: sidebarOpen ? 20 : 0, justifyContent: sidebarOpen ? 'flex-start' : 'center' }}>
+          <button onClick={() => { setVista('grid'); setEventoActivo(null); }} className="flex items-center w-full p-3 hover:bg-fl-arena transition-colors" style={{ color: !eventoActivo ? INK : TAUPE, paddingLeft: sidebarOpen ? 20 : 0, justifyContent: sidebarOpen ? 'flex-start' : 'center' }}>
             <Grid size={18} strokeWidth={1.5}/> {sidebarOpen && <span className="ml-3 text-[13px]">Colecciones</span>}
           </button>
         </nav>
         <div className="p-4 border-t" style={{ borderColor: BORDER }}>
-          <button onClick={cerrarSesion} className="flex items-center text-xs text-gray-500 hover:text-red-500 transition-colors" style={{ justifyContent: sidebarOpen ? 'flex-start' : 'center' }}>
+          <button onClick={cerrarSesion} className="flex items-center text-xs text-fl-grafito hover:text-red-500 transition-colors" style={{ justifyContent: sidebarOpen ? 'flex-start' : 'center' }}>
             <LogOut size={16} /> {sidebarOpen && <span className="ml-2 uppercase tracking-widest">Cerrar Sesión</span>}
           </button>
         </div>
@@ -866,7 +866,7 @@ const destruirPerfilFalso = async () => {
           </div>
           <AnimatePresence>
             {mensaje.texto && (
-              <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} style={{ position: 'absolute', top: 16, right: 24, zIndex: 100, padding: '12px 20px', background: mensaje.tipo === 'error' ? '#E74C3C' : INK, fontSize: 12, color: WHITE, boxShadow: '0 10px 40px rgba(0,0,0,0.1)', borderRadius: 6, display: 'flex', alignItems: 'center', gap: 10 }}>
+              <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} style={{ position: 'absolute', top: 16, right: 24, zIndex: 100, padding: '12px 20px', background: mensaje.tipo === 'error' ? '#A3392B' : INK, fontSize: 12, color: WHITE, boxShadow: '0 10px 40px rgba(0,0,0,0.1)', borderRadius: 6, display: 'flex', alignItems: 'center', gap: 10 }}>
                 {mensaje.tipo === 'error' ? <AlertTriangle size={14} /> : <CheckCircle size={14} color={SAND} />} {mensaje.texto}
               </motion.div>
             )}
@@ -881,14 +881,14 @@ const destruirPerfilFalso = async () => {
             style={{ 
               flex: 1, 
               overflowY: isDisenoLocked ? 'hidden' : 'auto', // 🌟 Se oculta sutilmente sin romper el scroll 
-              background: '#FAFAFA' 
+              background: '#F9F8F5' 
             }} 
             className="custom-scrollbar"
           >        
           {vista === 'grid' && (
             <div style={{ maxWidth: 1200, margin: '0 auto', padding: '28px 32px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-                <h1 style={{ fontSize: 24, fontWeight: 400, fontFamily: 'Georgia, serif', margin: 0 }}>Colecciones</h1>
+                <h1 style={{ fontSize: 24, fontWeight: 400, fontFamily: 'var(--fl-serif)', margin: 0 }}>Colecciones</h1>
                 <button onClick={() => { 
                   setEventoEditandoId(null); 
                   setFormData({ 
@@ -928,7 +928,7 @@ const destruirPerfilFalso = async () => {
                     const esPrivado = ev.password_cliente && ev.password_cliente.trim() !== '';
                     return (
                       <div key={ev.id} onClick={() => entrarAlEvento(ev)} style={{ background: WHITE, borderRadius: 6, overflow: 'hidden', cursor: 'pointer', border: `1px solid ${BORDER}`, display: 'flex', flexDirection: 'column' }}>
-                        <div style={{ height: 160, position: 'relative', background: '#E8E4DE' }}>
+                        <div style={{ height: 160, position: 'relative', background: '#E2DFD9' }}>
                           <img src={renderCoverUrl(ev.portada_url) || "https://images.unsplash.com/photo-1541534741688?w=800"} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: renderCoverPosition(ev.portada_url) }} />
                           <div style={{ position: 'absolute', top: 10, right: 10, background: esPrivado ? 'rgba(28,28,28,0.85)' : 'rgba(255,255,255,0.92)', color: esPrivado ? WHITE : INK, padding: '3px 8px', borderRadius: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
                             {esPrivado ? <Lock size={10} color={SAND} /> : <Unlock size={10} color={TAUPE} />}
@@ -948,18 +948,18 @@ const destruirPerfilFalso = async () => {
 
           {vista === 'form' && (
             <div style={{ maxWidth: 900, margin: '0 auto', padding: '40px 32px 80px' }}>
-              <h1 className="text-3xl font-serif mb-8 text-[#1C1C1C]">
+              <h1 className="text-3xl font-serif mb-8 text-[#181816]">
                 {eventoEditandoId ? 'Ajustes del Evento' : 'Nueva Colección'}
               </h1>
               
-              <form onSubmit={guardarEvento} className="bg-white p-8 border border-[#EAEAEA] shadow-sm flex flex-col gap-10">
+              <form onSubmit={guardarEvento} className="bg-fl-lino p-8 border border-[#E2DFD9] shadow-sm flex flex-col gap-10">
                 
                 {/* --- SECCIÓN 1: INFORMACIÓN BÁSICA --- */}
                 <div>
-                  <h3 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#9A8F82] border-b border-[#EAEAEA] pb-2 mb-5">Información Básica</h3>
+                  <h3 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#5A5955] border-b border-[#E2DFD9] pb-2 mb-5">Información Básica</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="col-span-1 md:col-span-2">
-                      <label className="text-[10px] uppercase tracking-widest text-[#1C1C1C] font-bold mb-2 block">Nombre del Evento</label>
+                      <label className="text-[10px] uppercase tracking-widest text-[#181816] font-bold mb-2 block">Nombre del Evento</label>
                       <input 
                         required 
                         value={formData.nombre} 
@@ -972,25 +972,25 @@ const destruirPerfilFalso = async () => {
                             url_slug: eventoEditandoId ? prev.url_slug : generarSlugCorto(nuevoNombre)
                           }));
                         }} 
-                        className="w-full p-3 bg-[#FDFCF8] outline-none border border-[#EAEAEA] focus:border-[#C8B99A] text-xl font-serif rounded-sm transition-colors" 
+                        className="w-full p-3 bg-[#F9F8F5] outline-none border border-[#E2DFD9] focus:border-[#C8B69E] text-xl font-serif rounded-sm transition-colors" 
                         placeholder="Ej. Boda Maria y Jose / Maratón Santo Domingo"
                       />
                     </div>
 
                     <div>
-                      <label className="text-[10px] uppercase tracking-widest text-[#1C1C1C] font-bold mb-2 block">URL Personalizada (Slug Auto-generado)</label>
+                      <label className="text-[10px] uppercase tracking-widest text-[#181816] font-bold mb-2 block">URL Personalizada (Slug Auto-generado)</label>
                       <input 
                         required 
                         value={formData.url_slug} 
                         onChange={e => setFormData({...formData, url_slug: e.target.value.toLowerCase().replace(/ /g, '-')})} 
-                        className="w-full p-3 bg-[#FDFCF8] outline-none border border-[#EAEAEA] focus:border-[#C8B99A] font-serif rounded-sm transition-colors text-gray-700" 
+                        className="w-full p-3 bg-[#F9F8F5] outline-none border border-[#E2DFD9] focus:border-[#C8B69E] font-serif rounded-sm transition-colors text-fl-grafito" 
                         placeholder="ejemplo: boda-maria-jose" 
                       />
                     </div>
 
                     <div>
-                      <label className="text-[10px] uppercase tracking-widest text-[#1C1C1C] font-bold mb-2 block">Categoría</label>
-                      <select value={formData.categoria} onChange={e => setFormData({...formData, categoria: e.target.value})} className="w-full p-3 bg-[#FDFCF8] outline-none border border-[#EAEAEA] focus:border-[#C8B99A] font-serif rounded-sm transition-colors">
+                      <label className="text-[10px] uppercase tracking-widest text-[#181816] font-bold mb-2 block">Categoría</label>
+                      <select value={formData.categoria} onChange={e => setFormData({...formData, categoria: e.target.value})} className="w-full p-3 bg-[#F9F8F5] outline-none border border-[#E2DFD9] focus:border-[#C8B69E] font-serif rounded-sm transition-colors">
                         <option value="sport">Deporte / Sport</option>
                         <option value="sesion_fotos">Sesión de Fotos</option> {/* 🌟 NUEVA OPCIÓN */}
                         <option value="social">Social / Fiesta</option>
@@ -1000,48 +1000,48 @@ const destruirPerfilFalso = async () => {
                     </div>
 
                     <div>
-                      <label className="text-[10px] uppercase tracking-widest text-[#1C1C1C] font-bold mb-2 block">Fecha del Evento</label>
-                      <input type="date" value={formData.fecha_evento || ''} onChange={e => setFormData({...formData, fecha_evento: e.target.value})} className="w-full p-3 bg-[#FDFCF8] outline-none border border-[#EAEAEA] focus:border-[#C8B99A] font-serif rounded-sm transition-colors" />
+                      <label className="text-[10px] uppercase tracking-widest text-[#181816] font-bold mb-2 block">Fecha del Evento</label>
+                      <input type="date" value={formData.fecha_evento || ''} onChange={e => setFormData({...formData, fecha_evento: e.target.value})} className="w-full p-3 bg-[#F9F8F5] outline-none border border-[#E2DFD9] focus:border-[#C8B69E] font-serif rounded-sm transition-colors" />
                     </div>
 
                     <div>
-                      <label className="text-[10px] uppercase tracking-widest text-[#1C1C1C] font-bold mb-2 block">Ubicación</label>
-                      <input type="text" value={formData.ubicacion || ''} onChange={e => setFormData({...formData, ubicacion: e.target.value})} className="w-full p-3 bg-[#FDFCF8] outline-none border border-[#EAEAEA] focus:border-[#C8B99A] font-serif rounded-sm transition-colors" placeholder="Ej. Jarabacoa / Punta Cana" />
+                      <label className="text-[10px] uppercase tracking-widest text-[#181816] font-bold mb-2 block">Ubicación</label>
+                      <input type="text" value={formData.ubicacion || ''} onChange={e => setFormData({...formData, ubicacion: e.target.value})} className="w-full p-3 bg-[#F9F8F5] outline-none border border-[#E2DFD9] focus:border-[#C8B69E] font-serif rounded-sm transition-colors" placeholder="Ej. Jarabacoa / Punta Cana" />
                     </div>
                   </div>
                 </div>
 
                 {/* --- SECCIÓN 2: PÁGINA PÚBLICA Y ARCHIVOS --- */}
                 <div>
-                  <h3 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#9A8F82] border-b border-[#EAEAEA] pb-2 mb-5">Página Pública y Presentación</h3>
+                  <h3 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#5A5955] border-b border-[#E2DFD9] pb-2 mb-5">Página Pública y Presentación</h3>
                   <div className="flex flex-col gap-6">
                     <div>
-                      <label className="text-[10px] uppercase tracking-widest text-[#1C1C1C] font-bold mb-2 block">Título "Acerca Del Evento"</label>
-                      <input type="text" value={formData.titulo_about || ''} onChange={e => setFormData({...formData, titulo_about: e.target.value})} className="w-full p-3 bg-[#FDFCF8] outline-none border border-[#EAEAEA] focus:border-[#C8B99A] font-serif rounded-sm transition-colors" placeholder="Ej. Fotografías oficiales del evento" />
+                      <label className="text-[10px] uppercase tracking-widest text-[#181816] font-bold mb-2 block">Título "Acerca Del Evento"</label>
+                      <input type="text" value={formData.titulo_about || ''} onChange={e => setFormData({...formData, titulo_about: e.target.value})} className="w-full p-3 bg-[#F9F8F5] outline-none border border-[#E2DFD9] focus:border-[#C8B69E] font-serif rounded-sm transition-colors" placeholder="Ej. Fotografías oficiales del evento" />
                     </div>
 
                     <div>
-                      <label className="text-[10px] uppercase tracking-widest text-[#1C1C1C] font-bold mb-2 block">Descripción Completa</label>
-                      <textarea value={formData.descripcion || ''} onChange={e => setFormData({...formData, descripcion: e.target.value})} rows={3} className="w-full p-3 bg-[#FDFCF8] outline-none border border-[#EAEAEA] focus:border-[#C8B99A] font-serif resize-none rounded-sm transition-colors" placeholder="Detalles o mensaje de bienvenida..." />
+                      <label className="text-[10px] uppercase tracking-widest text-[#181816] font-bold mb-2 block">Descripción Completa</label>
+                      <textarea value={formData.descripcion || ''} onChange={e => setFormData({...formData, descripcion: e.target.value})} rows={3} className="w-full p-3 bg-[#F9F8F5] outline-none border border-[#E2DFD9] focus:border-[#C8B69E] font-serif resize-none rounded-sm transition-colors" placeholder="Detalles o mensaje de bienvenida..." />
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="border border-dashed border-[#C8B99A] bg-[#FDFCF8] p-4 flex flex-col items-center justify-center text-center rounded-sm">
-                        <ImageIcon size={24} className="text-[#C8B99A] mb-2" />
-                        <label className="text-[10px] uppercase tracking-widest text-[#1C1C1C] font-bold mb-2 cursor-pointer hover:underline">
+                      <div className="border border-dashed border-[#C8B69E] bg-[#F9F8F5] p-4 flex flex-col items-center justify-center text-center rounded-sm">
+                        <ImageIcon size={24} className="text-[#C8B69E] mb-2" />
+                        <label className="text-[10px] uppercase tracking-widest text-[#181816] font-bold mb-2 cursor-pointer hover:underline">
                           Subir Portada (Banner)
                           <input type="file" accept="image/*" onChange={(e) => setPortadaFile(e.target.files[0])} className="hidden" />
                         </label>
-                        <span className="text-xs text-gray-400">{portadaFile ? portadaFile.name : (formData.portada_url ? 'Ya tiene portada' : 'No seleccionada')}</span>
+                        <span className="text-xs text-fl-grafito">{portadaFile ? portadaFile.name : (formData.portada_url ? 'Ya tiene portada' : 'No seleccionada')}</span>
                       </div>
 
-                      <div className="border border-dashed border-[#C8B99A] bg-[#FDFCF8] p-4 flex flex-col items-center justify-center text-center rounded-sm">
-                        <Star size={24} className="text-[#C8B99A] mb-2" />
-                        <label className="text-[10px] uppercase tracking-widest text-[#1C1C1C] font-bold mb-2 cursor-pointer hover:underline">
+                      <div className="border border-dashed border-[#C8B69E] bg-[#F9F8F5] p-4 flex flex-col items-center justify-center text-center rounded-sm">
+                        <Star size={24} className="text-[#C8B69E] mb-2" />
+                        <label className="text-[10px] uppercase tracking-widest text-[#181816] font-bold mb-2 cursor-pointer hover:underline">
                           Subir Logo del Evento
                           <input type="file" accept="image/*" onChange={(e) => setLogoFile(e.target.files[0])} className="hidden" />
                         </label>
-                        <span className="text-xs text-gray-400">{logoFile ? logoFile.name : (formData.logo_url ? 'Ya tiene logo' : 'No seleccionado')}</span>
+                        <span className="text-xs text-fl-grafito">{logoFile ? logoFile.name : (formData.logo_url ? 'Ya tiene logo' : 'No seleccionado')}</span>
                       </div>
                     </div>
                   </div>
@@ -1049,24 +1049,24 @@ const destruirPerfilFalso = async () => {
 
                 {/* --- SECCIÓN 3: COMERCIALIZACIÓN Y ACCESO (AHORA ABAJO) --- */}
                 <div>
-                  <h3 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#9A8F82] border-b border-[#EAEAEA] pb-2 mb-5">Comercialización y Acceso</h3>
+                  <h3 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#5A5955] border-b border-[#E2DFD9] pb-2 mb-5">Comercialización y Acceso</h3>
                   
                   {/* Selector de Gratuito / Pago */}
-                  <div className="flex gap-8 mb-6 bg-[#FDFCF8] p-4 border border-[#EAEAEA] rounded-sm">
+                  <div className="flex gap-8 mb-6 bg-[#F9F8F5] p-4 border border-[#E2DFD9] rounded-sm">
                     <label className="flex items-center gap-3 cursor-pointer group">
-                      <div className={`w-5 h-5 rounded-sm border flex items-center justify-center transition-colors ${formData.es_gratis ? 'bg-[#C8B99A] border-[#C8B99A]' : 'bg-white border-gray-300'}`}>
+                      <div className={`w-5 h-5 rounded-sm border flex items-center justify-center transition-colors ${formData.es_gratis ? 'bg-[#C8B69E] border-[#C8B69E]' : 'bg-fl-lino border-fl-borde'}`}>
                         {formData.es_gratis && <Check size={14} color={WHITE} />}
                       </div>
                       <input type="checkbox" checked={formData.es_gratis} onChange={e => setFormData({...formData, es_gratis: e.target.checked})} className="hidden"/>
-                      <span className="text-xs uppercase tracking-widest text-[#1C1C1C] font-bold group-hover:text-[#C8B99A] transition-colors">Evento Gratuito (Predeterminado)</span>
+                      <span className="text-xs uppercase tracking-widest text-[#181816] font-bold group-hover:text-[#C8B69E] transition-colors">Evento Gratuito (Predeterminado)</span>
                     </label>
 
                     <label className="flex items-center gap-3 cursor-pointer group">
-                      <div className={`w-5 h-5 rounded-sm border flex items-center justify-center transition-colors ${formData.requiere_pago_para_ver ? 'bg-[#C8B99A] border-[#C8B99A]' : 'bg-white border-gray-300'}`}>
+                      <div className={`w-5 h-5 rounded-sm border flex items-center justify-center transition-colors ${formData.requiere_pago_para_ver ? 'bg-[#C8B69E] border-[#C8B69E]' : 'bg-fl-lino border-fl-borde'}`}>
                         {formData.requiere_pago_para_ver && <Check size={14} color={WHITE} />}
                       </div>
                       <input type="checkbox" checked={formData.requiere_pago_para_ver} onChange={e => setFormData({...formData, requiere_pago_para_ver: e.target.checked})} className="hidden"/>
-                      <span className="text-xs uppercase tracking-widest text-[#1C1C1C] font-bold group-hover:text-[#C8B99A] transition-colors">Requiere Pago Para Ver</span>
+                      <span className="text-xs uppercase tracking-widest text-[#181816] font-bold group-hover:text-[#C8B69E] transition-colors">Requiere Pago Para Ver</span>
                     </label>
                   </div>
 
@@ -1074,8 +1074,8 @@ const destruirPerfilFalso = async () => {
                   {!formData.es_gratis && (
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                       <div>
-                        <label className="text-[10px] uppercase tracking-widest text-[#1C1C1C] font-bold mb-2 block">Moneda</label>
-                        <select value={formData.moneda} onChange={e => setFormData({...formData, moneda: e.target.value})} className="w-full p-3 bg-[#FDFCF8] outline-none border border-[#EAEAEA] focus:border-[#C8B99A] font-serif rounded-sm transition-colors">
+                        <label className="text-[10px] uppercase tracking-widest text-[#181816] font-bold mb-2 block">Moneda</label>
+                        <select value={formData.moneda} onChange={e => setFormData({...formData, moneda: e.target.value})} className="w-full p-3 bg-[#F9F8F5] outline-none border border-[#E2DFD9] focus:border-[#C8B69E] font-serif rounded-sm transition-colors">
                           <option value="DOP">DOP (Pesos)</option>
                           <option value="USD">USD (Dólares)</option>
                           <option value="EUR">EUR (Euros)</option>
@@ -1083,13 +1083,13 @@ const destruirPerfilFalso = async () => {
                       </div>
 
                       <div>
-                        <label className="text-[10px] uppercase tracking-widest text-[#1C1C1C] font-bold mb-2 block">Precio Galería Completa</label>
-                        <input type="number" step="0.01" min="0" value={formData.precio_galeria || 0} onChange={e => setFormData({...formData, precio_galeria: parseFloat(e.target.value) || 0})} className="w-full p-3 bg-[#FDFCF8] outline-none border border-[#EAEAEA] focus:border-[#C8B99A] font-serif rounded-sm transition-colors" />
+                        <label className="text-[10px] uppercase tracking-widest text-[#181816] font-bold mb-2 block">Precio Galería Completa</label>
+                        <input type="number" step="0.01" min="0" value={formData.precio_galeria || 0} onChange={e => setFormData({...formData, precio_galeria: parseFloat(e.target.value) || 0})} className="w-full p-3 bg-[#F9F8F5] outline-none border border-[#E2DFD9] focus:border-[#C8B69E] font-serif rounded-sm transition-colors" />
                       </div>
 
                       <div>
-                        <label className="text-[10px] uppercase tracking-widest text-[#1C1C1C] font-bold mb-2 block">Precio Foto Individual</label>
-                        <input type="number" step="0.01" min="0" value={formData.precio_foto || 0} onChange={e => setFormData({...formData, precio_foto: parseFloat(e.target.value) || 0})} className="w-full p-3 bg-[#FDFCF8] outline-none border border-[#EAEAEA] focus:border-[#C8B99A] font-serif rounded-sm transition-colors" />
+                        <label className="text-[10px] uppercase tracking-widest text-[#181816] font-bold mb-2 block">Precio Foto Individual</label>
+                        <input type="number" step="0.01" min="0" value={formData.precio_foto || 0} onChange={e => setFormData({...formData, precio_foto: parseFloat(e.target.value) || 0})} className="w-full p-3 bg-[#F9F8F5] outline-none border border-[#E2DFD9] focus:border-[#C8B69E] font-serif rounded-sm transition-colors" />
                       </div>
                     </div>
                   )}
@@ -1097,8 +1097,8 @@ const destruirPerfilFalso = async () => {
                   {/* Configuración de IA, Estado y Seguridad */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div>
-                      <label className="text-[10px] uppercase tracking-widest text-[#1C1C1C] font-bold mb-2 block">Motor IA (Predeterminado: Facial)</label>
-                      <select value={formData.tipo_reconocimiento} onChange={e => setFormData({...formData, tipo_reconocimiento: e.target.value})} className="w-full p-3 bg-[#FDFCF8] outline-none border border-[#EAEAEA] focus:border-[#C8B99A] font-serif rounded-sm transition-colors">
+                      <label className="text-[10px] uppercase tracking-widest text-[#181816] font-bold mb-2 block">Motor IA (Predeterminado: Facial)</label>
+                      <select value={formData.tipo_reconocimiento} onChange={e => setFormData({...formData, tipo_reconocimiento: e.target.value})} className="w-full p-3 bg-[#F9F8F5] outline-none border border-[#E2DFD9] focus:border-[#C8B69E] font-serif rounded-sm transition-colors">
                         <option value="facial">Facial Puro (Predeterminado)</option>
                         <option value="hibrido">Híbrido (Rostros + OCR)</option>
                         <option value="ocr">Lectura OCR (Deportes)</option>
@@ -1106,8 +1106,8 @@ const destruirPerfilFalso = async () => {
                     </div>
 
                     <div>
-                      <label className="text-[10px] uppercase tracking-widest text-[#1C1C1C] font-bold mb-2 block">Estado de Publicación</label>
-                      <select value={formData.estado} onChange={e => setFormData({...formData, estado: e.target.value})} className="w-full p-3 bg-[#FDFCF8] outline-none border border-[#EAEAEA] focus:border-[#C8B99A] font-serif rounded-sm transition-colors">
+                      <label className="text-[10px] uppercase tracking-widest text-[#181816] font-bold mb-2 block">Estado de Publicación</label>
+                      <select value={formData.estado} onChange={e => setFormData({...formData, estado: e.target.value})} className="w-full p-3 bg-[#F9F8F5] outline-none border border-[#E2DFD9] focus:border-[#C8B69E] font-serif rounded-sm transition-colors">
                         <option value="activo">Activo (Público)</option>
                         <option value="oculto">Oculto (Borrador Privado)</option>
                         <option value="inactivo">Inactivo (Archivado)</option>
@@ -1115,15 +1115,15 @@ const destruirPerfilFalso = async () => {
                     </div>
 
                     <div>
-                      <label className="text-[10px] uppercase tracking-widest text-[#1C1C1C] font-bold mb-2 flex items-center gap-1"><Lock size={10}/> Contraseña de Galería</label>
-                      <input type="text" placeholder="Vacío = Acceso libre" value={formData.password_cliente || ''} onChange={e => setFormData({...formData, password_cliente: e.target.value})} className="w-full p-3 bg-[#FDFCF8] outline-none border border-[#EAEAEA] focus:border-[#C8B99A] font-serif rounded-sm transition-colors" />
+                      <label className="text-[10px] uppercase tracking-widest text-[#181816] font-bold mb-2 flex items-center gap-1"><Lock size={10}/> Contraseña de Galería</label>
+                      <input type="text" placeholder="Vacío = Acceso libre" value={formData.password_cliente || ''} onChange={e => setFormData({...formData, password_cliente: e.target.value})} className="w-full p-3 bg-[#F9F8F5] outline-none border border-[#E2DFD9] focus:border-[#C8B69E] font-serif rounded-sm transition-colors" />
                     </div>
                   </div>
                 </div>
 
                 {/* --- BOTONES DE ACCIÓN --- */}
-                <div className="flex gap-4 mt-4 pt-6 border-t border-[#EAEAEA]">
-                  <button type="submit" disabled={cargando} className="bg-[#1C1C1C] text-white px-8 py-4 uppercase tracking-widest text-xs font-bold rounded-sm hover:bg-black transition-colors">
+                <div className="flex gap-4 mt-4 pt-6 border-t border-[#E2DFD9]">
+                  <button type="submit" disabled={cargando} className="bg-[#181816] text-white px-8 py-4 uppercase tracking-widest text-xs font-bold rounded-sm hover:bg-fl-texto transition-colors">
                     {cargando ? 'Guardando...' : 'Guardar Colección'}
                   </button>
                   {eventoEditandoId && (
@@ -1153,7 +1153,7 @@ const destruirPerfilFalso = async () => {
                 <img src={renderCoverUrl(eventoActivo.portada_url) || "https://images.unsplash.com/photo-1541534741688?w=1200"} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: renderCoverPosition(eventoActivo.portada_url), opacity: 0.4 }} />
                 <div style={{ position: 'relative', zIndex: 10, width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div>
-                    <h1 style={{ fontSize: 32, fontFamily: 'Georgia, serif', color: WHITE, margin: '0 0 8px 0', textShadow: '0 2px 10px rgba(0,0,0,0.5)' }}>{eventoActivo.nombre}</h1>
+                    <h1 style={{ fontSize: 32, fontFamily: 'var(--fl-serif)', color: WHITE, margin: '0 0 8px 0', textShadow: '0 2px 10px rgba(0,0,0,0.5)' }}>{eventoActivo.nombre}</h1>
                     <p style={{ color: 'rgba(255,255,255,0.9)', fontSize: 12, margin: 0, textTransform: 'uppercase', letterSpacing: '0.1em' }}>{eventoActivo.fecha_evento || 'Sin fecha'}</p>
                   </div>
                   <div style={{ display: 'flex', gap: 8 }}>
@@ -1181,10 +1181,10 @@ const destruirPerfilFalso = async () => {
                   {/* SECCIÓN 1: FOTOS */}
                   <div>
                     <div className="flex items-center justify-between px-2 mb-2">
-                      <span className="text-[10px] uppercase font-bold tracking-[0.18em] text-[#9A8F82]">Fotos</span>
+                      <span className="text-[10px] uppercase font-bold tracking-[0.18em] text-[#5A5955]">Fotos</span>
                       <button 
                         onClick={crearNuevaCarpeta} 
-                        className="flex items-center gap-1.5 px-2 py-1 hover:bg-[#EAEAEA] rounded-sm text-[#9A8F82] hover:text-[#1C1C1C] transition-colors" 
+                        className="flex items-center gap-1.5 px-2 py-1 hover:bg-[#E2DFD9] rounded-sm text-[#5A5955] hover:text-[#181816] transition-colors" 
                         title="Añadir nuevo set"
                       >
                         <Plus size={12} strokeWidth={2.5} />
@@ -1202,15 +1202,15 @@ const destruirPerfilFalso = async () => {
                             onClick={() => { setCarpetaActiva(carpeta); setSeccionDashboard('fotos'); }}
                             className={`w-full flex items-center justify-between px-3 py-2.5 text-xs rounded-sm transition-all text-left ${
                               isActiva 
-                                ? 'bg-[#1C1C1C] text-white font-medium shadow-sm' 
-                                : 'text-[#1C1C1C] hover:bg-[#F5F4F0]'
+                                ? 'bg-[#181816] text-white font-medium shadow-sm' 
+                                : 'text-[#181816] hover:bg-[#F9F8F5]'
                             }`}
                           >
                             <div className="flex items-center gap-2.5 truncate">
-                              <Folder size={14} className={isActiva ? 'text-[#C8B99A]' : 'text-[#9A8F82]'} />
+                              <Folder size={14} className={isActiva ? 'text-[#C8B69E]' : 'text-[#5A5955]'} />
                               <span className="truncate">{carpeta.nombre}</span>
                             </div>
-                            <span className={`text-[10px] px-1.5 py-0.5 rounded font-mono ${isActiva ? 'bg-white/20 text-white' : 'bg-[#E8E4DE] text-[#1C1C1C]'}`}>
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded font-mono ${isActiva ? 'bg-fl-lino/20 text-white' : 'bg-[#E2DFD9] text-[#181816]'}`}>
                               {cant}
                             </span>
                           </button>
@@ -1222,22 +1222,22 @@ const destruirPerfilFalso = async () => {
                   {/* SECCIÓN 2: MOTOR IA (SIN EL RAYITO) */}
                   <div>
                     <div className="px-2 mb-2">
-                      <span className="text-[10px] uppercase font-bold tracking-[0.18em] text-[#9A8F82]">Motor IA</span>
+                      <span className="text-[10px] uppercase font-bold tracking-[0.18em] text-[#5A5955]">Motor IA</span>
                     </div>
                     <button
                       onClick={() => setSeccionDashboard('ia')}
                       className={`w-full flex items-center justify-between px-3 py-2.5 text-xs rounded-sm transition-all text-left ${
                         seccionDashboard === 'ia' 
-                          ? 'bg-[#1C1C1C] text-white font-medium shadow-sm' 
-                          : 'text-[#1C1C1C] hover:bg-[#F5F4F0]'
+                          ? 'bg-[#181816] text-white font-medium shadow-sm' 
+                          : 'text-[#181816] hover:bg-[#F9F8F5]'
                       }`}
                     >
                       <div className="flex items-center gap-2.5">
-                        <ScanFace size={15} className={seccionDashboard === 'ia' ? 'text-[#C8B99A]' : 'text-[#9A8F82]'} />
+                        <ScanFace size={15} className={seccionDashboard === 'ia' ? 'text-[#C8B69E]' : 'text-[#5A5955]'} />
                         <span>Centro de IA</span>
                       </div>
                       {statsIA.dudas > 0 && (
-                        <span className="bg-[#E74C3C] text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">
+                        <span className="bg-[#A3392B] text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">
                           {statsIA.dudas}
                         </span>
                       )}
@@ -1246,19 +1246,19 @@ const destruirPerfilFalso = async () => {
 
                 {/* SECCIÓN 3: DISEÑO */}
                 <div>
-                  <div className="px-2 mb-2 mt-6 border-t border-[#EAEAEA] pt-4">
-                    <span className="text-[10px] uppercase font-bold tracking-[0.18em] text-[#9A8F82]">Diseño de Galería</span>
+                  <div className="px-2 mb-2 mt-6 border-t border-[#E2DFD9] pt-4">
+                    <span className="text-[10px] uppercase font-bold tracking-[0.18em] text-[#5A5955]">Diseño de Galería</span>
                   </div>
                   <button
                     onClick={() => { setSeccionDashboard('diseno'); if (!subTabDiseno) setSubTabDiseno('cover'); }}
                     className={`w-full flex items-center justify-between px-3 py-2.5 text-xs rounded-sm transition-all text-left ${
                       seccionDashboard === 'diseno' 
-                        ? 'bg-[#1C1C1C] text-white font-medium shadow-sm' 
-                        : 'text-[#1C1C1C] hover:bg-[#F5F4F0]'
+                        ? 'bg-[#181816] text-white font-medium shadow-sm' 
+                        : 'text-[#181816] hover:bg-[#F9F8F5]'
                     }`}
                   >
                     <div className="flex items-center gap-2.5">
-                      <Sliders size={15} className={seccionDashboard === 'diseno' ? 'text-[#C8B99A]' : 'text-[#9A8F82]'} />
+                      <Sliders size={15} className={seccionDashboard === 'diseno' ? 'text-[#C8B69E]' : 'text-[#5A5955]'} />
                       <span>Personalización UI</span>
                     </div>
                   </button>
@@ -1270,7 +1270,7 @@ const destruirPerfilFalso = async () => {
                         initial={{ height: 0, opacity: 0 }} 
                         animate={{ height: 'auto', opacity: 1 }} 
                         exit={{ height: 0, opacity: 0 }} 
-                        className="mt-2 ml-4 border-l border-[#EAEAEA] pl-2 flex flex-col gap-1 overflow-hidden"
+                        className="mt-2 ml-4 border-l border-[#E2DFD9] pl-2 flex flex-col gap-1 overflow-hidden"
                       >
                         {[
                           { id: 'cover', label: 'Cover & Portada' },
@@ -1283,7 +1283,7 @@ const destruirPerfilFalso = async () => {
                             key={tab.id}
                             onClick={() => setSubTabDiseno(tab.id)}
                             className={`w-full text-left px-3 py-2 text-[10px] uppercase tracking-widest font-bold rounded-sm transition-colors ${
-                              subTabDiseno === tab.id ? 'text-[#1C1C1C] bg-[#F5F4F0]' : 'text-[#9A8F82] hover:text-[#1C1C1C] hover:bg-[#F5F4F0]'
+                              subTabDiseno === tab.id ? 'text-[#181816] bg-[#F9F8F5]' : 'text-[#5A5955] hover:text-[#181816] hover:bg-[#F9F8F5]'
                             }`}
                           >
                             {tab.label}
@@ -1328,24 +1328,24 @@ const destruirPerfilFalso = async () => {
                           <button 
                             disabled={fotosActuales.filter(f => f.es_favorita).length === 0}
                             onClick={() => setSepararFavoritas(!separarFavoritas)}
-                            className={`flex items-center gap-2 text-[10px] uppercase font-bold tracking-wider transition-colors ${fotosActuales.filter(f => f.es_favorita).length === 0 ? 'opacity-30 cursor-not-allowed' : 'hover:text-[#E74C3C]'} ${separarFavoritas ? 'text-[#E74C3C]' : 'text-gray-500'}`}
+                            className={`flex items-center gap-2 text-[10px] uppercase font-bold tracking-wider transition-colors ${fotosActuales.filter(f => f.es_favorita).length === 0 ? 'opacity-30 cursor-not-allowed' : 'hover:text-[#A3392B]'} ${separarFavoritas ? 'text-[#A3392B]' : 'text-fl-grafito'}`}
                             title="Dividir Favoritas"
                           >
-                            <Heart size={14} fill={separarFavoritas ? '#E74C3C' : 'none'} color={separarFavoritas ? '#E74C3C' : 'currentColor'} />
+                            <Heart size={14} fill={separarFavoritas ? '#A3392B' : 'none'} color={separarFavoritas ? '#A3392B' : 'currentColor'} />
                             Solo Favoritas
                           </button>
 
-                          <div className="w-[1px] h-5 bg-gray-200 mx-1"></div>
+                          <div className="w-[1px] h-5 bg-fl-borde mx-1"></div>
 
                           {/* Botones de Layout SIN el fondo de "bullet" gris */}
                           <div className="flex gap-2">
-                            <button onClick={() => setLayoutModo('masonry')} className={`transition-transform hover:scale-110 p-1 ${layoutModo==='masonry'?'text-black':'text-gray-400 hover:text-black'}`} title="Mosaico"><Columns size={16}/></button>
-                            <button onClick={() => setLayoutModo('grid-small')} className={`transition-transform hover:scale-110 p-1 ${layoutModo==='grid-small'?'text-black':'text-gray-400 hover:text-black'}`} title="Grid Pequeño"><Grid size={16}/></button>
-                            <button onClick={() => setLayoutModo('grid-big')} className={`transition-transform hover:scale-110 p-1 ${layoutModo==='grid-big'?'text-black':'text-gray-400 hover:text-black'}`} title="Grid Grande"><LayoutGrid size={16}/></button>
-                            <button onClick={() => setLayoutModo('single')} className={`transition-transform hover:scale-110 p-1 ${layoutModo==='single'?'text-black':'text-gray-400 hover:text-black'}`} title="Pantalla Completa"><Square size={16}/></button>
+                            <button onClick={() => setLayoutModo('masonry')} className={`transition-transform hover:scale-110 p-1 ${layoutModo==='masonry'?'text-fl-texto':'text-fl-grafito hover:text-fl-texto'}`} title="Mosaico"><Columns size={16}/></button>
+                            <button onClick={() => setLayoutModo('grid-small')} className={`transition-transform hover:scale-110 p-1 ${layoutModo==='grid-small'?'text-fl-texto':'text-fl-grafito hover:text-fl-texto'}`} title="Grid Pequeño"><Grid size={16}/></button>
+                            <button onClick={() => setLayoutModo('grid-big')} className={`transition-transform hover:scale-110 p-1 ${layoutModo==='grid-big'?'text-fl-texto':'text-fl-grafito hover:text-fl-texto'}`} title="Grid Grande"><LayoutGrid size={16}/></button>
+                            <button onClick={() => setLayoutModo('single')} className={`transition-transform hover:scale-110 p-1 ${layoutModo==='single'?'text-fl-texto':'text-fl-grafito hover:text-fl-texto'}`} title="Pantalla Completa"><Square size={16}/></button>
                           </div>
 
-                          <div className="w-[1px] h-5 bg-gray-200 mx-1"></div>
+                          <div className="w-[1px] h-5 bg-fl-borde mx-1"></div>
 
                           {/* Botón de Añadir Fotos */}
                           <button 
@@ -1423,7 +1423,7 @@ const destruirPerfilFalso = async () => {
                                         </div>
                                       )}
                                     </div>
-                                    <button onClick={() => borrarFotos(fotosSeleccionadas)} style={{ background: 'transparent', border: 'none', color: '#E74C3C', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}><Trash2 size={14} /> Eliminar</button>
+                                    <button onClick={() => borrarFotos(fotosSeleccionadas)} style={{ background: 'transparent', border: 'none', color: '#A3392B', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}><Trash2 size={14} /> Eliminar</button>
                                   </div>
                                 </motion.div>
                               )}
@@ -1436,7 +1436,7 @@ const destruirPerfilFalso = async () => {
                                 {separarFavoritas && fotosFavoritas.length > 0 ? (
                                   <>
                                     <GalleryLayout fotos={fotosFavoritas} title="Favoritas" />
-                                    <hr className="border-t border-dashed border-[#C8B99A] opacity-50 my-12" />
+                                    <hr className="border-t border-dashed border-[#C8B69E] opacity-50 my-12" />
                                     <GalleryLayout fotos={fotosRestantes} title="Resto de la colección" />
                                   </>
                                 ) : (
@@ -1455,34 +1455,34 @@ const destruirPerfilFalso = async () => {
                     <div className="flex-1 flex flex-col relative">
                       
                       {/* 🌟 1. BARRA STICKY CON ESTADÍSTICAS INTEGRADAS (Fijada a 72px) 🌟 */}
-                      <div style={{ position: 'sticky', top: 0, height: 72, zIndex: 40, background: '#FAFAFA', padding: '0 28px', borderBottom: `1px solid ${BORDER}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: scrolledPastBanner ? '0 4px 20px rgba(0,0,0,0.03)' : 'none', transition: 'all 0.3s ease' }}>
+                      <div style={{ position: 'sticky', top: 0, height: 72, zIndex: 40, background: '#F9F8F5', padding: '0 28px', borderBottom: `1px solid ${BORDER}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: scrolledPastBanner ? '0 4px 20px rgba(0,0,0,0.03)' : 'none', transition: 'all 0.3s ease' }}>
                         
                         {/* Izquierda: Título + Stats */}
                         <div className="flex items-center gap-6">
                           <div>
-                            <h2 className="text-xl font-serif text-[#1C1C1C] m-0">Centro de Control IA</h2>
-                            <p className="text-[10px] uppercase tracking-widest text-[#9A8F82] mt-1">Motor configurado: <span className="font-bold text-[#1C1C1C]">{eventoActivo.tipo_reconocimiento.toUpperCase()}</span></p>
+                            <h2 className="text-xl font-serif text-[#181816] m-0">Centro de Control IA</h2>
+                            <p className="text-[10px] uppercase tracking-widest text-[#5A5955] mt-1">Motor configurado: <span className="font-bold text-[#181816]">{eventoActivo.tipo_reconocimiento.toUpperCase()}</span></p>
                           </div>
 
                           {/* Bloque de Estadísticas en la barra */}
                           {iaEjecutada && (
-                            <div className="flex items-center gap-5 border-l border-[#EAEAEA] pl-6 h-8">
+                            <div className="flex items-center gap-5 border-l border-[#E2DFD9] pl-6 h-8">
                               {eventoActivo.tipo_reconocimiento !== 'ocr' && (
-                                <div className="flex items-center gap-2 text-[#1C1C1C]" title="Personas Detectadas">
-                                  <ScanFace size={16} className="text-[#9A8F82]" />
+                                <div className="flex items-center gap-2 text-[#181816]" title="Personas Detectadas">
+                                  <ScanFace size={16} className="text-[#5A5955]" />
                                   <span className="text-lg font-serif leading-none">{statsIA.cargando ? '...' : statsIA.caras}</span>
                                 </div>
                               )}
                               {eventoActivo.tipo_reconocimiento !== 'facial' && (
-                                <div className="flex items-center gap-2 text-[#1C1C1C]" title="Dorsales Detectados">
-                                  <ScanLine size={16} className="text-[#9A8F82]" />
+                                <div className="flex items-center gap-2 text-[#181816]" title="Dorsales Detectados">
+                                  <ScanLine size={16} className="text-[#5A5955]" />
                                   <span className="text-lg font-serif leading-none">{statsIA.cargando ? '...' : statsIA.dorsales}</span>
                                 </div>
                               )}
                               {eventoActivo.tipo_reconocimiento !== 'ocr' && (
                                 <div className="flex items-center gap-2" title="Dudas / Huérfanas">
-                                  <AlertTriangle size={16} className={statsIA.dudas > 0 ? "text-[#E74C3C]" : "text-[#9A8F82]"} />
-                                  <span className={`text-lg font-serif leading-none ${statsIA.dudas > 0 ? 'text-[#E74C3C] font-bold' : 'text-[#1C1C1C]'}`}>{statsIA.cargando ? '...' : statsIA.dudas}</span>
+                                  <AlertTriangle size={16} className={statsIA.dudas > 0 ? "text-[#A3392B]" : "text-[#5A5955]"} />
+                                  <span className={`text-lg font-serif leading-none ${statsIA.dudas > 0 ? 'text-[#A3392B] font-bold' : 'text-[#181816]'}`}>{statsIA.cargando ? '...' : statsIA.dudas}</span>
                                 </div>
                               )}
                             </div>
@@ -1492,9 +1492,9 @@ const destruirPerfilFalso = async () => {
                         {/* Derecha: Botón de Ejecutar */}
                         <button 
                           onClick={dispararInteligenciaArtificial} disabled={procesandoIA}
-                          className="bg-[#1C1C1C] text-white hover:bg-black px-5 py-2.5 text-xs uppercase tracking-widest font-bold flex items-center gap-2 transition-all disabled:opacity-50 rounded-sm shadow-sm"
+                          className="bg-[#181816] text-white hover:bg-fl-texto px-5 py-2.5 text-xs uppercase tracking-widest font-bold flex items-center gap-2 transition-all disabled:opacity-50 rounded-sm shadow-sm"
                         >
-                          {procesandoIA ? <Loader2 size={16} className="animate-spin" /> : <Zap size={16} className="text-[#C8B99A]" />}
+                          {procesandoIA ? <Loader2 size={16} className="animate-spin" /> : <Zap size={16} className="text-[#C8B69E]" />}
                           {procesandoIA ? 'Procesando Enjambre...' : 'Ejecutar Motor IA'}
                         </button>
                       </div>
@@ -1503,28 +1503,28 @@ const destruirPerfilFalso = async () => {
                         
                         {/* 🌟 2. ADIÓS TARJETAS GIGANTES, DIRECTO A LOS TABS 🌟 */}
                         {!iaEjecutada ? (
-                          <div className="p-6 border border-dashed border-[#C8B99A] bg-[#FDFCF8] rounded-sm mb-6">
-                            <p className="text-sm text-[#1C1C1C] m-0 flex items-center gap-2">
-                              <AlertTriangle size={16} className="text-[#C8B99A]" />
+                          <div className="p-6 border border-dashed border-[#C8B69E] bg-[#F9F8F5] rounded-sm mb-6">
+                            <p className="text-sm text-[#181816] m-0 flex items-center gap-2">
+                              <AlertTriangle size={16} className="text-[#C8B69E]" />
                               La inteligencia artificial aún no ha analizado esta colección. Presiona "Ejecutar Motor IA" arriba.
                             </p>
                           </div>
                         ) : (
-                          <div className="flex border-b border-[#EAEAEA] mb-6">
+                          <div className="flex border-b border-[#E2DFD9] mb-6">
                             {eventoActivo.tipo_reconocimiento !== 'ocr' && (
-                              <button onClick={() => setSubTabIA('identidades')} className={`px-6 py-3 text-xs uppercase tracking-widest font-bold border-b-2 transition-colors ${subTabIA === 'identidades' ? 'border-[#1C1C1C] text-[#1C1C1C]' : 'border-transparent text-[#9A8F82] hover:text-[#1C1C1C]'}`}>
+                              <button onClick={() => setSubTabIA('identidades')} className={`px-6 py-3 text-xs uppercase tracking-widest font-bold border-b-2 transition-colors ${subTabIA === 'identidades' ? 'border-[#181816] text-[#181816]' : 'border-transparent text-[#5A5955] hover:text-[#181816]'}`}>
                                 Identidades
                               </button>
                             )}
                             {eventoActivo.tipo_reconocimiento !== 'facial' && (
-                              <button onClick={() => setSubTabIA('corredores')} className={`px-6 py-3 text-xs uppercase tracking-widest font-bold border-b-2 transition-colors ${subTabIA === 'corredores' ? 'border-[#1C1C1C] text-[#1C1C1C]' : 'border-transparent text-[#9A8F82] hover:text-[#1C1C1C]'}`}>
+                              <button onClick={() => setSubTabIA('corredores')} className={`px-6 py-3 text-xs uppercase tracking-widest font-bold border-b-2 transition-colors ${subTabIA === 'corredores' ? 'border-[#181816] text-[#181816]' : 'border-transparent text-[#5A5955] hover:text-[#181816]'}`}>
                                 Grupos OCR
                               </button>
                             )}
                             {eventoActivo.tipo_reconocimiento !== 'ocr' && (
-                              <button onClick={() => setSubTabIA('dudas')} className={`px-6 py-3 text-xs uppercase tracking-widest font-bold border-b-2 transition-colors flex items-center gap-2 ${subTabIA === 'dudas' ? 'border-[#E74C3C] text-[#E74C3C]' : 'border-transparent text-[#9A8F82] hover:text-[#E74C3C]'}`}>
+                              <button onClick={() => setSubTabIA('dudas')} className={`px-6 py-3 text-xs uppercase tracking-widest font-bold border-b-2 transition-colors flex items-center gap-2 ${subTabIA === 'dudas' ? 'border-[#A3392B] text-[#A3392B]' : 'border-transparent text-[#5A5955] hover:text-[#A3392B]'}`}>
                                 Dudas / Huérfanas
-                                {statsIA.dudas > 0 && <span className="bg-[#E74C3C]/10 text-[#E74C3C] px-2 py-0.5 rounded-full text-[10px]">{statsIA.dudas}</span>}
+                                {statsIA.dudas > 0 && <span className="bg-[#A3392B]/10 text-[#A3392B] px-2 py-0.5 rounded-full text-[10px]">{statsIA.dudas}</span>}
                               </button>
                             )}
                           </div>
@@ -1537,11 +1537,11 @@ const destruirPerfilFalso = async () => {
                             {subTabIA === 'identidades' && (
                               <div className="flex gap-8 items-start">
                                 {/* BARRA LATERAL PEGADA A 72px */}
-                                <div className="w-64 shrink-0 bg-white border border-[#EAEAEA] rounded-sm p-2 sticky top-[72px] max-h-[calc(100vh-140px)] overflow-y-auto custom-scrollbar shadow-sm">
-                                  {listaJugadores.length === 0 ? <p className="text-xs text-[#9A8F82] p-4 text-center">No hay identidades.</p> : 
+                                <div className="w-64 shrink-0 bg-fl-lino border border-[#E2DFD9] rounded-sm p-2 sticky top-[72px] max-h-[calc(100vh-140px)] overflow-y-auto custom-scrollbar shadow-sm">
+                                  {listaJugadores.length === 0 ? <p className="text-xs text-[#5A5955] p-4 text-center">No hay identidades.</p> : 
                                     listaJugadores.map(j => (
-                                      <button key={j.id} onClick={() => seleccionarJugador(j)} className={`w-full flex items-center gap-3 p-2.5 mb-1 transition-colors rounded-sm text-left ${jugadorSeleccionado?.id === j.id ? 'bg-[#1C1C1C] text-white' : 'hover:bg-gray-50 text-[#1C1C1C]'}`}>
-                                        <img src={fotoUrlAux(j.avatar_url)} loading="lazy" className="w-8 h-8 rounded-full object-cover bg-gray-200" alt="" />
+                                      <button key={j.id} onClick={() => seleccionarJugador(j)} className={`w-full flex items-center gap-3 p-2.5 mb-1 transition-colors rounded-sm text-left ${jugadorSeleccionado?.id === j.id ? 'bg-[#181816] text-white' : 'hover:bg-fl-arena text-[#181816]'}`}>
+                                        <img src={fotoUrlAux(j.avatar_url)} loading="lazy" className="w-8 h-8 rounded-full object-cover bg-fl-borde" alt="" />
                                         <span className="font-serif text-xs truncate">{j.display_name}</span>
                                       </button>
                                     ))
@@ -1552,37 +1552,37 @@ const destruirPerfilFalso = async () => {
                                   {jugadorSeleccionado ? (
                                     <>
                                       {/* ENCABEZADO JUGADOR PEGADO A 72px */}
-                                      <div className="flex justify-between items-center mb-6 bg-white p-4 border border-[#EAEAEA] rounded-sm shadow-sm sticky top-[72px] z-20">
+                                      <div className="flex justify-between items-center mb-6 bg-fl-lino p-4 border border-[#E2DFD9] rounded-sm shadow-sm sticky top-[72px] z-20">
                                         <div className="flex items-center gap-4">
-                                          <img src={fotoUrlAux(jugadorSeleccionado.avatar_url)} loading="lazy" className="w-12 h-12 rounded-full object-cover border border-gray-200" alt="" />
+                                          <img src={fotoUrlAux(jugadorSeleccionado.avatar_url)} loading="lazy" className="w-12 h-12 rounded-full object-cover border border-fl-borde" alt="" />
                                           {editandoNombre ? (
                                             <div className="flex gap-2">
-                                              <input type="text" value={nombreTemporal} onChange={e=>setNombreTemporal(e.target.value)} onKeyDown={e=>e.key==='Enter'&&guardarNombreJugador()} autoFocus className="bg-transparent border-b border-[#1C1C1C] text-xl font-serif text-[#1C1C1C] outline-none" />
-                                              <button onClick={guardarNombreJugador} className="text-xs bg-[#1C1C1C] text-white px-2 py-1 rounded-sm"><Check size={14}/></button>
+                                              <input type="text" value={nombreTemporal} onChange={e=>setNombreTemporal(e.target.value)} onKeyDown={e=>e.key==='Enter'&&guardarNombreJugador()} autoFocus className="bg-transparent border-b border-[#181816] text-xl font-serif text-[#181816] outline-none" />
+                                              <button onClick={guardarNombreJugador} className="text-xs bg-[#181816] text-white px-2 py-1 rounded-sm"><Check size={14}/></button>
                                             </div>
                                           ) : (
                                             <div className="flex items-center gap-2 group cursor-pointer" onClick={() => { setNombreTemporal(jugadorSeleccionado.display_name); setEditandoNombre(true); }}>
-                                              <h3 className="text-2xl font-serif text-[#1C1C1C] m-0">{jugadorSeleccionado.display_name}</h3>
-                                              <Edit2 size={14} className="text-[#9A8F82] opacity-0 group-hover:opacity-100 transition-opacity"/>
+                                              <h3 className="text-2xl font-serif text-[#181816] m-0">{jugadorSeleccionado.display_name}</h3>
+                                              <Edit2 size={14} className="text-[#5A5955] opacity-0 group-hover:opacity-100 transition-opacity"/>
                                             </div>
                                           )}
                                         </div>
                                         <div className="flex gap-2">
-                                          <button onClick={iniciarFusion} className="px-3 py-1.5 bg-[#FDFCF8] border border-[#C8B99A] text-[#1C1C1C] hover:bg-[#C8B99A] text-[10px] uppercase font-bold flex items-center gap-1.5 transition-colors rounded-sm"><Combine size={12}/> Fusionar</button>
+                                          <button onClick={iniciarFusion} className="px-3 py-1.5 bg-[#F9F8F5] border border-[#C8B69E] text-[#181816] hover:bg-[#C8B69E] text-[10px] uppercase font-bold flex items-center gap-1.5 transition-colors rounded-sm"><Combine size={12}/> Fusionar</button>
                                           <button onClick={() => { if(window.confirm('¿Eliminar este perfil falso?')) destruirPerfilFalso(); }} className="px-3 py-1.5 bg-red-50 text-red-500 hover:bg-red-500 hover:text-white text-[10px] uppercase font-bold flex items-center gap-1.5 transition-colors rounded-sm border border-red-100"><Trash2 size={12}/></button>
                                         </div>
                                       </div>
 
                                       {fusionando && candidatosFusion.length > 0 && (
-                                        <div className="bg-[#FFFDF5] p-4 mb-6 border border-[#F5E6B3] rounded-sm">
-                                          <p className="text-[10px] text-[#D4AF37] font-bold uppercase tracking-widest mb-3 flex items-center gap-2"><Zap size={14}/> Sugerencias de Fusión:</p>
+                                        <div className="bg-[#F9F8F5] p-4 mb-6 border border-[#EFECE6] rounded-sm">
+                                          <p className="text-[10px] text-[#C8B69E] font-bold uppercase tracking-widest mb-3 flex items-center gap-2"><Zap size={14}/> Sugerencias de Fusión:</p>
                                           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                                             {candidatosFusion.map(c => (
-                                              <button key={c.id_identidad} onClick={() => fusionarConJugador(c.id_identidad)} className="p-3 bg-white border border-[#EAEAEA] hover:border-[#C8B99A] flex items-center gap-3 transition-colors rounded-sm text-left shadow-sm">
+                                              <button key={c.id_identidad} onClick={() => fusionarConJugador(c.id_identidad)} className="p-3 bg-fl-lino border border-[#E2DFD9] hover:border-[#C8B69E] flex items-center gap-3 transition-colors rounded-sm text-left shadow-sm">
                                                 <img src={fotoUrlAux(c.avatar)} loading="lazy" className="w-10 h-10 rounded-full object-cover" alt="" />
                                                 <div>
-                                                  <div className="text-sm font-serif text-[#1C1C1C] truncate">{c.nombre_jugador}</div>
-                                                  <div className="text-[10px] font-bold text-[#2E7D32]">{Math.round(c.porcentaje_similitud * 100)}% Match</div>
+                                                  <div className="text-sm font-serif text-[#181816] truncate">{c.nombre_jugador}</div>
+                                                  <div className="text-[10px] font-bold text-[#3D6B4F]">{Math.round(c.porcentaje_similitud * 100)}% Match</div>
                                                 </div>
                                               </button>
                                             ))}
@@ -1592,10 +1592,10 @@ const destruirPerfilFalso = async () => {
 
                                       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 pb-8">
                                         {fotosDelJugador.map((foto, idx) => (
-                                          <div key={idx} className="aspect-square bg-[#EAEAEA] relative group overflow-hidden cursor-zoom-in rounded-sm" onClick={() => setZoomCara({ photo_url: foto.photo_url, bbox: foto.detecciones[0]?.bbox })}>
+                                          <div key={idx} className="aspect-square bg-[#E2DFD9] relative group overflow-hidden cursor-zoom-in rounded-sm" onClick={() => setZoomCara({ photo_url: foto.photo_url, bbox: foto.detecciones[0]?.bbox })}>
                                             <img src={fotoUrlAux(foto.photo_url, true)} loading="lazy" className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity" alt="" />
                                             <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                              <button onClick={(e) => { e.stopPropagation(); supabase.from('face_detections').update({identity_id:null}).eq('id',foto.detecciones[0]?.id).then(()=>{seleccionarJugador(jugadorSeleccionado); cargarStatsIA(eventoActivo.id, true);}); }} className="bg-white/90 text-red-500 hover:bg-red-500 hover:text-white p-1.5 rounded-sm shadow-sm transition-colors" title="Desvincular"><UserMinus size={14}/></button>
+                                              <button onClick={(e) => { e.stopPropagation(); supabase.from('face_detections').update({identity_id:null}).eq('id',foto.detecciones[0]?.id).then(()=>{seleccionarJugador(jugadorSeleccionado); cargarStatsIA(eventoActivo.id, true);}); }} className="bg-fl-lino/90 text-red-500 hover:bg-red-500 hover:text-white p-1.5 rounded-sm shadow-sm transition-colors" title="Desvincular"><UserMinus size={14}/></button>
                                             </div>
                                           </div>
                                         ))}
@@ -1603,8 +1603,8 @@ const destruirPerfilFalso = async () => {
                                     </>
                                   ) : (
                                     <div className="h-64 flex flex-col items-center justify-center opacity-40">
-                                      <User size={48} className="mb-4 text-[#9A8F82]" />
-                                      <p className="font-serif text-lg text-[#1C1C1C]">Selecciona un perfil en la barra lateral</p>
+                                      <User size={48} className="mb-4 text-[#5A5955]" />
+                                      <p className="font-serif text-lg text-[#181816]">Selecciona un perfil en la barra lateral</p>
                                     </div>
                                   )}
                                 </div>
@@ -1615,11 +1615,11 @@ const destruirPerfilFalso = async () => {
                             {subTabIA === 'corredores' && (
                               <div className="flex gap-8 items-start">
                                 {/* BARRA LATERAL PEGADA A 72px */}
-                                <div className="w-64 shrink-0 bg-white border border-[#EAEAEA] rounded-sm p-2 sticky top-[72px] max-h-[calc(100vh-140px)] overflow-y-auto custom-scrollbar shadow-sm">
-                                  {listaCorredores.length === 0 ? <p className="text-xs text-[#9A8F82] p-4 text-center">No hay dorsales detectados.</p> : 
+                                <div className="w-64 shrink-0 bg-fl-lino border border-[#E2DFD9] rounded-sm p-2 sticky top-[72px] max-h-[calc(100vh-140px)] overflow-y-auto custom-scrollbar shadow-sm">
+                                  {listaCorredores.length === 0 ? <p className="text-xs text-[#5A5955] p-4 text-center">No hay dorsales detectados.</p> : 
                                     listaCorredores.map(c => (
-                                      <button key={c.id} onClick={() => seleccionarCorredor(c)} className={`w-full flex items-center gap-3 p-2 mb-1 transition-colors rounded-sm text-left ${corredorSeleccionado?.id === c.id ? 'bg-[#1C1C1C] text-white' : 'hover:bg-gray-50 text-[#1C1C1C]'}`}>
-                                        <img src={fotoUrlAux(c.avatar_url)} loading="lazy" className="w-8 h-12 object-cover bg-gray-200" alt="" />
+                                      <button key={c.id} onClick={() => seleccionarCorredor(c)} className={`w-full flex items-center gap-3 p-2 mb-1 transition-colors rounded-sm text-left ${corredorSeleccionado?.id === c.id ? 'bg-[#181816] text-white' : 'hover:bg-fl-arena text-[#181816]'}`}>
+                                        <img src={fotoUrlAux(c.avatar_url)} loading="lazy" className="w-8 h-12 object-cover bg-fl-borde" alt="" />
                                         <span className="font-serif text-xs truncate">{c.dorsal ? `#${c.dorsal}` : '⚠️ Revisar'}</span>
                                       </button>
                                     ))
@@ -1629,13 +1629,13 @@ const destruirPerfilFalso = async () => {
                                   {corredorSeleccionado && (
                                     <>
                                       {/* ENCABEZADO DORSAL PEGADO A 72px */}
-                                      <div className="flex items-center gap-4 bg-white p-4 border border-[#EAEAEA] rounded-sm shadow-sm mb-6 sticky top-[72px] z-20">
-                                        <Hash size={20} className="text-[#9A8F82]"/>
-                                        <input type="text" value={dorsalTemporal} onChange={e=>setDorsalTemporal(e.target.value)} onBlur={guardarDorsalGlobal} className="text-3xl font-serif bg-transparent text-[#1C1C1C] outline-none uppercase w-full" placeholder="NÚMERO" />
+                                      <div className="flex items-center gap-4 bg-fl-lino p-4 border border-[#E2DFD9] rounded-sm shadow-sm mb-6 sticky top-[72px] z-20">
+                                        <Hash size={20} className="text-[#5A5955]"/>
+                                        <input type="text" value={dorsalTemporal} onChange={e=>setDorsalTemporal(e.target.value)} onBlur={guardarDorsalGlobal} className="text-3xl font-serif bg-transparent text-[#181816] outline-none uppercase w-full" placeholder="NÚMERO" />
                                       </div>
                                       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 pb-8">
                                         {fotosDelCorredor.map((f, idx) => (
-                                          <div key={idx} className="aspect-square bg-[#EAEAEA] relative cursor-zoom-in rounded-sm overflow-hidden" onClick={() => setZoomCara({ photo_url: f.photo_url, bbox: f.bbox })}>
+                                          <div key={idx} className="aspect-square bg-[#E2DFD9] relative cursor-zoom-in rounded-sm overflow-hidden" onClick={() => setZoomCara({ photo_url: f.photo_url, bbox: f.bbox })}>
                                             <img src={fotoUrlAux(f.photo_url, true)} loading="lazy" className="w-full h-full object-cover" alt="" />
                                             <BoundingBox bbox={f.bbox} color={SAND} label={`#${f.dorsal}`} />
                                           </div>
@@ -1652,19 +1652,19 @@ const destruirPerfilFalso = async () => {
                               <div>
                                 {!fotoDudosa ? (
                                   <div className="flex flex-col items-center justify-center h-64 opacity-50">
-                                    <CheckCircle size={48} className="text-[#2E7D32] mb-4" />
-                                    <h2 className="font-serif text-2xl text-[#1C1C1C] m-0">Galería Impecable</h2>
-                                    <p className="text-xs text-[#9A8F82] uppercase tracking-widest mt-2">No hay rostros huérfanos pendientes.</p>
+                                    <CheckCircle size={48} className="text-[#3D6B4F] mb-4" />
+                                    <h2 className="font-serif text-2xl text-[#181816] m-0">Galería Impecable</h2>
+                                    <p className="text-xs text-[#5A5955] uppercase tracking-widest mt-2">No hay rostros huérfanos pendientes.</p>
                                   </div>
                                 ) : (
-                                  <div className="flex flex-col xl:flex-row gap-8 bg-white p-6 border border-[#EAEAEA] rounded-sm shadow-sm max-w-5xl mx-auto">
+                                  <div className="flex flex-col xl:flex-row gap-8 bg-fl-lino p-6 border border-[#E2DFD9] rounded-sm shadow-sm max-w-5xl mx-auto">
                                     <div className="w-full xl:w-1/2 flex flex-col items-center">
                                       
-                                      <div className="flex items-center gap-2 mb-6 uppercase tracking-[0.3em] text-[9px] border px-4 py-1.5" style={{ background: '#FFFDF5', color: '#D4AF37', borderColor: '#F5E6B3' }}>
+                                      <div className="flex items-center gap-2 mb-6 uppercase tracking-[0.3em] text-[9px] border px-4 py-1.5" style={{ background: '#F9F8F5', color: '#C8B69E', borderColor: '#EFECE6' }}>
                                         <AlertTriangle size={12} /> Rostro sin identificar
                                       </div>
 
-                                      <div className="w-full bg-[#111] relative overflow-hidden rounded-sm flex items-center justify-center p-4 min-h-[300px]">
+                                      <div className="w-full bg-[#181816] relative overflow-hidden rounded-sm flex items-center justify-center p-4 min-h-[300px]">
                                         <div className="relative inline-block leading-none max-w-full shadow-lg">
                                           {(() => {
                                             const rawBox = getBboxCoords(fotoDudosa.bbox);
@@ -1684,9 +1684,9 @@ const destruirPerfilFalso = async () => {
                                                        className="absolute inset-0 max-h-[50vh] w-auto max-w-full block" 
                                                        style={{ clipPath: `inset(${insetTop}% ${insetRight}% ${insetBottom}% ${insetLeft}%)` }} 
                                                        alt="Rostro"/>
-                                                  <div className="absolute border-[2px] border-[#E74C3C] shadow-[0_0_15px_rgba(0,0,0,0.4)] z-10 pointer-events-none" 
+                                                  <div className="absolute border-[2px] border-[#A3392B] shadow-[0_0_15px_rgba(0,0,0,0.4)] z-10 pointer-events-none" 
                                                        style={{ left: `${box.x}%`, top: `${box.y}%`, width: `${box.w}%`, height: `${box.h}%` }}>
-                                                    <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-[#E74C3C] text-white text-[9px] uppercase tracking-widest font-bold px-2 py-0.5 rounded-sm whitespace-nowrap">
+                                                    <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-[#A3392B] text-white text-[9px] uppercase tracking-widest font-bold px-2 py-0.5 rounded-sm whitespace-nowrap">
                                                       ¿Quién es?
                                                     </div>
                                                   </div>
@@ -1706,23 +1706,23 @@ const destruirPerfilFalso = async () => {
                                         </div>
                                       </div>
 
-                                      <button onClick={async () => { await supabase.from('face_detections').delete().eq('id', fotoDudosa.id); cargarDudas(); cargarStatsIA(eventoActivo.id, true); }} className="mt-8 text-[#E74C3C] bg-red-50 hover:bg-red-500 hover:text-white px-4 py-3 text-xs uppercase tracking-widest font-bold flex items-center gap-2 rounded-sm transition-colors w-full justify-center border border-red-100">
+                                      <button onClick={async () => { await supabase.from('face_detections').delete().eq('id', fotoDudosa.id); cargarDudas(); cargarStatsIA(eventoActivo.id, true); }} className="mt-8 text-[#A3392B] bg-red-50 hover:bg-red-500 hover:text-white px-4 py-3 text-xs uppercase tracking-widest font-bold flex items-center gap-2 rounded-sm transition-colors w-full justify-center border border-red-100">
                                         <Trash2 size={16}/> Descartar Rostro Falso
                                       </button>
                                     </div>
                                     <div className="w-full md:w-1/2 flex flex-col justify-center">
-                                      <h3 className="text-3xl font-serif text-[#1C1C1C] mb-2">¿De quién es este rostro?</h3>
-                                      <p className="text-xs text-[#9A8F82] mb-6">La Inteligencia Artificial encontró coincidencias, pero no está 100% segura. Elige la identidad correcta.</p>
+                                      <h3 className="text-3xl font-serif text-[#181816] mb-2">¿De quién es este rostro?</h3>
+                                      <p className="text-xs text-[#5A5955] mb-6">La Inteligencia Artificial encontró coincidencias, pero no está 100% segura. Elige la identidad correcta.</p>
                                       
                                       <div className="flex flex-col gap-3">
                                         {candidatosDuda.map(c => (
-                                          <button key={c.id_identidad} onClick={async () => { await supabase.from('face_detections').update({identity_id: c.id_identidad}).eq('id', fotoDudosa.id); cargarDudas(); cargarStatsIA(eventoActivo.id, true); }} className="p-3 bg-white border border-[#EAEAEA] hover:border-[#1C1C1C] flex items-center gap-4 transition-colors text-left rounded-sm shadow-sm group">
+                                          <button key={c.id_identidad} onClick={async () => { await supabase.from('face_detections').update({identity_id: c.id_identidad}).eq('id', fotoDudosa.id); cargarDudas(); cargarStatsIA(eventoActivo.id, true); }} className="p-3 bg-fl-lino border border-[#E2DFD9] hover:border-[#181816] flex items-center gap-4 transition-colors text-left rounded-sm shadow-sm group">
                                             <img src={fotoUrlAux(c.avatar)} loading="lazy" className="w-14 h-14 rounded-full object-cover" alt="" />
                                             <div className="flex-1">
-                                              <div className="text-base font-serif text-[#1C1C1C] font-semibold group-hover:underline">{c.nombre_jugador}</div>
-                                              <div className="text-[11px] font-bold text-[#C8B99A] uppercase tracking-wider mt-0.5">{Math.round(c.porcentaje_similitud * 100)}% Coincidencia</div>
+                                              <div className="text-base font-serif text-[#181816] font-semibold group-hover:underline">{c.nombre_jugador}</div>
+                                              <div className="text-[11px] font-bold text-[#C8B69E] uppercase tracking-wider mt-0.5">{Math.round(c.porcentaje_similitud * 100)}% Coincidencia</div>
                                             </div>
-                                            <ChevronRightIcon size={20} className="text-gray-300 group-hover:text-[#1C1C1C]"/>
+                                            <ChevronRightIcon size={20} className="text-gray-300 group-hover:text-[#181816]"/>
                                           </button>
                                         ))}
                                       </div>
@@ -1749,21 +1749,21 @@ const destruirPerfilFalso = async () => {
     'justify-center items-center text-center p-6';
 
   return (
-    <div className="w-full h-full flex flex-col overflow-hidden bg-white min-h-0">
+    <div className="w-full h-full flex flex-col overflow-hidden bg-fl-lino min-h-0">
       
       {/* BARRA SUPERIOR HEADER (Fija) */}
-      <div className="h-14 flex-shrink-0 bg-white border-b border-[#EAEAEA] flex items-center justify-between px-8 z-20 shadow-sm">
+      <div className="h-14 flex-shrink-0 bg-fl-lino border-b border-[#E2DFD9] flex items-center justify-between px-8 z-20 shadow-sm">
         <div className="flex items-center gap-4">
-          <h2 className="text-lg font-serif text-[#1C1C1C] m-0">Live Preview</h2>
-          <span className="px-2 py-0.5 bg-[#C8B99A]/20 text-[#C8B99A] text-[9px] uppercase tracking-widest font-bold rounded-sm border border-[#C8B99A]/30">Auto-Sync</span>
+          <h2 className="text-lg font-serif text-[#181816] m-0">Live Preview</h2>
+          <span className="px-2 py-0.5 bg-[#C8B69E]/20 text-[#C8B69E] text-[9px] uppercase tracking-widest font-bold rounded-sm border border-[#C8B69E]/30">Auto-Sync</span>
         </div>
 
         <div className="flex items-center gap-6">
-          <div className="flex items-center bg-[#F5F4F0] p-1 rounded-sm border border-[#EAEAEA]">
-            <button onClick={() => setDisenoDispositivo('web')} className={`flex items-center gap-2 px-3 py-1.5 text-[10px] uppercase font-bold tracking-widest transition-all rounded-sm ${disenoDispositivo === 'web' ? 'bg-[#1C1C1C] text-white shadow-sm' : 'text-[#9A8F82] hover:text-[#1C1C1C]'}`}><Monitor size={13} /><span>Escritorio</span></button>
-            <button onClick={() => setDisenoDispositivo('mobile')} className={`flex items-center gap-2 px-3 py-1.5 text-[10px] uppercase font-bold tracking-widest transition-all rounded-sm ${disenoDispositivo === 'mobile' ? 'bg-[#1C1C1C] text-white shadow-sm' : 'text-[#9A8F82] hover:text-[#1C1C1C]'}`}><Smartphone size={13} /><span>Móvil</span></button>
+          <div className="flex items-center bg-[#F9F8F5] p-1 rounded-sm border border-[#E2DFD9]">
+            <button onClick={() => setDisenoDispositivo('web')} className={`flex items-center gap-2 px-3 py-1.5 text-[10px] uppercase font-bold tracking-widest transition-all rounded-sm ${disenoDispositivo === 'web' ? 'bg-[#181816] text-white shadow-sm' : 'text-[#5A5955] hover:text-[#181816]'}`}><Monitor size={13} /><span>Escritorio</span></button>
+            <button onClick={() => setDisenoDispositivo('mobile')} className={`flex items-center gap-2 px-3 py-1.5 text-[10px] uppercase font-bold tracking-widest transition-all rounded-sm ${disenoDispositivo === 'mobile' ? 'bg-[#181816] text-white shadow-sm' : 'text-[#5A5955] hover:text-[#181816]'}`}><Smartphone size={13} /><span>Móvil</span></button>
           </div>
-          <button onClick={() => guardarConfiguracionUi()} className="bg-[#1C1C1C] text-white hover:bg-black px-5 py-2 text-[10px] uppercase tracking-widest font-bold rounded-sm transition-all shadow-md">Publicar Diseño</button>
+          <button onClick={() => guardarConfiguracionUi()} className="bg-[#181816] text-white hover:bg-fl-texto px-5 py-2 text-[10px] uppercase tracking-widest font-bold rounded-sm transition-all shadow-md">Publicar Diseño</button>
         </div>
       </div>
 
@@ -1771,44 +1771,44 @@ const destruirPerfilFalso = async () => {
       <div className="flex-1 flex overflow-hidden min-h-0 h-[calc(100%-56px)]">
         
         {/* ── LADO IZQUIERDO: CONTROLES (SCROLL 100% INDEPENDIENTE Y FIJO) ── */}
-        <div className="w-[360px] h-full bg-white border-r border-[#EAEAEA] flex flex-col flex-shrink-0 overflow-y-auto custom-scrollbar z-10">
+        <div className="w-[360px] h-full bg-fl-lino border-r border-[#E2DFD9] flex flex-col flex-shrink-0 overflow-y-auto custom-scrollbar z-10">
           <div className="p-8 pb-16">
-            <h3 className="text-lg font-serif text-[#1C1C1C] mb-4 capitalize">{subTabDiseno.replace('_', ' ')}</h3>
+            <h3 className="text-lg font-serif text-[#181816] mb-4 capitalize">{subTabDiseno.replace('_', ' ')}</h3>
 
             {/* --- 1. COVER: ESTRUCTURA, ALINEACIÓN Y OPACIDAD --- */}
             {subTabDiseno === 'cover' && (
               <div className="space-y-8">
                 <div>
-                  <label className="text-[10px] uppercase tracking-widest text-[#9A8F82] font-bold block mb-4">Estructura de la Portada</label>
+                  <label className="text-[10px] uppercase tracking-widest text-[#5A5955] font-bold block mb-4">Estructura de la Portada</label>
                   <div className="grid grid-cols-2 gap-4">
-                    <button onClick={() => setConfigUi({...configUi, estilo_portada: 'hero_full'})} className={`relative aspect-[4/5] rounded-md overflow-hidden border-[3px] transition-all group ${configUi.estilo_portada === 'hero_full' ? 'border-[#C8B99A] shadow-lg' : 'border-gray-200 hover:border-[#1C1C1C]'}`}><img src={previewImg} className="absolute inset-0 w-full h-full object-cover opacity-80" style={{ objectPosition: focalPosition }} alt="" /><div className="absolute inset-0 bg-black/40 flex items-center justify-center"><span className="text-white font-serif font-bold text-xs tracking-widest">TÍTULO</span></div></button>
-                    <button onClick={() => setConfigUi({...configUi, estilo_portada: 'split'})} className={`relative aspect-[4/5] bg-white rounded-md overflow-hidden border-[3px] flex flex-col transition-all group ${configUi.estilo_portada === 'split' ? 'border-[#C8B99A] shadow-lg' : 'border-gray-200 hover:border-[#1C1C1C]'}`}><img src={previewImg} className="w-full h-[55%] object-cover opacity-90" style={{ objectPosition: focalPosition }} alt="" /><div className="flex-1 flex items-center justify-center bg-[#1C1C1C]"><span className="text-[#C8B99A] font-serif font-bold text-xs tracking-widest">TÍTULO</span></div></button>
-                    <button onClick={() => setConfigUi({...configUi, estilo_portada: 'editorial'})} className={`relative aspect-[4/5] bg-[#FDFCF8] rounded-md overflow-hidden border-[3px] p-2 flex flex-col transition-all group ${configUi.estilo_portada === 'editorial' ? 'border-[#C8B99A] shadow-lg' : 'border-gray-200 hover:border-[#1C1C1C]'}`}><img src={previewImg} className="w-full h-[70%] object-cover opacity-90" style={{ objectPosition: focalPosition }} alt="" /><div className="flex-1 flex items-end justify-start pb-1 pl-1"><span className="text-[#1C1C1C] font-serif font-bold text-[10px] tracking-widest">TÍTULO</span></div></button>
-                    <button onClick={() => setConfigUi({...configUi, estilo_portada: 'card'})} className={`relative aspect-[4/5] rounded-md overflow-hidden border-[3px] transition-all group ${configUi.estilo_portada === 'card' ? 'border-[#C8B99A] shadow-lg' : 'border-gray-200 hover:border-[#1C1C1C]'}`}><img src={previewImg} className="absolute inset-0 w-full h-full object-cover opacity-80" style={{ objectPosition: focalPosition }} alt="" /><div className="absolute inset-0 bg-black/20" /><div className="absolute bottom-3 left-3 right-3 bg-white p-3 text-left shadow-lg"><span className="text-[#1C1C1C] font-serif font-bold text-[9px] tracking-widest">TÍTULO</span></div></button>
+                    <button onClick={() => setConfigUi({...configUi, estilo_portada: 'hero_full'})} className={`relative aspect-[4/5] rounded-md overflow-hidden border-[3px] transition-all group ${configUi.estilo_portada === 'hero_full' ? 'border-[#C8B69E] shadow-lg' : 'border-fl-borde hover:border-[#181816]'}`}><img src={previewImg} className="absolute inset-0 w-full h-full object-cover opacity-80" style={{ objectPosition: focalPosition }} alt="" /><div className="absolute inset-0 bg-fl-texto/40 flex items-center justify-center"><span className="text-white font-serif font-bold text-xs tracking-widest">TÍTULO</span></div></button>
+                    <button onClick={() => setConfigUi({...configUi, estilo_portada: 'split'})} className={`relative aspect-[4/5] bg-fl-lino rounded-md overflow-hidden border-[3px] flex flex-col transition-all group ${configUi.estilo_portada === 'split' ? 'border-[#C8B69E] shadow-lg' : 'border-fl-borde hover:border-[#181816]'}`}><img src={previewImg} className="w-full h-[55%] object-cover opacity-90" style={{ objectPosition: focalPosition }} alt="" /><div className="flex-1 flex items-center justify-center bg-[#181816]"><span className="text-[#C8B69E] font-serif font-bold text-xs tracking-widest">TÍTULO</span></div></button>
+                    <button onClick={() => setConfigUi({...configUi, estilo_portada: 'editorial'})} className={`relative aspect-[4/5] bg-[#F9F8F5] rounded-md overflow-hidden border-[3px] p-2 flex flex-col transition-all group ${configUi.estilo_portada === 'editorial' ? 'border-[#C8B69E] shadow-lg' : 'border-fl-borde hover:border-[#181816]'}`}><img src={previewImg} className="w-full h-[70%] object-cover opacity-90" style={{ objectPosition: focalPosition }} alt="" /><div className="flex-1 flex items-end justify-start pb-1 pl-1"><span className="text-[#181816] font-serif font-bold text-[10px] tracking-widest">TÍTULO</span></div></button>
+                    <button onClick={() => setConfigUi({...configUi, estilo_portada: 'card'})} className={`relative aspect-[4/5] rounded-md overflow-hidden border-[3px] transition-all group ${configUi.estilo_portada === 'card' ? 'border-[#C8B69E] shadow-lg' : 'border-fl-borde hover:border-[#181816]'}`}><img src={previewImg} className="absolute inset-0 w-full h-full object-cover opacity-80" style={{ objectPosition: focalPosition }} alt="" /><div className="absolute inset-0 bg-fl-texto/20" /><div className="absolute bottom-3 left-3 right-3 bg-fl-lino p-3 text-left shadow-lg"><span className="text-[#181816] font-serif font-bold text-[9px] tracking-widest">TÍTULO</span></div></button>
                   </div>
                 </div>
 
-                <div className="pt-8 border-t border-[#EAEAEA]">
-                  <label className="text-[10px] uppercase tracking-widest text-[#9A8F82] font-bold block mb-4">Alineación del Texto</label>
+                <div className="pt-8 border-t border-[#E2DFD9]">
+                  <label className="text-[10px] uppercase tracking-widest text-[#5A5955] font-bold block mb-4">Alineación del Texto</label>
                   <div className="flex gap-3">
-                    <button onClick={() => setConfigUi({...configUi, posicion_titulo: 'centro'})} className={`flex-1 h-12 border rounded-sm relative transition-all ${configUi.posicion_titulo === 'centro' || !configUi.posicion_titulo ? 'border-[#1C1C1C] bg-gray-50' : 'border-gray-200 hover:border-gray-300'}`} title="Centro">
-                      <div className="absolute inset-0 flex items-center justify-center"><div className="w-6 h-1.5 bg-[#1C1C1C] rounded-sm"></div></div>
+                    <button onClick={() => setConfigUi({...configUi, posicion_titulo: 'centro'})} className={`flex-1 h-12 border rounded-sm relative transition-all ${configUi.posicion_titulo === 'centro' || !configUi.posicion_titulo ? 'border-[#181816] bg-fl-arena' : 'border-fl-borde hover:border-fl-borde'}`} title="Centro">
+                      <div className="absolute inset-0 flex items-center justify-center"><div className="w-6 h-1.5 bg-[#181816] rounded-sm"></div></div>
                     </button>
-                    <button onClick={() => setConfigUi({...configUi, posicion_titulo: 'abajo_izq'})} className={`flex-1 h-12 border rounded-sm relative transition-all ${configUi.posicion_titulo === 'abajo_izq' ? 'border-[#1C1C1C] bg-gray-50' : 'border-gray-200 hover:border-gray-300'}`} title="Abajo Izquierda">
-                      <div className="absolute inset-0 flex items-end justify-start p-3"><div className="w-6 h-1.5 bg-[#1C1C1C] rounded-sm"></div></div>
+                    <button onClick={() => setConfigUi({...configUi, posicion_titulo: 'abajo_izq'})} className={`flex-1 h-12 border rounded-sm relative transition-all ${configUi.posicion_titulo === 'abajo_izq' ? 'border-[#181816] bg-fl-arena' : 'border-fl-borde hover:border-fl-borde'}`} title="Abajo Izquierda">
+                      <div className="absolute inset-0 flex items-end justify-start p-3"><div className="w-6 h-1.5 bg-[#181816] rounded-sm"></div></div>
                     </button>
-                    <button onClick={() => setConfigUi({...configUi, posicion_titulo: 'abajo_centro'})} className={`flex-1 h-12 border rounded-sm relative transition-all ${configUi.posicion_titulo === 'abajo_centro' ? 'border-[#1C1C1C] bg-gray-50' : 'border-gray-200 hover:border-gray-300'}`} title="Abajo Centro">
-                      <div className="absolute inset-0 flex items-end justify-center p-3"><div className="w-6 h-1.5 bg-[#1C1C1C] rounded-sm"></div></div>
+                    <button onClick={() => setConfigUi({...configUi, posicion_titulo: 'abajo_centro'})} className={`flex-1 h-12 border rounded-sm relative transition-all ${configUi.posicion_titulo === 'abajo_centro' ? 'border-[#181816] bg-fl-arena' : 'border-fl-borde hover:border-fl-borde'}`} title="Abajo Centro">
+                      <div className="absolute inset-0 flex items-end justify-center p-3"><div className="w-6 h-1.5 bg-[#181816] rounded-sm"></div></div>
                     </button>
                   </div>
                 </div>
 
-                <div className="pt-8 border-t border-[#EAEAEA]">
+                <div className="pt-8 border-t border-[#E2DFD9]">
                   <div className="flex justify-between items-center mb-4">
-                    <label className="text-[10px] uppercase tracking-widest text-[#9A8F82] font-bold">Nivel de Oscurecimiento</label>
-                    <span className="text-[10px] font-mono font-bold bg-gray-100 px-2 py-1 rounded text-[#1C1C1C]">{configUi.opacidad_overlay || 30}%</span>
+                    <label className="text-[10px] uppercase tracking-widest text-[#5A5955] font-bold">Nivel de Oscurecimiento</label>
+                    <span className="text-[10px] font-mono font-bold bg-fl-arena px-2 py-1 rounded text-[#181816]">{configUi.opacidad_overlay || 30}%</span>
                   </div>
-                  <input type="range" min="0" max="90" value={configUi.opacidad_overlay || 30} onChange={e => setConfigUi({ ...configUi, opacidad_overlay: parseInt(e.target.value) })} className="w-full accent-[#C8B99A] h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer" />
+                  <input type="range" min="0" max="90" value={configUi.opacidad_overlay || 30} onChange={e => setConfigUi({ ...configUi, opacidad_overlay: parseInt(e.target.value) })} className="w-full accent-[#C8B69E] h-1.5 bg-fl-borde rounded-lg appearance-none cursor-pointer" />
                 </div>
               </div>
             )}
@@ -1817,44 +1817,44 @@ const destruirPerfilFalso = async () => {
             {subTabDiseno === 'tipografia' && (
               <div className="space-y-6">
                 <div>
-                  <label className="text-[10px] uppercase tracking-widest text-[#9A8F82] font-bold block mb-4">Familia Tipográfica (Títulos)</label>
+                  <label className="text-[10px] uppercase tracking-widest text-[#5A5955] font-bold block mb-4">Familia Tipográfica (Títulos)</label>
                   <div className="flex flex-col gap-3">
-                    <button onClick={() => setConfigUi({...configUi, fuente_titulo: 'serif'})} className={`flex items-center justify-between p-4 rounded-sm border transition-all ${configUi.fuente_titulo === 'serif' ? 'border-[#1C1C1C] bg-[#FAFAFA] shadow-sm' : 'border-[#EAEAEA] hover:border-[#C8B99A] bg-white'}`}>
+                    <button onClick={() => setConfigUi({...configUi, fuente_titulo: 'serif'})} className={`flex items-center justify-between p-4 rounded-sm border transition-all ${configUi.fuente_titulo === 'serif' ? 'border-[#181816] bg-[#F9F8F5] shadow-sm' : 'border-[#E2DFD9] hover:border-[#C8B69E] bg-fl-lino'}`}>
                       <div className="flex items-center gap-4">
-                        <span className="font-serif text-3xl text-[#1C1C1C] leading-none">Ag</span>
+                        <span className="font-serif text-3xl text-[#181816] leading-none">Ag</span>
                         <div className="flex flex-col items-start">
-                          <span className="text-xs font-bold text-[#1C1C1C]">Serif</span>
-                          <span className="text-[9px] uppercase tracking-widest text-[#9A8F82]">Clásica & Elegante</span>
+                          <span className="text-xs font-bold text-[#181816]">Serif</span>
+                          <span className="text-[9px] uppercase tracking-widest text-[#5A5955]">Clásica & Elegante</span>
                         </div>
                       </div>
-                      <div className={`w-4 h-4 rounded-full border flex items-center justify-center transition-colors ${configUi.fuente_titulo === 'serif' ? 'border-[#1C1C1C]' : 'border-gray-300'}`}>
-                        {configUi.fuente_titulo === 'serif' && <div className="w-2 h-2 rounded-full bg-[#1C1C1C]" />}
+                      <div className={`w-4 h-4 rounded-full border flex items-center justify-center transition-colors ${configUi.fuente_titulo === 'serif' ? 'border-[#181816]' : 'border-fl-borde'}`}>
+                        {configUi.fuente_titulo === 'serif' && <div className="w-2 h-2 rounded-full bg-[#181816]" />}
                       </div>
                     </button>
 
-                    <button onClick={() => setConfigUi({...configUi, fuente_titulo: 'sans'})} className={`flex items-center justify-between p-4 rounded-sm border transition-all ${configUi.fuente_titulo === 'sans' ? 'border-[#1C1C1C] bg-[#FAFAFA] shadow-sm' : 'border-[#EAEAEA] hover:border-[#C8B99A] bg-white'}`}>
+                    <button onClick={() => setConfigUi({...configUi, fuente_titulo: 'sans'})} className={`flex items-center justify-between p-4 rounded-sm border transition-all ${configUi.fuente_titulo === 'sans' ? 'border-[#181816] bg-[#F9F8F5] shadow-sm' : 'border-[#E2DFD9] hover:border-[#C8B69E] bg-fl-lino'}`}>
                       <div className="flex items-center gap-4">
-                        <span className="font-sans text-3xl text-[#1C1C1C] leading-none font-medium">Ag</span>
+                        <span className="font-sans text-3xl text-[#181816] leading-none font-medium">Ag</span>
                         <div className="flex flex-col items-start">
-                          <span className="text-xs font-bold text-[#1C1C1C]">Sans</span>
-                          <span className="text-[9px] uppercase tracking-widest text-[#9A8F82]">Limpia & Moderna</span>
+                          <span className="text-xs font-bold text-[#181816]">Sans</span>
+                          <span className="text-[9px] uppercase tracking-widest text-[#5A5955]">Limpia & Moderna</span>
                         </div>
                       </div>
-                      <div className={`w-4 h-4 rounded-full border flex items-center justify-center transition-colors ${configUi.fuente_titulo === 'sans' ? 'border-[#1C1C1C]' : 'border-gray-300'}`}>
-                        {configUi.fuente_titulo === 'sans' && <div className="w-2 h-2 rounded-full bg-[#1C1C1C]" />}
+                      <div className={`w-4 h-4 rounded-full border flex items-center justify-center transition-colors ${configUi.fuente_titulo === 'sans' ? 'border-[#181816]' : 'border-fl-borde'}`}>
+                        {configUi.fuente_titulo === 'sans' && <div className="w-2 h-2 rounded-full bg-[#181816]" />}
                       </div>
                     </button>
 
-                    <button onClick={() => setConfigUi({...configUi, fuente_titulo: 'mono'})} className={`flex items-center justify-between p-4 rounded-sm border transition-all ${configUi.fuente_titulo === 'mono' ? 'border-[#1C1C1C] bg-[#FAFAFA] shadow-sm' : 'border-[#EAEAEA] hover:border-[#C8B99A] bg-white'}`}>
+                    <button onClick={() => setConfigUi({...configUi, fuente_titulo: 'mono'})} className={`flex items-center justify-between p-4 rounded-sm border transition-all ${configUi.fuente_titulo === 'mono' ? 'border-[#181816] bg-[#F9F8F5] shadow-sm' : 'border-[#E2DFD9] hover:border-[#C8B69E] bg-fl-lino'}`}>
                       <div className="flex items-center gap-4">
-                        <span className="font-mono text-3xl text-[#1C1C1C] leading-none">Ag</span>
+                        <span className="font-mono text-3xl text-[#181816] leading-none">Ag</span>
                         <div className="flex flex-col items-start">
-                          <span className="text-xs font-bold text-[#1C1C1C]">Mono</span>
-                          <span className="text-[9px] uppercase tracking-widest text-[#9A8F82]">Editorial & Técnica</span>
+                          <span className="text-xs font-bold text-[#181816]">Mono</span>
+                          <span className="text-[9px] uppercase tracking-widest text-[#5A5955]">Editorial & Técnica</span>
                         </div>
                       </div>
-                      <div className={`w-4 h-4 rounded-full border flex items-center justify-center transition-colors ${configUi.fuente_titulo === 'mono' ? 'border-[#1C1C1C]' : 'border-gray-300'}`}>
-                        {configUi.fuente_titulo === 'mono' && <div className="w-2 h-2 rounded-full bg-[#1C1C1C]" />}
+                      <div className={`w-4 h-4 rounded-full border flex items-center justify-center transition-colors ${configUi.fuente_titulo === 'mono' ? 'border-[#181816]' : 'border-fl-borde'}`}>
+                        {configUi.fuente_titulo === 'mono' && <div className="w-2 h-2 rounded-full bg-[#181816]" />}
                       </div>
                     </button>
                   </div>
@@ -1865,18 +1865,18 @@ const destruirPerfilFalso = async () => {
             {/* --- 3. COLORES --- */}
             {subTabDiseno === 'color' && (() => {
               const paletas = [
-                { id: 'clasica', nombre: 'Clásica', fondo: '#FDFCF8', texto: '#1C1C1C', acento: '#C8B99A' },
-                { id: 'noche', nombre: 'Noche', fondo: '#121212', texto: '#FAFAFA', acento: '#D4AF37' },
-                { id: 'bosque', nombre: 'Bosque', fondo: '#F4F5F0', texto: '#2B3024', acento: '#6B7E54' },
-                { id: 'terracota', nombre: 'Terracota', fondo: '#FCF8F5', texto: '#2A1B18', acento: '#B85C38' },
-                { id: 'oceano', nombre: 'Océano Profundo', fondo: '#0F172A', texto: '#F8FAFC', acento: '#38BDF8' },
-                { id: 'minimalista', nombre: 'Minimalista', fondo: '#FFFFFF', texto: '#000000', acento: '#9CA3AF' }
+                { id: 'clasica', nombre: 'Clásica', fondo: '#F9F8F5', texto: '#181816', acento: '#C8B69E' },
+                { id: 'noche', nombre: 'Noche', fondo: '#121212', texto: '#F9F8F5', acento: '#C8B69E' },
+                { id: 'bosque', nombre: 'Bosque', fondo: '#F9F8F5', texto: '#2B3024', acento: '#6B7E54' },
+                { id: 'terracota', nombre: 'Terracota', fondo: '#F9F8F5', texto: '#2A1B18', acento: '#B85C38' },
+                { id: 'oceano', nombre: 'Océano Profundo', fondo: '#0F172A', texto: '#F9F8F5', acento: '#38BDF8' },
+                { id: 'minimalista', nombre: 'Minimalista', fondo: '#F9F8F5', texto: '#181816', acento: '#9CA3AF' }
               ];
 
               return (
                 <div className="space-y-6">
                   <div>
-                    <label className="text-[10px] uppercase tracking-widest text-[#9A8F82] font-bold block mb-4">Tema de Color</label>
+                    <label className="text-[10px] uppercase tracking-widest text-[#5A5955] font-bold block mb-4">Tema de Color</label>
                     <div className="grid grid-cols-2 gap-4">
                       {paletas.map(p => {
                         const isActive = configUi.color_fondo === p.fondo;
@@ -1884,12 +1884,12 @@ const destruirPerfilFalso = async () => {
                           <button
                             key={p.id}
                             onClick={() => setConfigUi({...configUi, color_fondo: p.fondo, color_texto: p.texto, color_acento: p.acento})}
-                            className={`flex flex-col border rounded-md p-4 transition-all duration-300 ${isActive ? 'ring-2 ring-offset-2 ring-[#1C1C1C] shadow-md' : 'border-[#EAEAEA] hover:scale-[1.02]'}`}
+                            className={`flex flex-col border rounded-md p-4 transition-all duration-300 ${isActive ? 'ring-2 ring-offset-2 ring-[#181816] shadow-md' : 'border-[#E2DFD9] hover:scale-[1.02]'}`}
                             style={{ backgroundColor: p.fondo }}
                           >
                             <div className="flex items-center gap-2 mb-3">
-                              <div className="w-5 h-5 rounded-full border border-black/10" style={{ backgroundColor: p.texto }}></div>
-                              <div className="w-5 h-5 rounded-full border border-black/10" style={{ backgroundColor: p.acento }}></div>
+                              <div className="w-5 h-5 rounded-full border border-fl-texto/10" style={{ backgroundColor: p.texto }}></div>
+                              <div className="w-5 h-5 rounded-full border border-fl-texto/10" style={{ backgroundColor: p.acento }}></div>
                             </div>
                             <span className="text-xs font-bold text-left tracking-wide" style={{ color: p.texto }}>{p.nombre}</span>
                           </button>
@@ -1905,28 +1905,28 @@ const destruirPerfilFalso = async () => {
             {subTabDiseno === 'ia' && (
               <div className="space-y-6">
                 <div>
-                  <h4 className="text-xs font-bold text-[#1C1C1C] uppercase tracking-wider mb-1">
+                  <h4 className="text-xs font-bold text-[#181816] uppercase tracking-wider mb-1">
                     Buscador Inteligente ({eventoActivo?.tipo_reconocimiento === 'ocr' ? 'OCR / Dorsales' : 'Reconocimiento Facial'})
                   </h4>
-                  <p className="text-[10px] text-[#9A8F82] mb-6">
+                  <p className="text-[10px] text-[#5A5955] mb-6">
                     Configura cómo interactúan los visitantes con el motor de IA en la galería pública.
                   </p>
 
-                  <div className="flex items-center justify-between p-4 bg-[#FAFAFA] border border-[#EAEAEA] rounded-sm mb-4">
+                  <div className="flex items-center justify-between p-4 bg-[#F9F8F5] border border-[#E2DFD9] rounded-sm mb-4">
                     <div>
-                      <span className="text-xs font-bold text-[#1C1C1C] block">Mostrar Buscador IA</span>
-                      <span className="text-[9px] text-[#9A8F82] block">Muestra u oculta la sección de búsqueda</span>
+                      <span className="text-xs font-bold text-[#181816] block">Mostrar Buscador IA</span>
+                      <span className="text-[9px] text-[#5A5955] block">Muestra u oculta la sección de búsqueda</span>
                     </div>
-                    <button type="button" onClick={() => setConfigUi({ ...configUi, mostrar_modulo_ia: configUi.mostrar_modulo_ia === false ? true : false })} className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors cursor-pointer ${configUi.mostrar_modulo_ia !== false ? 'bg-[#1C1C1C]' : 'bg-gray-300'}`}><div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${configUi.mostrar_modulo_ia !== false ? 'translate-x-5' : 'translate-x-0'}`} /></button>
+                    <button type="button" onClick={() => setConfigUi({ ...configUi, mostrar_modulo_ia: configUi.mostrar_modulo_ia === false ? true : false })} className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors cursor-pointer ${configUi.mostrar_modulo_ia !== false ? 'bg-[#181816]' : 'bg-gray-300'}`}><div className={`bg-fl-lino w-4 h-4 rounded-full shadow-md transform transition-transform ${configUi.mostrar_modulo_ia !== false ? 'translate-x-5' : 'translate-x-0'}`} /></button>
                   </div>
 
                   {eventoActivo?.tipo_reconocimiento !== 'ocr' && (
-                    <div className="flex items-center justify-between p-4 bg-[#FAFAFA] border border-[#EAEAEA] rounded-sm">
+                    <div className="flex items-center justify-between p-4 bg-[#F9F8F5] border border-[#E2DFD9] rounded-sm">
                       <div>
-                        <span className="text-xs font-bold text-[#1C1C1C] block">Mostrar Nombres</span>
-                        <span className="text-[9px] text-[#9A8F82] block">Si se apaga, solo mostrará el avatar circular</span>
+                        <span className="text-xs font-bold text-[#181816] block">Mostrar Nombres</span>
+                        <span className="text-[9px] text-[#5A5955] block">Si se apaga, solo mostrará el avatar circular</span>
                       </div>
-                      <button type="button" onClick={() => setConfigUi({ ...configUi, mostrar_nombres_ia: configUi.mostrar_nombres_ia === false ? true : false })} className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors cursor-pointer ${configUi.mostrar_nombres_ia !== false ? 'bg-[#1C1C1C]' : 'bg-gray-300'}`}><div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${configUi.mostrar_nombres_ia !== false ? 'translate-x-5' : 'translate-x-0'}`} /></button>
+                      <button type="button" onClick={() => setConfigUi({ ...configUi, mostrar_nombres_ia: configUi.mostrar_nombres_ia === false ? true : false })} className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors cursor-pointer ${configUi.mostrar_nombres_ia !== false ? 'bg-[#181816]' : 'bg-gray-300'}`}><div className={`bg-fl-lino w-4 h-4 rounded-full shadow-md transform transition-transform ${configUi.mostrar_nombres_ia !== false ? 'translate-x-5' : 'translate-x-0'}`} /></button>
                     </div>
                   )}
                 </div>
@@ -1935,7 +1935,7 @@ const destruirPerfilFalso = async () => {
 
             {/* FALLBACK OTROS TABS */}
             {subTabDiseno !== 'cover' && subTabDiseno !== 'tipografia' && subTabDiseno !== 'color' && subTabDiseno !== 'ia' && (
-              <div className="text-center py-20 text-gray-400">
+              <div className="text-center py-20 text-fl-grafito">
                 <p className="text-xs uppercase tracking-widest">Opciones en desarrollo</p>
               </div>
             )}
@@ -1945,22 +1945,22 @@ const destruirPerfilFalso = async () => {
 
         {/* ── LADO DERECHO: PREVIEW ENMARCADO (100% FIJO EN PANTALLA) ── */}
         <div 
-          className="flex-1 bg-[#E8E6E1] p-4 md:p-6 flex flex-col items-center justify-center relative overflow-hidden h-full min-h-0" 
-          style={{ backgroundImage: 'radial-gradient(#D1CEC7 1px, transparent 1px)', backgroundSize: '20px 24px' }}
+          className="flex-1 bg-[#E2DFD9] p-4 md:p-6 flex flex-col items-center justify-center relative overflow-hidden h-full min-h-0" 
+          style={{ backgroundImage: 'radial-gradient(#E2DFD9 1px, transparent 1px)', backgroundSize: '20px 24px' }}
         >
           
           {/* MARCO MOCKUP (Restringido con max-h-full para jamás desbordar la pantalla) */}
           <div className={`transition-all duration-500 ease-in-out flex flex-col relative overflow-hidden h-full max-h-full min-h-0 ${
             disenoDispositivo === 'mobile' 
-              ? 'w-[280px] max-h-[520px] rounded-[36px] border-[8px] border-[#1C1C1C] bg-[#1C1C1C] shadow-2xl' 
-              : 'w-full max-w-[900px] rounded-lg border border-[#D1CEC7] bg-white shadow-2xl'
+              ? 'w-[280px] max-h-[520px] rounded-[36px] border-[8px] border-[#181816] bg-[#181816] shadow-2xl' 
+              : 'w-full max-w-[900px] rounded-lg border border-[#E2DFD9] bg-fl-lino shadow-2xl'
           }`}>
             
             {/* Header Barra de Navegador (Solo Escritorio) */}
             {disenoDispositivo === 'web' && (
-              <div className="h-9 bg-[#F5F5F5] border-b border-[#EAEAEA] flex items-center px-3 gap-2 flex-shrink-0 z-30">
+              <div className="h-9 bg-[#F9F8F5] border-b border-[#E2DFD9] flex items-center px-3 gap-2 flex-shrink-0 z-30">
                 <div className="flex gap-1.5 w-16"><div className="w-2.5 h-2.5 rounded-full bg-[#FF5F56] border border-[#E0443E]"></div><div className="w-2.5 h-2.5 rounded-full bg-[#FFBD2E] border border-[#DEA123]"></div><div className="w-2.5 h-2.5 rounded-full bg-[#27C93F] border border-[#1AAB29]"></div></div>
-                <div className="flex-1 flex justify-center"><div className="bg-white px-10 py-0.5 rounded text-[9px] font-mono text-gray-400 border border-gray-200 shadow-sm flex items-center gap-1.5"><Lock size={9}/> flashealo.com/g/{eventoActivo?.url_slug || 'demo'}</div></div>
+                <div className="flex-1 flex justify-center"><div className="bg-fl-lino px-10 py-0.5 rounded text-[9px] font-mono text-fl-grafito border border-fl-borde shadow-sm flex items-center gap-1.5"><Lock size={9}/> flashealo.com/g/{eventoActivo?.url_slug || 'demo'}</div></div>
                 <div className="w-16"></div>
               </div>
             )}
@@ -1968,7 +1968,7 @@ const destruirPerfilFalso = async () => {
             {/* Notch (Solo Móvil) */}
             {disenoDispositivo === 'mobile' && (
               <div className="absolute top-0 inset-x-0 h-4 flex justify-center z-50 pointer-events-none">
-                <div className="w-24 h-4 bg-[#1C1C1C] rounded-b-[10px]"></div>
+                <div className="w-24 h-4 bg-[#181816] rounded-b-[10px]"></div>
               </div>
             )}
 
@@ -1976,16 +1976,16 @@ const destruirPerfilFalso = async () => {
             <div 
               ref={mockScrollRef}
               className={`flex-1 overflow-y-auto custom-scrollbar relative transition-colors duration-500 min-h-0 ${disenoDispositivo === 'mobile' ? 'rounded-[28px]' : 'rounded-b-md'}`} 
-              style={{ backgroundColor: configUi.color_fondo || '#FDFCF8', color: configUi.color_texto || '#1C1C1C' }}
+              style={{ backgroundColor: configUi.color_fondo || '#F9F8F5', color: configUi.color_texto || '#181816' }}
             >
               
               {/* HERO FULL */}
               {configUi.estilo_portada === 'hero_full' && (
                 <div className={`relative w-full ${disenoDispositivo === 'mobile' ? 'h-[360px]' : 'h-[380px]'} flex flex-col flex-shrink-0`}>
                   <img src={previewImg} className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: focalPosition }} alt="" />
-                  <div className="absolute inset-0 bg-black" style={{ opacity: (configUi.opacidad_overlay || 30) / 100 }} />
+                  <div className="absolute inset-0 bg-fl-texto" style={{ opacity: (configUi.opacidad_overlay || 30) / 100 }} />
                   <div className={`absolute inset-0 z-10 w-full h-full flex flex-col ${alineacionContenedor}`}>
-                    <span className="text-[8px] md:text-[11px] uppercase tracking-[0.35em] font-bold mb-3 drop-shadow-md transition-colors" style={{ color: configUi.color_acento || '#C8B99A' }}>
+                    <span className="text-[8px] md:text-[11px] uppercase tracking-[0.35em] font-bold mb-3 drop-shadow-md transition-colors" style={{ color: configUi.color_acento || '#C8B69E' }}>
                       {eventoActivo?.fecha_evento || '10 AGOSTO 2026'}
                     </span>
                     <h1 className={`${fuenteClase} ${disenoDispositivo === 'mobile' ? 'text-[26px] font-light leading-snug' : 'text-4xl lg:text-5xl font-light leading-tight'} drop-shadow-xl text-white max-w-2xl`}>
@@ -2000,10 +2000,10 @@ const destruirPerfilFalso = async () => {
                 <div className={`flex w-full ${disenoDispositivo === 'mobile' ? 'flex-col h-[380px]' : 'flex-row h-[360px]'} flex-shrink-0`}>
                   <div className={`${disenoDispositivo === 'mobile' ? 'h-[55%]' : 'w-[55%]'} relative`}>
                     <img src={previewImg} className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: focalPosition }} alt="" />
-                    <div className="absolute inset-0 bg-black" style={{ opacity: (configUi.opacidad_overlay || 30) / 100 }} />
+                    <div className="absolute inset-0 bg-fl-texto" style={{ opacity: (configUi.opacidad_overlay || 30) / 100 }} />
                   </div>
-                  <div className={`${disenoDispositivo === 'mobile' ? 'h-[45%]' : 'w-[45%]'} flex flex-col ${configUi.posicion_titulo === 'abajo_izq' || configUi.posicion_titulo === 'abajo_centro' ? alineacionContenedor : 'justify-center items-start p-6 md:p-10'} bg-[#1C1C1C] text-white`}>
-                    <span className="text-[8px] md:text-[10px] uppercase tracking-[0.3em] font-bold mb-3 transition-colors" style={{ color: configUi.color_acento || '#C8B99A' }}>{eventoActivo?.fecha_evento || '10 AGOSTO 2026'}</span>
+                  <div className={`${disenoDispositivo === 'mobile' ? 'h-[45%]' : 'w-[45%]'} flex flex-col ${configUi.posicion_titulo === 'abajo_izq' || configUi.posicion_titulo === 'abajo_centro' ? alineacionContenedor : 'justify-center items-start p-6 md:p-10'} bg-[#181816] text-white`}>
+                    <span className="text-[8px] md:text-[10px] uppercase tracking-[0.3em] font-bold mb-3 transition-colors" style={{ color: configUi.color_acento || '#C8B69E' }}>{eventoActivo?.fecha_evento || '10 AGOSTO 2026'}</span>
                     <h1 className={`${fuenteClase} ${disenoDispositivo === 'mobile' ? 'text-[20px]' : 'text-3xl'} font-light leading-tight`}>{eventoActivo?.nombre || 'Tu Colección'}</h1>
                   </div>
                 </div>
@@ -2014,10 +2014,10 @@ const destruirPerfilFalso = async () => {
                 <div className={`w-full pt-8 pb-6 flex flex-col items-center relative ${disenoDispositivo === 'mobile' ? 'min-h-[360px]' : 'min-h-[380px]'} flex-shrink-0`}>
                   <div className={`${disenoDispositivo === 'mobile' ? 'w-[85%] h-[220px]' : 'w-[75%] h-[280px]'} relative shadow-2xl z-10`}>
                     <img src={previewImg} className="absolute inset-0 w-full h-full object-cover border-[8px] md:border-[16px] border-white" style={{ objectPosition: focalPosition }} alt="" />
-                    <div className="absolute inset-0 border-[8px] md:border-[16px] border-transparent" style={{ background: '#000000', opacity: (configUi.opacidad_overlay || 30) / 100, backgroundClip: 'content-box' }} />
+                    <div className="absolute inset-0 border-[8px] md:border-[16px] border-transparent" style={{ background: '#181816', opacity: (configUi.opacidad_overlay || 30) / 100, backgroundClip: 'content-box' }} />
                   </div>
-                  <div className={`absolute inset-0 z-20 w-full h-full flex flex-col ${alineacionContenedor}`} style={{ color: configUi.color_texto || '#1C1C1C' }}>
-                    <span className="text-[8px] md:text-[11px] uppercase tracking-[0.3em] font-bold mb-2 md:mb-3 transition-colors" style={{ color: configUi.color_acento || '#C8B99A' }}>{eventoActivo?.fecha_evento || '10 AGOSTO 2026'}</span>
+                  <div className={`absolute inset-0 z-20 w-full h-full flex flex-col ${alineacionContenedor}`} style={{ color: configUi.color_texto || '#181816' }}>
+                    <span className="text-[8px] md:text-[11px] uppercase tracking-[0.3em] font-bold mb-2 md:mb-3 transition-colors" style={{ color: configUi.color_acento || '#C8B69E' }}>{eventoActivo?.fecha_evento || '10 AGOSTO 2026'}</span>
                     <h1 className={`${fuenteClase} ${disenoDispositivo === 'mobile' ? 'text-2xl' : 'text-4xl'} font-light leading-none`}>{eventoActivo?.nombre || 'Tu Colección'}</h1>
                   </div>
                 </div>
@@ -2025,29 +2025,29 @@ const destruirPerfilFalso = async () => {
 
               {/* CARD */}
               {configUi.estilo_portada === 'card' && (
-                <div className={`relative w-full ${disenoDispositivo === 'mobile' ? 'h-[340px]' : 'h-[380px]'} flex items-end justify-center p-6 bg-black flex-shrink-0`}>
+                <div className={`relative w-full ${disenoDispositivo === 'mobile' ? 'h-[340px]' : 'h-[380px]'} flex items-end justify-center p-6 bg-fl-texto flex-shrink-0`}>
                   <img src={previewImg} className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: focalPosition }} alt="" />
-                  <div className="absolute inset-0 bg-black" style={{ opacity: (configUi.opacidad_overlay || 30) / 100 }} />
-                  <div className="relative z-10 p-5 md:p-8 w-[90%] max-w-2xl bg-white shadow-2xl flex flex-col items-center text-center transform translate-y-6">
-                    <span className="text-[8px] md:text-[10px] uppercase tracking-[0.3em] font-bold mb-3 transition-colors" style={{ color: configUi.color_acento || '#C8B99A' }}>{eventoActivo?.fecha_evento || '10 AGOSTO 2026'}</span>
-                    <h1 className={`${fuenteClase} ${disenoDispositivo === 'mobile' ? 'text-lg' : 'text-3xl'} font-light leading-tight text-[#1C1C1C] mb-2`}>{eventoActivo?.nombre || 'Tu Colección'}</h1>
+                  <div className="absolute inset-0 bg-fl-texto" style={{ opacity: (configUi.opacidad_overlay || 30) / 100 }} />
+                  <div className="relative z-10 p-5 md:p-8 w-[90%] max-w-2xl bg-fl-lino shadow-2xl flex flex-col items-center text-center transform translate-y-6">
+                    <span className="text-[8px] md:text-[10px] uppercase tracking-[0.3em] font-bold mb-3 transition-colors" style={{ color: configUi.color_acento || '#C8B69E' }}>{eventoActivo?.fecha_evento || '10 AGOSTO 2026'}</span>
+                    <h1 className={`${fuenteClase} ${disenoDispositivo === 'mobile' ? 'text-lg' : 'text-3xl'} font-light leading-tight text-[#181816] mb-2`}>{eventoActivo?.nombre || 'Tu Colección'}</h1>
                   </div>
                 </div>
               )}
 
               {/* SECCIÓN SOBRE EL EVENTO */}
               <div className="p-6 text-center max-w-md mx-auto mt-4 mb-2 flex-shrink-0">
-                <div className="w-8 h-[1px] mx-auto mb-3 transition-colors" style={{ background: configUi.color_acento || '#C8B99A' }} />
-                <h3 className={`text-xs md:text-sm ${fuenteClase} italic mb-2 transition-colors`} style={{ color: configUi.color_texto || '#1C1C1C' }}>"{eventoActivo?.titulo_about || 'Capturando emociones únicas'}"</h3>
-                <p className="text-[10px] font-light leading-relaxed opacity-70 transition-colors" style={{ color: configUi.color_texto || '#1C1C1C' }}>{eventoActivo?.descripcion || 'Bienvenido a la galería oficial.'}</p>
+                <div className="w-8 h-[1px] mx-auto mb-3 transition-colors" style={{ background: configUi.color_acento || '#C8B69E' }} />
+                <h3 className={`text-xs md:text-sm ${fuenteClase} italic mb-2 transition-colors`} style={{ color: configUi.color_texto || '#181816' }}>"{eventoActivo?.titulo_about || 'Capturando emociones únicas'}"</h3>
+                <p className="text-[10px] font-light leading-relaxed opacity-70 transition-colors" style={{ color: configUi.color_texto || '#181816' }}>{eventoActivo?.descripcion || 'Bienvenido a la galería oficial.'}</p>
               </div>
 
               {/* TABS DE CARPETAS (Sets Reales) */}
               <div className="w-full px-6 md:px-10 mt-6 mb-6 flex-shrink-0">
                 {carpetas && carpetas.length > 0 && (
-                  <div className="flex gap-5 border-b border-black/10 overflow-x-auto custom-scrollbar mb-4">
+                  <div className="flex gap-5 border-b border-fl-texto/10 overflow-x-auto custom-scrollbar mb-4">
                     {carpetas.map((c, i) => (
-                      <div key={c.id} className={`pb-2 text-[9px] md:text-[10px] uppercase tracking-widest whitespace-nowrap transition-colors ${i === 0 ? 'font-bold' : 'opacity-40'}`} style={{ borderBottom: i === 0 ? `2px solid ${configUi.color_acento || '#C8B99A'}` : '2px solid transparent', color: configUi.color_texto || '#1C1C1C' }}>
+                      <div key={c.id} className={`pb-2 text-[9px] md:text-[10px] uppercase tracking-widest whitespace-nowrap transition-colors ${i === 0 ? 'font-bold' : 'opacity-40'}`} style={{ borderBottom: i === 0 ? `2px solid ${configUi.color_acento || '#C8B69E'}` : '2px solid transparent', color: configUi.color_texto || '#181816' }}>
                         {c.nombre}
                       </div>
                     ))}
@@ -2068,11 +2068,11 @@ const destruirPerfilFalso = async () => {
 
               {/* MÓDULO DE IA CONDICIONAL */}
               {configUi.mostrar_modulo_ia !== false && (
-                <div ref={iaSectionRef} className="w-full px-6 md:px-10 py-10 text-center transition-all mt-4 bg-black/5 flex-shrink-0">
-                  <span className="text-[8px] md:text-[9px] uppercase tracking-[0.3em] opacity-50 block mb-2 font-bold" style={{ color: configUi.color_texto || '#1C1C1C' }}>
+                <div ref={iaSectionRef} className="w-full px-6 md:px-10 py-10 text-center transition-all mt-4 bg-fl-texto/5 flex-shrink-0">
+                  <span className="text-[8px] md:text-[9px] uppercase tracking-[0.3em] opacity-50 block mb-2 font-bold" style={{ color: configUi.color_texto || '#181816' }}>
                     Tu colección personal
                   </span>
-                  <h3 className={`text-sm md:text-base font-bold mb-6 ${fuenteClase}`} style={{ color: configUi.color_texto || '#1C1C1C' }}>
+                  <h3 className={`text-sm md:text-base font-bold mb-6 ${fuenteClase}`} style={{ color: configUi.color_texto || '#181816' }}>
                     {eventoActivo?.tipo_reconocimiento === 'ocr' ? 'Encuentra tus fotografías' : 'Identidades Detectadas'}
                   </h3>
 
@@ -2083,9 +2083,9 @@ const destruirPerfilFalso = async () => {
                         placeholder="Ej. 1405" 
                         disabled 
                         className={`w-full bg-transparent border-b py-2 text-center text-xs md:text-sm outline-none ${fuenteClase}`}
-                        style={{ borderColor: 'rgba(0,0,0,0.2)', color: configUi.color_texto || '#1C1C1C' }}
+                        style={{ borderColor: 'rgba(0,0,0,0.2)', color: configUi.color_texto || '#181816' }}
                       />
-                      <div className="px-6 py-2.5 text-[9px] uppercase tracking-widest font-bold rounded-sm shadow-sm mt-2" style={{ backgroundColor: configUi.color_texto || '#1C1C1C', color: configUi.color_fondo || '#FFFFFF' }}>
+                      <div className="px-6 py-2.5 text-[9px] uppercase tracking-widest font-bold rounded-sm shadow-sm mt-2" style={{ backgroundColor: configUi.color_texto || '#181816', color: configUi.color_fondo || '#F9F8F5' }}>
                         Acceder a Galería
                       </div>
                     </div>
@@ -2102,8 +2102,8 @@ const destruirPerfilFalso = async () => {
                       ).map((jugador, idx) => (
                         <div key={jugador.id} className="flex flex-col items-center gap-2">
                           <div 
-                            className="w-12 h-12 rounded-full overflow-hidden border-2 shadow-sm transition-transform hover:scale-110 bg-white"
-                            style={{ borderColor: configUi.color_acento || '#C8B99A' }}
+                            className="w-12 h-12 rounded-full overflow-hidden border-2 shadow-sm transition-transform hover:scale-110 bg-fl-lino"
+                            style={{ borderColor: configUi.color_acento || '#C8B69E' }}
                           >
                             <img 
                               src={jugador.avatar_url?.includes('http') ? jugador.avatar_url : (jugador.avatar_url ? fotoUrlAux(jugador.avatar_url) : `https://i.pravatar.cc/150?img=${idx + 10}`)} 
@@ -2112,7 +2112,7 @@ const destruirPerfilFalso = async () => {
                             />
                           </div>
                           {configUi.mostrar_nombres_ia !== false && (
-                            <span className={`text-[8px] ${fuenteClase} italic truncate w-full px-1 text-center opacity-80`} style={{ color: configUi.color_texto || '#1C1C1C' }}>
+                            <span className={`text-[8px] ${fuenteClase} italic truncate w-full px-1 text-center opacity-80`} style={{ color: configUi.color_texto || '#181816' }}>
                               {jugador.display_name}
                             </span>
                           )}
@@ -2124,17 +2124,17 @@ const destruirPerfilFalso = async () => {
               )}
 
               {/* FOOTER DE LA WEB INTERNA */}
-              <footer className="w-full px-6 py-6 md:px-8 flex justify-between items-center transition-colors duration-500 flex-shrink-0" style={{ backgroundColor: configUi.color_texto || '#1C1C1C' }}>
+              <footer className="w-full px-6 py-6 md:px-8 flex justify-between items-center transition-colors duration-500 flex-shrink-0" style={{ backgroundColor: configUi.color_texto || '#181816' }}>
                 <div>
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="w-0.5 h-3.5 rounded-sm transition-colors" style={{ backgroundColor: configUi.color_acento || '#C8B99A' }}></span>
-                    <span className="font-serif text-[11px] tracking-[0.2em] uppercase transition-colors" style={{ color: configUi.color_fondo || '#FFFFFF' }}>Flashealo</span>
+                    <span className="w-0.5 h-3.5 rounded-sm transition-colors" style={{ backgroundColor: configUi.color_acento || '#C8B69E' }}></span>
+                    <span className="font-serif text-[11px] tracking-[0.2em] uppercase transition-colors" style={{ color: configUi.color_fondo || '#F9F8F5' }}>Flashealo</span>
                   </div>
-                  <p className="text-[7px] tracking-[0.2em] uppercase opacity-50 transition-colors" style={{ color: configUi.color_fondo || '#FFFFFF' }}>
+                  <p className="text-[7px] tracking-[0.2em] uppercase opacity-50 transition-colors" style={{ color: configUi.color_fondo || '#F9F8F5' }}>
                     Inteligencia artificial aplicada al arte.
                   </p>
                 </div>
-                <Mail size={14} className="opacity-50 transition-colors" style={{ color: configUi.color_fondo || '#FFFFFF' }} />
+                <Mail size={14} className="opacity-50 transition-colors" style={{ color: configUi.color_fondo || '#F9F8F5' }} />
               </footer>
 
             </div>
@@ -2203,7 +2203,7 @@ const destruirPerfilFalso = async () => {
                       </button>
 
                       <button onClick={() => toggleFavorito(fotoActual.id)} style={{ background: 'none', border: 'none', color: WHITE, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
-                        <Heart size={15} fill={fotoActual.es_favorita ? '#E74C3C' : 'none'} color={fotoActual.es_favorita ? '#E74C3C' : WHITE}/> Favorita
+                        <Heart size={15} fill={fotoActual.es_favorita ? '#A3392B' : 'none'} color={fotoActual.es_favorita ? '#A3392B' : WHITE}/> Favorita
                       </button>
                       
                       <button onClick={() => {
@@ -2213,7 +2213,7 @@ const destruirPerfilFalso = async () => {
                         <ImageIcon size={15} /> Usar como Portada
                       </button>
 
-                      <button onClick={() => borrarFotos([fotoActual.id])} style={{ background: 'none', border: 'none', color: '#E74C3C', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+                      <button onClick={() => borrarFotos([fotoActual.id])} style={{ background: 'none', border: 'none', color: '#A3392B', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
                         <Trash2 size={15} /> Borrar
                       </button>
 
@@ -2274,7 +2274,7 @@ const destruirPerfilFalso = async () => {
                       {/* Indicador de carga súper sutil (Opcional) */}
                       {!fotoHdCargada && (
                         <div style={{ position: 'absolute', bottom: 30, zIndex: 10, background: 'rgba(0,0,0,0.6)', padding: '6px 14px', borderRadius: 20, color: '#DDD', fontSize: 11, backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#C8B99A', animation: 'pulse 1.5s infinite' }}></div>
+                          <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#C8B69E', animation: 'pulse 1.5s infinite' }}></div>
                           Cargando HD...
                         </div>
                       )}
@@ -2310,7 +2310,7 @@ const destruirPerfilFalso = async () => {
                           }}
                         >
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: 12 }}>
-                            <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#C8B99A' }}>
+                            <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#C8B69E' }}>
                               Información EXIF
                             </span>
                             <button onClick={() => setMostrarExif(false)} style={{ background: 'none', border: 'none', color: '#888', cursor: 'pointer' }}>
@@ -2323,7 +2323,7 @@ const destruirPerfilFalso = async () => {
                             
                             {/* Cámara */}
                             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-                              <Camera size={16} style={{ color: '#C8B99A', marginTop: 2 }} />
+                              <Camera size={16} style={{ color: '#C8B69E', marginTop: 2 }} />
                               <div>
                                 <div style={{ color: '#888', fontSize: 10, textTransform: 'uppercase' }}>Cámara</div>
                                 <div style={{ fontWeight: 500, color: WHITE }}>{camara}</div>
@@ -2333,7 +2333,7 @@ const destruirPerfilFalso = async () => {
 
                             {/* Ajustes de Disparo */}
                             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-                              <Sliders size={16} style={{ color: '#C8B99A', marginTop: 2 }} />
+                              <Sliders size={16} style={{ color: '#C8B69E', marginTop: 2 }} />
                               <div style={{ flex: 1 }}>
                                 <div style={{ color: '#888', fontSize: 10, textTransform: 'uppercase', marginBottom: 4 }}>Parámetros</div>
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, background: 'rgba(255,255,255,0.04)', padding: 10, borderRadius: 6 }}>
@@ -2347,7 +2347,7 @@ const destruirPerfilFalso = async () => {
 
                             {/* Dimensión y Resolución */}
                             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-                              <Maximize2 size={16} style={{ color: '#C8B99A', marginTop: 2 }} />
+                              <Maximize2 size={16} style={{ color: '#C8B69E', marginTop: 2 }} />
                               <div>
                                 <div style={{ color: '#888', fontSize: 10, textTransform: 'uppercase' }}>Dimensiones</div>
                                 <div style={{ fontWeight: 500, color: WHITE }}>{resolucion}</div>
@@ -2356,7 +2356,7 @@ const destruirPerfilFalso = async () => {
 
                             {/* Fecha de Captura */}
                             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-                              <Calendar size={16} style={{ color: '#C8B99A', marginTop: 2 }} />
+                              <Calendar size={16} style={{ color: '#C8B69E', marginTop: 2 }} />
                               <div>
                                 <div style={{ color: '#888', fontSize: 10, textTransform: 'uppercase' }}>Capturada El</div>
                                 <div style={{ fontWeight: 500, color: WHITE }}>{fecha}</div>
@@ -2365,7 +2365,7 @@ const destruirPerfilFalso = async () => {
 
                             {/* Nombre de Archivo */}
                             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-                              <HardDrive size={16} style={{ color: '#C8B99A', marginTop: 2 }} />
+                              <HardDrive size={16} style={{ color: '#C8B69E', marginTop: 2 }} />
                               <div style={{ wordBreak: 'break-all' }}>
                                 <div style={{ color: '#888', fontSize: 10, textTransform: 'uppercase' }}>Archivo</div>
                                 <div style={{ color: '#AAA', fontSize: 11 }}>{fotoActual.nombre_archivo || fotoActual.id || 'foto_original.jpg'}</div>
@@ -2386,16 +2386,16 @@ const destruirPerfilFalso = async () => {
           {/* LUPA MÁGICA DE DETECCIONES DE IA */}
           <AnimatePresence>
             {zoomCara && (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm" onClick={() => setZoomCara(null)}>
-                <div className="p-6 max-w-4xl w-full bg-[#111] border border-[#333] relative flex justify-center shadow-2xl" onClick={e => e.stopPropagation()}>
-                  <button onClick={() => setZoomCara(null)} className="absolute top-4 right-4 text-white z-50 bg-black/50 p-2 rounded-full hover:bg-white hover:text-black transition-colors"><X size={20}/></button>
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-fl-texto/90 backdrop-blur-sm" onClick={() => setZoomCara(null)}>
+                <div className="p-6 max-w-4xl w-full bg-[#181816] border border-[#333] relative flex justify-center shadow-2xl" onClick={e => e.stopPropagation()}>
+                  <button onClick={() => setZoomCara(null)} className="absolute top-4 right-4 text-white z-50 bg-fl-texto/50 p-2 rounded-full hover:bg-fl-lino hover:text-fl-texto transition-colors"><X size={20}/></button>
                   <div className="relative inline-block leading-none max-w-full cursor-zoom-out shadow-md overflow-hidden" onClick={() => setZoomCara(null)}>
                     <img src={fotoUrlAux(zoomCara.photo_url, true)} className="max-h-[80vh] w-auto max-w-full block" alt="Zoom AI" draggable={false} />
                     {(() => {
                       const rawBox = getBboxCoords(zoomCara.bbox);
                       if (rawBox) {
                         const box = expandBbox(rawBox);
-                        return <div className="absolute border-[3px] border-[#C8B99A] z-10 shadow-[0_0_0_9999px_rgba(0,0,0,0.75)] transition-all pointer-events-none" style={{ left: `${box.x}%`, top: `${box.y}%`, width: `${box.w}%`, height: `${box.h}%` }} />;
+                        return <div className="absolute border-[3px] border-[#C8B69E] z-10 shadow-[0_0_0_9999px_rgba(0,0,0,0.75)] transition-all pointer-events-none" style={{ left: `${box.x}%`, top: `${box.y}%`, width: `${box.w}%`, height: `${box.h}%` }} />;
                       }
                       return null;
                     })()}

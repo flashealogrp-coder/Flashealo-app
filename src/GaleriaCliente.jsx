@@ -6,11 +6,11 @@ import { X, ChevronLeft, ChevronRight, Loader2, AlertCircle, Lock, ChevronDown, 
 import { motion, AnimatePresence } from 'framer-motion';
 
 /* ─── DESIGN TOKENS ─────────────────────────────────────────────────────────── */
-const SAND   = '#C8B99A';
-const TAUPE  = '#9A8F82';
-const INK    = '#1C1C1C';
-const CREAM  = '#FDFCF8';
-const WHITE  = '#FFFFFF';
+const SAND   = '#C8B69E';
+const TAUPE  = '#5A5955';
+const INK    = '#181816';
+const CREAM  = '#F9F8F5';
+const WHITE  = '#F9F8F5';
 
 const DOMINIO_R2 = import.meta.env.VITE_R2_DOMINIO || 'https://pub-c4c062c3f8754b2d9ff6de40e9d6d713.r2.dev'; 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://muvzhnnsdnztlhynuipd.supabase.co";
@@ -216,7 +216,7 @@ const GaleriaCliente = () => {
       "col-span-1 row-span-1", // 5: Cuadrado Pequeño
     ];
 
-    let containerClass = "relative group cursor-pointer transition-all duration-500 ease-out overflow-hidden z-0 bg-[#F5F5F5] ";
+    let containerClass = "relative group cursor-pointer transition-all duration-500 ease-out overflow-hidden z-0 bg-[#F9F8F5] ";
     let imgClass = "filter saturate-[0.9] transition-transform duration-[1.5s] ease-out group-hover:scale-105 ";
 
     if (modoVista === 'editorial') {
@@ -243,12 +243,12 @@ const GaleriaCliente = () => {
         
         {/* Marca de Agua */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-          <span style={{ fontFamily: 'Georgia, serif', fontSize: 'clamp(24px, 4vw, 48px)', letterSpacing: '0.3em', textTransform: 'uppercase', color: WHITE, opacity: 0.35, transform: 'rotate(-25deg)', mixBlendMode: 'overlay', userSelect: 'none' }}>Flashealo</span>
+          <span style={{ fontFamily: 'var(--fl-serif)', fontSize: 'clamp(24px, 4vw, 48px)', letterSpacing: '0.3em', textTransform: 'uppercase', color: WHITE, opacity: 0.35, transform: 'rotate(-25deg)', mixBlendMode: 'overlay', userSelect: 'none' }}>Flashealo</span>
         </div>
 
         {/* Hover Efecto Completo */}
-        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 active:bg-black/30 transition-colors duration-500 opacity-0 group-hover:opacity-100 active:opacity-100 flex items-center justify-center pointer-events-none z-20">
-          <span className="text-white text-[10px] uppercase tracking-[0.2em] backdrop-blur-md bg-white/10 px-8 py-3 shadow-2xl border border-white/20 transform translate-y-4 group-hover:translate-y-0 transition-all duration-500">
+        <div className="absolute inset-0 bg-fl-texto/0 group-hover:bg-fl-texto/30 active:bg-fl-texto/30 transition-colors duration-500 opacity-0 group-hover:opacity-100 active:opacity-100 flex items-center justify-center pointer-events-none z-20">
+          <span className="text-white text-[10px] uppercase tracking-[0.2em] backdrop-blur-md bg-fl-lino/10 px-8 py-3 shadow-2xl border border-white/20 transform translate-y-4 group-hover:translate-y-0 transition-all duration-500">
             Ampliar
           </span>
         </div>
@@ -261,7 +261,7 @@ const GaleriaCliente = () => {
     return (
       <div style={{ background: CREAM, minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
         <motion.div animate={{ opacity: [0.2, 1, 0.2] }} transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <span style={{ fontFamily: 'Georgia, serif', fontSize: 24, letterSpacing: '0.4em', textTransform: 'uppercase', color: INK }}>Flashealo</span>
+          <span style={{ fontFamily: 'var(--fl-serif)', fontSize: 24, letterSpacing: '0.4em', textTransform: 'uppercase', color: INK }}>Flashealo</span>
         </motion.div>
         <span style={{ fontSize: 9, letterSpacing: '0.3em', color: TAUPE, marginTop: 16, textTransform: 'uppercase' }}>Revelando Colección...</span>
       </div>
@@ -271,8 +271,8 @@ const GaleriaCliente = () => {
   if (errorInicial || !evento) {
     return (
       <div style={{ background: CREAM, minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontFamily: 'system-ui' }}>
-        <AlertCircle size={48} strokeWidth={1} style={{ color: '#C0392B', marginBottom: 16 }} />
-        <h1 style={{ fontFamily: 'Georgia, serif', fontSize: 32, color: INK }}>Colección no encontrada</h1>
+        <AlertCircle size={48} strokeWidth={1} style={{ color: '#A3392B', marginBottom: 16 }} />
+        <h1 style={{ fontFamily: 'var(--fl-serif)', fontSize: 32, color: INK }}>Colección no encontrada</h1>
         <p style={{ color: TAUPE, marginTop: 8 }}>{errorInicial}</p>
         <button type="button" onClick={() => navigate('/')} style={{ marginTop: 32, padding: '12px 32px', background: INK, color: WHITE, border: 'none', textTransform: 'uppercase', letterSpacing: '0.2em', fontSize: 10, cursor: 'pointer' }}>Volver al inicio</button>
       </div>
@@ -282,43 +282,43 @@ const GaleriaCliente = () => {
   const esEventoOCR = evento.tipo_reconocimiento === 'ocr';
 
   return (
-    <div className={`min-h-screen bg-[#FDFCF8] text-[#1a1a1a] font-sans selection:bg-[#1a1a1a] selection:text-white ${!autenticado ? 'overflow-hidden h-screen' : ''}`}>
+    <div className={`min-h-screen bg-[#F9F8F5] text-[#181816] font-sans selection:bg-[#181816] selection:text-white ${!autenticado ? 'overflow-hidden h-screen' : ''}`}>
       
       {/* ── NAVBAR DINÁMICO ── */}
       <AnimatePresence>
         {autenticado && (
-          <motion.nav initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1, delay: 0.5 }} className={`fixed top-0 w-full z-40 transition-all duration-700 ${scrolled ? 'bg-[#FDFCF8]/95 backdrop-blur-md border-b border-gray-100 py-4 shadow-sm' : 'bg-transparent py-6'}`}>
+          <motion.nav initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1, delay: 0.5 }} className={`fixed top-0 w-full z-40 transition-all duration-700 ${scrolled ? 'bg-[#F9F8F5]/95 backdrop-blur-md border-b border-fl-borde py-4 shadow-sm' : 'bg-transparent py-6'}`}>
             <div className="max-w-[1600px] mx-auto px-6 md:px-12 flex items-center justify-between relative">
               
               <div onClick={() => navigate('/')} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12 }}>
                 <span style={{ width: 2, height: 18, background: SAND, display: 'inline-block', borderRadius: 1 }} />
-                <span style={{ fontFamily: 'Georgia, serif', fontSize: 18, letterSpacing: '0.18em', textTransform: 'uppercase', color: (scrolled || vistaActual === 'galeria') ? INK : WHITE, transition: 'color 0.5s ease' }}>Flashealo</span>
+                <span style={{ fontFamily: 'var(--fl-serif)', fontSize: 18, letterSpacing: '0.18em', textTransform: 'uppercase', color: (scrolled || vistaActual === 'galeria') ? INK : WHITE, transition: 'color 0.5s ease' }}>Flashealo</span>
               </div>
 
               <div className="flex items-center gap-3 md:gap-8">
                 
                 {/* SELECTOR DE VISTAS EN NAVBAR (Exterior) */}
                 {vistaActual === 'evento' && scrolled && fotosGenerales.length > 0 && (
-                  <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="flex items-center gap-1 bg-black/5 backdrop-blur-md rounded-full p-1 border border-black/5 z-50">
-                    <button type="button" onClick={() => setModoVista('editorial')} className={`p-1.5 md:p-2 rounded-full transition-colors ${modoVista === 'editorial' ? 'bg-white shadow-sm text-black' : 'text-gray-400 hover:text-black'}`} title="Mosaico Editorial">
+                  <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="flex items-center gap-1 bg-fl-texto/5 backdrop-blur-md rounded-full p-1 border border-fl-texto/5 z-50">
+                    <button type="button" onClick={() => setModoVista('editorial')} className={`p-1.5 md:p-2 rounded-full transition-colors ${modoVista === 'editorial' ? 'bg-fl-lino shadow-sm text-fl-texto' : 'text-fl-grafito hover:text-fl-texto'}`} title="Mosaico Editorial">
                       <LayoutGrid size={14} strokeWidth={2}/>
                     </button>
-                    <button type="button" onClick={() => setModoVista('pinterest')} className={`p-1.5 md:p-2 rounded-full transition-colors ${modoVista === 'pinterest' ? 'bg-white shadow-sm text-black' : 'text-gray-400 hover:text-black'}`} title="Columnas Naturales">
+                    <button type="button" onClick={() => setModoVista('pinterest')} className={`p-1.5 md:p-2 rounded-full transition-colors ${modoVista === 'pinterest' ? 'bg-fl-lino shadow-sm text-fl-texto' : 'text-fl-grafito hover:text-fl-texto'}`} title="Columnas Naturales">
                       <Columns size={14} strokeWidth={2}/>
                     </button>
-                    <button type="button" onClick={() => setModoVista('large')} className={`p-1.5 md:p-2 rounded-full transition-colors ${modoVista === 'large' ? 'bg-white shadow-sm text-black' : 'text-gray-400 hover:text-black'}`} title="Cine">
+                    <button type="button" onClick={() => setModoVista('large')} className={`p-1.5 md:p-2 rounded-full transition-colors ${modoVista === 'large' ? 'bg-fl-lino shadow-sm text-fl-texto' : 'text-fl-grafito hover:text-fl-texto'}`} title="Cine">
                       <Square size={14} strokeWidth={2}/>
                     </button>
                   </motion.div>
                 )}
 
-                <div className={`flex text-[10px] uppercase tracking-[0.2em] font-medium ${(scrolled || vistaActual === 'galeria') ? 'text-gray-600' : 'text-white/90'}`}>
+                <div className={`flex text-[10px] uppercase tracking-[0.2em] font-medium ${(scrolled || vistaActual === 'galeria') ? 'text-fl-grafito' : 'text-white/90'}`}>
                   {vistaActual === 'galeria' ? (
-                    <button type="button" onClick={() => { setVistaActual('evento'); setIdentidadSeleccionada(null); setModoVista('editorial'); window.scrollTo(0, 0); }} className="hover:text-black transition-colors duration-500 flex items-center gap-1 md:gap-2">
+                    <button type="button" onClick={() => { setVistaActual('evento'); setIdentidadSeleccionada(null); setModoVista('editorial'); window.scrollTo(0, 0); }} className="hover:text-fl-texto transition-colors duration-500 flex items-center gap-1 md:gap-2">
                       <ChevronLeft size={14}/> <span className="hidden sm:inline">Volver a la colección</span><span className="sm:hidden">Volver</span>
                     </button>
                   ) : (
-                    <button type="button" onClick={() => navigate('/')} className="hover:text-black transition-colors duration-500 hidden sm:block">Volver al Sitio</button>
+                    <button type="button" onClick={() => navigate('/')} className="hover:text-fl-texto transition-colors duration-500 hidden sm:block">Volver al Sitio</button>
                   )}
                 </div>
               </div>
@@ -335,7 +335,7 @@ const GaleriaCliente = () => {
         {vistaActual === 'evento' && (
           <motion.main key="evento" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col">
             
-            <header className="relative h-screen w-full flex items-center justify-center overflow-hidden bg-black">
+            <header className="relative h-screen w-full flex items-center justify-center overflow-hidden bg-fl-texto">
               <div className="absolute inset-0 z-0">
                 {/* 🌟 MAGIA APLICADA: La portada respeta el encuadre (objectPosition) 🌟 */}
                 <motion.img 
@@ -369,7 +369,7 @@ const GaleriaCliente = () => {
                   >
                     <div style={{ width: 40, height: 1, background: SAND, margin: '0 auto 40px' }} />
                     <p style={{ fontSize: 10, letterSpacing: '0.4em', textTransform: 'uppercase', color: TAUPE, marginBottom: 12, fontWeight: 500 }}>Colección Privada</p>
-                    <h1 style={{ fontFamily: 'Georgia, serif', fontSize: 'clamp(28px, 5vw, 36px)', color: INK, marginBottom: 16, letterSpacing: '-0.01em', fontWeight: 300, lineHeight: 1.2 }}>{evento.nombre}</h1>
+                    <h1 style={{ fontFamily: 'var(--fl-serif)', fontSize: 'clamp(28px, 5vw, 36px)', color: INK, marginBottom: 16, letterSpacing: '-0.01em', fontWeight: 300, lineHeight: 1.2 }}>{evento.nombre}</h1>
                     <p style={{ fontSize: 12, color: TAUPE, marginBottom: 56, fontStyle: 'italic' }}>Por favor, ingresa la contraseña para acceder.</p>
                     
                     <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: 48 }}>
@@ -377,7 +377,7 @@ const GaleriaCliente = () => {
                         <input type="password" placeholder="Contraseña" autoFocus value={passwordInput} onChange={(e) => { setPasswordInput(e.target.value); setErrorBuscador(''); }} style={{ width: '100%', background: 'transparent', border: 'none', borderBottom: `1px solid rgba(0,0,0,0.12)`, padding: '12px 0', fontSize: 14, outline: 'none', color: INK, textAlign: 'center', letterSpacing: '0.4em', transition: 'border-color 0.4s' }} onFocus={(e) => e.target.style.borderBottomColor = SAND} onBlur={(e) => e.target.style.borderBottomColor = 'rgba(0,0,0,0.12)'}/>
                         <Lock size={14} style={{ position: 'absolute', left: 0, top: '50%', transform: 'translateY(-50%)', color: 'rgba(0,0,0,0.15)' }} />
                       </div>
-                      {errorBuscador && <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ color: '#C0392B', fontSize: 11, letterSpacing: '0.05em', marginTop: -20 }}>{errorBuscador}</motion.span>}
+                      {errorBuscador && <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ color: '#A3392B', fontSize: 11, letterSpacing: '0.05em', marginTop: -20 }}>{errorBuscador}</motion.span>}
                       <button type="submit" style={{ padding: '18px 0', background: INK, color: WHITE, border: 'none', cursor: 'pointer', fontSize: 10, letterSpacing: '0.3em', textTransform: 'uppercase', fontWeight: 600, transition: 'all 0.4s ease', boxShadow: '0 10px 30px rgba(0,0,0,0.1)' }} onMouseEnter={e => { e.target.style.background = '#333'; e.target.style.transform = 'translateY(-2px)'; }} onMouseLeave={e => { e.target.style.background = INK; e.target.style.transform = 'translateY(0)'; }}>Acceder</button>
                     </form>
                   </motion.div>
@@ -404,10 +404,10 @@ const GaleriaCliente = () => {
               <>
                 <section className="py-28 px-6 max-w-3xl mx-auto text-center">
                   <div style={{ width: 40, height: 1, background: SAND, margin: '0 auto 40px' }} />
-                  <h2 className="text-3xl md:text-4xl font-serif mb-8 italic text-gray-800 leading-snug">
+                  <h2 className="text-3xl md:text-4xl font-serif mb-8 italic text-fl-grafito leading-snug">
                     "{evento.titulo_about || 'Capturando la esencia y la emoción de cada instante.'}"
                   </h2>
-                  <p className="text-gray-500 font-light leading-relaxed tracking-wide text-sm md:text-base">
+                  <p className="text-fl-grafito font-light leading-relaxed tracking-wide text-sm md:text-base">
                     {evento.descripcion || "Esta colección es un tributo visual diseñado meticulosamente para preservar tus recuerdos con la más alta calidad. Navega a través de los momentos destacados."}
                   </p>
                 </section>
@@ -439,7 +439,7 @@ const GaleriaCliente = () => {
                     {mostrarCantidadGenerales < fotosGenerales.length && (
                       /* Redujimos el mt-16 a mt-12 */
                       <div className="flex justify-center mt-12">
-                        <button type="button" onClick={() => setMostrarCantidadGenerales(prev => prev + 12)} className="px-12 py-4 bg-white border border-gray-200 text-[#1a1a1a] text-[10px] uppercase tracking-[0.3em] hover:border-black hover:bg-gray-50 transition-all duration-500 font-bold">
+                        <button type="button" onClick={() => setMostrarCantidadGenerales(prev => prev + 12)} className="px-12 py-4 bg-fl-lino border border-fl-borde text-[#181816] text-[10px] uppercase tracking-[0.3em] hover:border-fl-texto hover:bg-fl-arena transition-all duration-500 font-bold">
                           Cargar más fotografías
                         </button>
                       </div>
@@ -448,40 +448,40 @@ const GaleriaCliente = () => {
                 )}
 
                 {/* Cambiamos py-32 (arriba y abajo) por pt-16 pb-32 (poquito arriba, mucho abajo) */}
-                <section className="bg-[#F8F7F3] px-6 border-t border-gray-100">
+                <section className="bg-[#F9F8F5] px-6 border-t border-fl-borde">
                   <div className="max-w-6xl mx-auto flex flex-col items-center text-center">
-                    <span className="text-[10px] uppercase tracking-[0.3em] text-gray-400 mb-6">Tu colección personal</span>
-                    <h2 className="text-4xl md:text-5xl font-serif mb-16 text-[#1a1a1a]">Encuentra tus fotografías</h2>
+                    <span className="text-[10px] uppercase tracking-[0.3em] text-fl-grafito mb-6">Tu colección personal</span>
+                    <h2 className="text-4xl md:text-5xl font-serif mb-16 text-[#181816]">Encuentra tus fotografías</h2>
                     
-                    {errorBuscador && <div style={{ color: '#C0392B', marginBottom: 24, fontSize: 13 }}><AlertCircle size={14} style={{display:'inline', marginRight:4}}/>{errorBuscador}</div>}
+                    {errorBuscador && <div style={{ color: '#A3392B', marginBottom: 24, fontSize: 13 }}><AlertCircle size={14} style={{display:'inline', marginRight:4}}/>{errorBuscador}</div>}
 
                     {esEventoOCR ? (
                       <form onSubmit={handleSearchOCR} className="w-full max-w-lg flex flex-col items-center">
-                        <input type="text" placeholder="Ej. 1405" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} disabled={cargando} className="w-full bg-transparent border-b border-gray-300 py-4 text-center text-3xl font-serif placeholder:text-gray-300 outline-none focus:border-black transition-colors duration-500"/>
-                        <button type="submit" disabled={cargando} className="mt-16 px-14 py-4 bg-[#1a1a1a] text-white text-[10px] uppercase tracking-[0.3em] hover:bg-black transition-all duration-500 hover:-translate-y-1">
+                        <input type="text" placeholder="Ej. 1405" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} disabled={cargando} className="w-full bg-transparent border-b border-fl-borde py-4 text-center text-3xl font-serif placeholder:text-gray-300 outline-none focus:border-fl-texto transition-colors duration-500"/>
+                        <button type="submit" disabled={cargando} className="mt-16 px-14 py-4 bg-[#181816] text-white text-[10px] uppercase tracking-[0.3em] hover:bg-fl-texto transition-all duration-500 hover:-translate-y-1">
                           {cargando ? 'Buscando...' : 'Acceder a Galería'}
                         </button>
                       </form>
                     ) : (
                       <div className="w-full mt-4">
                         {cargando ? (
-                          <div className="flex justify-center py-16"><Loader2 className="animate-spin text-[#C8B99A]" size={32} strokeWidth={1}/></div>
+                          <div className="flex justify-center py-16"><Loader2 className="animate-spin text-[#C8B69E]" size={32} strokeWidth={1}/></div>
                         ) : identidadesEvento.length === 0 ? (
-                          <p className="text-gray-400 font-light italic">Las fotografías están en proceso de revelado...</p>
+                          <p className="text-fl-grafito font-light italic">Las fotografías están en proceso de revelado...</p>
                         ) : (
                           <div className="grid grid-cols-4 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-y-5 gap-x-6">
                             {identidadesEvento.map(id => {
                               const tieneNombreReal = id.display_name && !id.display_name.startsWith('Jugador_') && !id.display_name.startsWith('Perfil_') && !id.display_name.startsWith('Identidad_');
                               return (
                                 <button type="button" key={id.id} onClick={() => seleccionarIdentidad(id)} className="flex flex-col items-center gap-4 group outline-none">
-                                  <div className="w-20 h-20 md:w-24 md:h-24 rounded-full overflow-hidden bg-white transition-all duration-500 relative" style={{ boxShadow: '0 8px 24px rgba(200,185,154,0.35), 0 2px 8px rgba(0,0,0,0.08)', 
+                                  <div className="w-20 h-20 md:w-24 md:h-24 rounded-full overflow-hidden bg-fl-lino transition-all duration-500 relative" style={{ boxShadow: '0 8px 24px rgba(200,185,154,0.35), 0 2px 8px rgba(0,0,0,0.08)', 
   border: '1px solid rgba(200,185,154,0.2)'}}>
                                     <img src={id.publicAvatarUrl} alt="Avatar" className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-[2s] ease-out filter grayscale-[20%] group-hover:grayscale-0" />
-                                    <div className="absolute inset-0 border-[2px] border-transparent group-hover:border-[#C8B99A] rounded-full transition-colors duration-500 pointer-events-none" />
+                                    <div className="absolute inset-0 border-[2px] border-transparent group-hover:border-[#C8B69E] rounded-full transition-colors duration-500 pointer-events-none" />
                                   </div>
                                   <div className="flex flex-col items-center">
-                                    {tieneNombreReal && <span className="text-xs font-serif italic tracking-wide text-gray-800 group-hover:text-black transition-colors truncate w-full px-2">{id.display_name}</span>}
-                                    <span className="text-[9px] uppercase tracking-[0.2em] text-gray-400 mt-0 font-bold">{id.totalFotos} Fotos</span>
+                                    {tieneNombreReal && <span className="text-xs font-serif italic tracking-wide text-fl-grafito group-hover:text-fl-texto transition-colors truncate w-full px-2">{id.display_name}</span>}
+                                    <span className="text-[9px] uppercase tracking-[0.2em] text-fl-grafito mt-0 font-bold">{id.totalFotos} Fotos</span>
                                   </div>
                                 </button>
                               );
@@ -509,13 +509,13 @@ const GaleriaCliente = () => {
               {/* AVATAR DE LA PERSONA EN SU GALERÍA */}
               {identidadSeleccionada && identidadSeleccionada.publicAvatarUrl && (
                 <div className="flex justify-center mb-6">
-                  <div className="w-24 h-24 rounded-full overflow-hidden border-[3px] border-[#C8B99A] shadow-xl">
+                  <div className="w-24 h-24 rounded-full overflow-hidden border-[3px] border-[#C8B69E] shadow-xl">
                     <img src={identidadSeleccionada.publicAvatarUrl} alt="Avatar" className="w-full h-full object-cover" />
                   </div>
                 </div>
               )}
 
-              <h1 style={{ fontFamily: 'Georgia, serif', fontWeight: 300, fontSize: 'clamp(40px, 6vw, 72px)', letterSpacing: '-0.02em', color: INK, marginBottom: 20 }}>
+              <h1 style={{ fontFamily: 'var(--fl-serif)', fontWeight: 300, fontSize: 'clamp(40px, 6vw, 72px)', letterSpacing: '-0.02em', color: INK, marginBottom: 20 }}>
                 {identidadSeleccionada ? (identidadSeleccionada.display_name.startsWith('Jugador_') || identidadSeleccionada.display_name.startsWith('Identidad_') || identidadSeleccionada.display_name.startsWith('Perfil_') ? 'Tu Colección' : identidadSeleccionada.display_name) : `Dorsal ${searchQuery}`}
               </h1>
               <p style={{ color: TAUPE, fontSize: 14, marginBottom: 44, fontStyle: 'italic' }}>
@@ -549,7 +549,7 @@ const GaleriaCliente = () => {
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, marginBottom: 48 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
                   <span style={{ width: 2, height: 28, background: SAND, borderRadius: 1 }}></span>
-                  <span style={{ fontFamily: 'Georgia, serif', fontSize: 24, letterSpacing: '0.2em', textTransform: 'uppercase', color: INK }}>Flashealo</span>
+                  <span style={{ fontFamily: 'var(--fl-serif)', fontSize: 24, letterSpacing: '0.2em', textTransform: 'uppercase', color: INK }}>Flashealo</span>
                 </div>
                 <span style={{ fontSize: 9, letterSpacing: '0.2em', textTransform: 'uppercase', color: TAUPE }}>Inteligencia artificial aplicada al arte.</span>
               </div>
@@ -569,15 +569,15 @@ const GaleriaCliente = () => {
             animate={{ y: 0, opacity: 1, x: '-50%' }}
             exit={{ y: 100, opacity: 0, x: '-50%' }}
             transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-            className="fixed bottom-8 left-1/2 z-50 flex items-center gap-2 bg-[#1C1C1C]/40 hover:bg-[#1C1C1C]/90 transition-colors duration-500 backdrop-blur-md px-4 py-2.5 rounded-full shadow-2xl border border-white/10"
+            className="fixed bottom-8 left-1/2 z-50 flex items-center gap-2 bg-[#181816]/40 hover:bg-[#181816]/90 transition-colors duration-500 backdrop-blur-md px-4 py-2.5 rounded-full shadow-2xl border border-white/10"
           >
-            <button type="button" onClick={() => setModoVista('editorial')} className={`p-2.5 rounded-full transition-colors ${modoVista === 'editorial' ? 'bg-[#C8B99A] text-black shadow-sm' : 'text-white hover:text-[#C8B99A]'}`} title="Mosaico Editorial">
+            <button type="button" onClick={() => setModoVista('editorial')} className={`p-2.5 rounded-full transition-colors ${modoVista === 'editorial' ? 'bg-[#C8B69E] text-fl-texto shadow-sm' : 'text-white hover:text-[#C8B69E]'}`} title="Mosaico Editorial">
               <LayoutGrid size={16} strokeWidth={2}/>
             </button>
-            <button type="button" onClick={() => setModoVista('pinterest')} className={`p-2.5 rounded-full transition-colors ${modoVista === 'pinterest' ? 'bg-[#C8B99A] text-black shadow-sm' : 'text-white hover:text-[#C8B99A]'}`} title="Columnas">
+            <button type="button" onClick={() => setModoVista('pinterest')} className={`p-2.5 rounded-full transition-colors ${modoVista === 'pinterest' ? 'bg-[#C8B69E] text-fl-texto shadow-sm' : 'text-white hover:text-[#C8B69E]'}`} title="Columnas">
               <Columns size={16} strokeWidth={2}/>
             </button>
-            <button type="button" onClick={() => setModoVista('large')} className={`p-2.5 rounded-full transition-colors ${modoVista === 'large' ? 'bg-[#C8B99A] text-black shadow-sm' : 'text-white hover:text-[#C8B99A]'}`} title="Cine">
+            <button type="button" onClick={() => setModoVista('large')} className={`p-2.5 rounded-full transition-colors ${modoVista === 'large' ? 'bg-[#C8B69E] text-fl-texto shadow-sm' : 'text-white hover:text-[#C8B69E]'}`} title="Cine">
               <Square size={16} strokeWidth={2}/>
             </button>
           </motion.div>
@@ -615,7 +615,7 @@ const GaleriaCliente = () => {
                        <div 
                          key={idObj.id} 
                          onClick={() => { closeLightbox(); seleccionarIdentidad(idObj); }}
-                         className="w-10 h-10 md:w-12 md:h-12 rounded-full border-2 border-[#C8B99A] overflow-hidden cursor-pointer hover:scale-110 transition-transform shadow-lg bg-white"
+                         className="w-10 h-10 md:w-12 md:h-12 rounded-full border-2 border-[#C8B69E] overflow-hidden cursor-pointer hover:scale-110 transition-transform shadow-lg bg-fl-lino"
                          title={idObj.display_name}
                        >
                          <img src={idObj.publicAvatarUrl} className="w-full h-full object-cover" />
@@ -634,7 +634,7 @@ const GaleriaCliente = () => {
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
               <span style={{ width: 2, height: 16, background: SAND, display: 'inline-block', borderRadius: 1 }} />
-              <span style={{ fontFamily: 'Georgia, serif', fontSize: 16, letterSpacing: '0.18em', textTransform: 'uppercase', color: WHITE }}>Flashealo</span>
+              <span style={{ fontFamily: 'var(--fl-serif)', fontSize: 16, letterSpacing: '0.18em', textTransform: 'uppercase', color: WHITE }}>Flashealo</span>
             </div>
             <p style={{ fontSize: 8, color: 'rgba(255,255,255,0.35)', letterSpacing: '0.22em', textTransform: 'uppercase' }}>Inteligencia artificial aplicada al arte.</p>
           </div>

@@ -54,10 +54,10 @@ const fotoUrl = (path, optimizada = false) => {
   return `${base}/${cleanPath}`;
 };
 
-const SAND   = '#C8B99A';
-const TAUPE  = '#9A8F82';
-const INK    = '#1C1C1C';
-const CREAM  = '#FDFCF8';
+const SAND   = '#C8B69E';
+const TAUPE  = '#5A5955';
+const INK    = '#181816';
+const CREAM  = '#F9F8F5';
 
 // 🌟 NUEVO COMPONENTE: Imagen Inteligente con Loader 🌟
 const CargadorImagen = ({ src, alt, className }) => {
@@ -65,11 +65,11 @@ const CargadorImagen = ({ src, alt, className }) => {
   const [error, setError] = useState(false);
 
   return (
-    <div className={`relative flex items-center justify-center bg-[#0A0A0A] ${className}`}>
+    <div className={`relative flex items-center justify-center bg-[#181816] ${className}`}>
       {/* Spinner de carga elegante */}
       {!cargada && !error && (
         <div className="absolute inset-0 flex items-center justify-center">
-          <Loader2 className="animate-spin text-[#C8B99A]/40" size={24} />
+          <Loader2 className="animate-spin text-[#C8B69E]/40" size={24} />
         </div>
       )}
       <img
@@ -94,7 +94,7 @@ const BoundingBox = ({ bbox, color, label, esCuerpo }) => {
     <div className="absolute z-10 pointer-events-none transition-all duration-300 group" style={{ left: `${bbox.x}%`, top: `${bbox.y}%`, width: `${bbox.w}%`, height: `${bbox.h}%` }}>
       <div className="absolute inset-0 border-[2px] rounded-sm transition-colors duration-300" style={{ borderColor: color, borderStyle: esCuerpo ? 'dashed' : 'solid', boxShadow: esCuerpo ? 'none' : `0 0 12px ${color}88` }} />
       {!esCuerpo && label && (
-        <div className="absolute -top-8 left-1/2 -translate-x-1/2 flex items-center gap-1.5 bg-black/85 backdrop-blur-md px-2 py-0.5 rounded-sm shadow-sm whitespace-nowrap">
+        <div className="absolute -top-8 left-1/2 -translate-x-1/2 flex items-center gap-1.5 bg-fl-texto/85 backdrop-blur-md px-2 py-0.5 rounded-sm shadow-sm whitespace-nowrap">
           <span className="text-white text-[10px] uppercase tracking-[0.2em] leading-none">{label}</span>
         </div>
       )}
@@ -112,7 +112,7 @@ const InteractiveZoomImage = ({ zoomCara }) => {
   };
 
   return (
-    <div className="flex-1 relative overflow-hidden border h-[50vh] w-full flex items-center justify-center rounded-sm bg-[#111] border-[#333]">
+    <div className="flex-1 relative overflow-hidden border h-[50vh] w-full flex items-center justify-center rounded-sm bg-[#181816] border-[#333]">
       <div 
         className="relative inline-block max-w-full max-h-full leading-none cursor-crosshair"
         onMouseEnter={() => setIsZoomed(true)} onMouseLeave={() => setIsZoomed(false)} onMouseMove={handleMouseMove}
@@ -121,7 +121,7 @@ const InteractiveZoomImage = ({ zoomCara }) => {
         <img src={fotoUrl(zoomCara.photo_url, true)} className="max-h-[50vh] w-auto max-w-full block filter saturate-[0.8]" alt="Contexto" draggable={false} />
         <BoundingBox bbox={zoomCara.bbox} color={SAND} label="Auditoría" />
       </div>
-      {!isZoomed && <div className="absolute bottom-4 left-1/2 -translate-x-1/2 px-4 py-1.5 bg-black/40 backdrop-blur-md rounded-full pointer-events-none text-white text-[9px] uppercase tracking-widest opacity-60">Pasa el mouse para explorar</div>}
+      {!isZoomed && <div className="absolute bottom-4 left-1/2 -translate-x-1/2 px-4 py-1.5 bg-fl-texto/40 backdrop-blur-md rounded-full pointer-events-none text-white text-[9px] uppercase tracking-widest opacity-60">Pasa el mouse para explorar</div>}
     </div>
   );
 };
@@ -265,35 +265,35 @@ export default function ReviewPanel({ evento, onVolver, onEjecutarIA, procesando
   const iaEjecutada = stats.caras > 0 || stats.dorsales > 0 || stats.dudas > 0;
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] text-white font-sans flex flex-col relative overflow-hidden">
+    <div className="min-h-screen bg-[#181816] text-white font-sans flex flex-col relative overflow-hidden">
       
 {/* ─── CABECERA UNIFICADA Y COMPACTA (STICKY BAR) ─── */}
-      <header className="sticky top-0 z-40 flex items-center justify-between px-6 py-3 bg-[#0A0A0A]/95 backdrop-blur-md border-b border-[#222]">
+      <header className="sticky top-0 z-40 flex items-center justify-between px-6 py-3 bg-[#181816]/95 backdrop-blur-md border-b border-[#181816]">
         
         {/* 1. IZQUIERDA: VOLVER Y TÍTULO */}
         <div className="flex items-center gap-4">
-          <button onClick={onVolver} className="text-gray-400 hover:text-white transition-colors" title="Volver al Panel">
+          <button onClick={onVolver} className="text-fl-grafito hover:text-white transition-colors" title="Volver al Panel">
             <ArrowLeft size={18} />
           </button>
           <div className="w-[1px] h-5 bg-[#333]"></div>
           <div>
              <h1 className="text-base font-serif text-white leading-none truncate max-w-[200px]">{evento.nombre}</h1>
-             <p className="text-[9px] uppercase tracking-widest text-[#C8B99A] mt-1">Sala IA</p>
+             <p className="text-[9px] uppercase tracking-widest text-[#C8B69E] mt-1">Sala IA</p>
           </div>
         </div>
 
         {/* 2. CENTRO: ESTADÍSTICAS COMPACTAS (Píldora) */}
         {!stats.cargando && iaEjecutada ? (
-          <div className="hidden md:flex items-center gap-4 bg-[#111] border border-[#222] rounded-full px-4 py-1.5 shadow-inner">
-            <div className="flex items-center gap-2 text-[10px] text-gray-400 uppercase tracking-widest">
+          <div className="hidden md:flex items-center gap-4 bg-[#181816] border border-[#181816] rounded-full px-4 py-1.5 shadow-inner">
+            <div className="flex items-center gap-2 text-[10px] text-fl-grafito uppercase tracking-widest">
                <ScanFace size={13}/> <span className="text-white font-bold text-xs">{stats.caras}</span>
             </div>
             <div className="w-[1px] h-3 bg-[#333]"></div>
-            <div className="flex items-center gap-2 text-[10px] text-gray-400 uppercase tracking-widest">
+            <div className="flex items-center gap-2 text-[10px] text-fl-grafito uppercase tracking-widest">
                <ScanLine size={13}/> <span className="text-white font-bold text-xs">{stats.dorsales}</span>
             </div>
             <div className="w-[1px] h-3 bg-[#333]"></div>
-            <div className="flex items-center gap-2 text-[10px] text-gray-400 uppercase tracking-widest">
+            <div className="flex items-center gap-2 text-[10px] text-fl-grafito uppercase tracking-widest">
                <AlertTriangle size={13} className={stats.dudas > 0 ? 'text-red-400' : ''}/> 
                <span className={stats.dudas > 0 ? 'text-red-400 font-bold text-xs' : 'text-white font-bold text-xs'}>{stats.dudas}</span>
             </div>
@@ -308,15 +308,15 @@ export default function ReviewPanel({ evento, onVolver, onEjecutarIA, procesando
         <div className="flex items-center gap-4">
           
           {/* Selector de Vistas (Estilo Toggle Switch de iOS) */}
-          <div className="flex items-center bg-[#111] p-0.5 rounded border border-[#222]">
+          <div className="flex items-center bg-[#181816] p-0.5 rounded border border-[#181816]">
             {isOCR ? (
-               <button onClick={() => setVista('corredores')} className="px-4 py-1.5 text-[10px] uppercase tracking-widest font-bold bg-[#222] text-white rounded-sm shadow-sm flex items-center gap-2"><Hash size={13}/> OCR</button>
+               <button onClick={() => setVista('corredores')} className="px-4 py-1.5 text-[10px] uppercase tracking-widest font-bold bg-[#181816] text-white rounded-sm shadow-sm flex items-center gap-2"><Hash size={13}/> OCR</button>
             ) : (
                <>
-                 <button onClick={() => setVista('perfiles')} className={`px-4 py-1.5 text-[10px] uppercase tracking-widest font-bold rounded-sm transition-all flex items-center gap-2 ${vista === 'perfiles' ? 'bg-[#222] text-white shadow-sm' : 'text-gray-500 hover:text-white'}`}>
+                 <button onClick={() => setVista('perfiles')} className={`px-4 py-1.5 text-[10px] uppercase tracking-widest font-bold rounded-sm transition-all flex items-center gap-2 ${vista === 'perfiles' ? 'bg-[#181816] text-white shadow-sm' : 'text-fl-grafito hover:text-white'}`}>
                     <User size={13}/> Identidades
                  </button>
-                 <button onClick={() => setVista('dudas')} className={`px-4 py-1.5 text-[10px] uppercase tracking-widest font-bold rounded-sm transition-all flex items-center gap-2 ${vista === 'dudas' ? 'bg-red-900/30 text-red-400 shadow-sm' : 'text-gray-500 hover:text-red-400'}`}>
+                 <button onClick={() => setVista('dudas')} className={`px-4 py-1.5 text-[10px] uppercase tracking-widest font-bold rounded-sm transition-all flex items-center gap-2 ${vista === 'dudas' ? 'bg-red-900/30 text-red-400 shadow-sm' : 'text-fl-grafito hover:text-red-400'}`}>
                     <AlertTriangle size={13}/> Dudas {stats.dudas > 0 && `(${stats.dudas})`}
                  </button>
                </>
@@ -326,7 +326,7 @@ export default function ReviewPanel({ evento, onVolver, onEjecutarIA, procesando
           <div className="w-[1px] h-5 bg-[#333]"></div>
 
           {/* Botón Acción IA Compacto */}
-          <button onClick={() => { onEjecutarIA(); setTimeout(cargarStats, 5000); }} className="flex items-center gap-2 px-3 py-1.5 bg-[#C8B99A] text-black hover:bg-white transition-colors text-[10px] uppercase tracking-widest font-bold rounded-sm shadow-[0_0_10px_rgba(200,185,154,0.2)]">
+          <button onClick={() => { onEjecutarIA(); setTimeout(cargarStats, 5000); }} className="flex items-center gap-2 px-3 py-1.5 bg-[#C8B69E] text-fl-texto hover:bg-fl-lino transition-colors text-[10px] uppercase tracking-widest font-bold rounded-sm shadow-[0_0_10px_rgba(200,185,154,0.2)]">
              <Zap size={14}/> {iaEjecutada ? 'Re-escanear' : 'Iniciar IA'}
           </button>
         </div>
@@ -337,15 +337,15 @@ export default function ReviewPanel({ evento, onVolver, onEjecutarIA, procesando
         
         {/* SIDEBAR */}
         {vista !== 'dudas' && (
-          <aside className="w-80 border-r border-[#222] bg-[#0A0A0A] flex flex-col shrink-0">
+          <aside className="w-80 border-r border-[#181816] bg-[#181816] flex flex-col shrink-0">
             <div className="flex-1 overflow-y-auto custom-scrollbar-dark p-2">
               
               {/* 🌟 AQUI EMPIEZA LA MAGIA DE LAZY LOADING EN PERFILES 🌟 */}
               {vista === 'perfiles' && listaJugadores.map(j => (
-                <button key={j.id} onClick={() => seleccionarJugador(j)} className={`w-full flex items-center gap-3 p-3 mb-1 transition-all ${jugadorSeleccionado?.id === j.id ? 'bg-[#222] text-white' : 'hover:bg-[#111] text-gray-400'}`}>
+                <button key={j.id} onClick={() => seleccionarJugador(j)} className={`w-full flex items-center gap-3 p-3 mb-1 transition-all ${jugadorSeleccionado?.id === j.id ? 'bg-[#181816] text-white' : 'hover:bg-[#181816] text-fl-grafito'}`}>
 <div className="grid grid-cols-2 lg:grid-cols-3 gap-6">
                 {fotosDelJugador.map((foto, idx) => (
-                  <div key={idx} className="relative aspect-square bg-[#050505] border border-[#222] group cursor-zoom-in overflow-hidden" onClick={() => setZoomCara({ photo_url: foto.photo_url, bbox: foto.detecciones[0]?.bbox, identidad: jugadorSeleccionado })}>
+                  <div key={idx} className="relative aspect-square bg-[#181816] border border-[#181816] group cursor-zoom-in overflow-hidden" onClick={() => setZoomCara({ photo_url: foto.photo_url, bbox: foto.detecciones[0]?.bbox, identidad: jugadorSeleccionado })}>
                     
                     {/* 🌟 Usamos el Cargador Inteligente en vez del <img /> */}
                     <CargadorImagen 
@@ -354,7 +354,7 @@ export default function ReviewPanel({ evento, onVolver, onEjecutarIA, procesando
                       alt="Contexto"
                     />
 
-                    <div className="absolute top-2 right-2 bg-black/80 px-2 py-1 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="absolute top-2 right-2 bg-fl-texto/80 px-2 py-1 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                       {foto.detecciones.map(det => (
                         <button key={det.id} onClick={(e) => { e.stopPropagation(); supabase.from('face_detections').update({identity_id:null}).eq('id',det.id).then(()=>{seleccionarJugador(jugadorSeleccionado); cargarStats();}); }} className="text-red-400 hover:text-red-500 text-[10px] uppercase font-bold flex items-center gap-1" title="Desvincular"><UserMinus size={12}/> Quitar</button>
                       ))}
@@ -370,10 +370,10 @@ export default function ReviewPanel({ evento, onVolver, onEjecutarIA, procesando
               {vista === 'corredores' && listaCorredores.map(c => {
                 const valido = c.dorsal && c.dorsal !== '';
                 return (
-                  <button key={c.id} onClick={() => seleccionarCorredor(c)} className={`w-full flex items-center gap-3 p-3 mb-1 transition-all ${corredorSeleccionado?.id === c.id ? 'bg-[#222] text-white' : 'hover:bg-[#111] text-gray-400'}`}>
+                  <button key={c.id} onClick={() => seleccionarCorredor(c)} className={`w-full flex items-center gap-3 p-3 mb-1 transition-all ${corredorSeleccionado?.id === c.id ? 'bg-[#181816] text-white' : 'hover:bg-[#181816] text-fl-grafito'}`}>
 <div className="grid grid-cols-2 lg:grid-cols-3 gap-6">
                 {fotosDelCorredor.map((f, idx) => (
-                  <div key={idx} className="relative aspect-square bg-[#050505] border border-[#222] cursor-zoom-in overflow-hidden" onClick={() => setZoomCara({ photo_url: f.photo_url, bbox: f.bbox_cuerpo || f.bbox })}>
+                  <div key={idx} className="relative aspect-square bg-[#181816] border border-[#181816] cursor-zoom-in overflow-hidden" onClick={() => setZoomCara({ photo_url: f.photo_url, bbox: f.bbox_cuerpo || f.bbox })}>
                     
                     {/* 🌟 Usamos el Cargador Inteligente en OCR */}
                     <CargadorImagen 
@@ -395,7 +395,7 @@ export default function ReviewPanel({ evento, onVolver, onEjecutarIA, procesando
         )}
 
         {/* PANEL CENTRAL */}
-        <main className="flex-1 bg-[#111] overflow-y-auto p-8 custom-scrollbar-dark relative">
+        <main className="flex-1 bg-[#181816] overflow-y-auto p-8 custom-scrollbar-dark relative">
           
           {/* VISTA PERFILES */}
           {vista === 'perfiles' && jugadorSeleccionado ? (
@@ -407,30 +407,30 @@ export default function ReviewPanel({ evento, onVolver, onEjecutarIA, procesando
                     {editandoNombre ? (
                       <div className="flex items-center gap-3">
                         <input type="text" value={nombreTemporal} onChange={e=>setNombreTemporal(e.target.value)} onKeyDown={e=>e.key==='Enter'&&guardarNombre()} autoFocus className="text-3xl font-serif bg-transparent border-b border-[#555] outline-none text-white w-64" />
-                        <button onClick={guardarNombre} className="bg-white text-black p-2 rounded-full"><Check size={16}/></button>
+                        <button onClick={guardarNombre} className="bg-fl-lino text-fl-texto p-2 rounded-full"><Check size={16}/></button>
                       </div>
                     ) : (
                       <div className="flex items-center gap-3 group">
                         <h2 className="text-4xl font-serif">{jugadorSeleccionado.display_name}</h2>
-                        <button onClick={() => {setNombreTemporal(jugadorSeleccionado.display_name); setEditandoNombre(true);}} className="text-gray-600 hover:text-white opacity-0 group-hover:opacity-100 transition-all"><Edit2 size={16}/></button>
+                        <button onClick={() => {setNombreTemporal(jugadorSeleccionado.display_name); setEditandoNombre(true);}} className="text-fl-grafito hover:text-white opacity-0 group-hover:opacity-100 transition-all"><Edit2 size={16}/></button>
                       </div>
                     )}
-                    <p className="text-[10px] uppercase tracking-widest text-[#C8B99A] mt-2">{fotosDelJugador.length} FOTOS VINCULADAS</p>
+                    <p className="text-[10px] uppercase tracking-widest text-[#C8B69E] mt-2">{fotosDelJugador.length} FOTOS VINCULADAS</p>
                   </div>
                 </div>
 
                 <div className="flex gap-2">
-                  <button onClick={iniciarFusion} className="bg-[#222] text-white px-4 py-2 text-[10px] uppercase tracking-widest font-bold flex items-center gap-2 hover:bg-[#333] transition-colors"><Combine size={14}/> Fusionar</button>
+                  <button onClick={iniciarFusion} className="bg-[#181816] text-white px-4 py-2 text-[10px] uppercase tracking-widest font-bold flex items-center gap-2 hover:bg-[#333] transition-colors"><Combine size={14}/> Fusionar</button>
                   <button onClick={() => { if(window.confirm('Eliminar perfil?')) destruirPerfilFalso(); }} className="bg-red-900/30 text-red-400 px-4 py-2 hover:bg-red-500 hover:text-white transition-colors"><Trash2 size={16}/></button>
                 </div>
               </div>
 
               {fusionando && candidatosFusion.length > 0 && (
-                <div className="bg-[#222] p-6 mb-8 border border-[#333]">
+                <div className="bg-[#181816] p-6 mb-8 border border-[#333]">
                   <h3 className="text-sm font-bold uppercase tracking-widest text-amber-500 mb-4 flex items-center gap-2"><Zap size={16}/> Sugerencias de Fusión IA</h3>
                   <div className="grid grid-cols-4 gap-4">
                     {candidatosFusion.map(c => (
-                      <button key={c.id_identidad} onClick={()=>fusionarConJugador(c.id_identidad)} className="bg-[#111] p-4 flex flex-col items-center hover:bg-white hover:text-black transition-all group">
+                      <button key={c.id_identidad} onClick={()=>fusionarConJugador(c.id_identidad)} className="bg-[#181816] p-4 flex flex-col items-center hover:bg-fl-lino hover:text-fl-texto transition-all group">
                         <img src={fotoUrl(c.avatar)} className="w-16 h-16 rounded-full object-cover mb-3 grayscale group-hover:grayscale-0 transition-all" alt=""/>
                         <span className="font-serif text-sm">{c.nombre_jugador}</span>
                         <span className="text-[10px] font-bold mt-1 text-green-500">{Math.round(c.porcentaje_similitud * 100)}% Match</span>
@@ -444,7 +444,7 @@ export default function ReviewPanel({ evento, onVolver, onEjecutarIA, procesando
                 
                 {/* 🌟 LAZY LOADING EN LAS FOTOS DE LOS JUGADORES 🌟 */}
                 {fotosDelJugador.map((foto, idx) => (
-                  <div key={idx} className="relative aspect-square bg-[#050505] border border-[#222] group cursor-zoom-in overflow-hidden" onClick={() => setZoomCara({ photo_url: foto.photo_url, bbox: foto.detecciones[0]?.bbox, identidad: jugadorSeleccionado })}>
+                  <div key={idx} className="relative aspect-square bg-[#181816] border border-[#181816] group cursor-zoom-in overflow-hidden" onClick={() => setZoomCara({ photo_url: foto.photo_url, bbox: foto.detecciones[0]?.bbox, identidad: jugadorSeleccionado })}>
                     <img 
                       src={fotoUrl(foto.photo_url, true)} 
                       loading="lazy" 
@@ -452,7 +452,7 @@ export default function ReviewPanel({ evento, onVolver, onEjecutarIA, procesando
                       className="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity filter saturate-50 group-hover:saturate-100" 
                       alt=""
                     />
-                    <div className="absolute top-2 right-2 bg-black/80 px-2 py-1 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="absolute top-2 right-2 bg-fl-texto/80 px-2 py-1 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                       {foto.detecciones.map(det => (
                         <button key={det.id} onClick={(e) => { e.stopPropagation(); supabase.from('face_detections').update({identity_id:null}).eq('id',det.id).then(()=>{seleccionarJugador(jugadorSeleccionado); cargarStats();}); }} className="text-red-400 hover:text-red-500 text-[10px] uppercase font-bold flex items-center gap-1" title="Desvincular"><UserMinus size={12}/> Quitar</button>
                       ))}
@@ -472,13 +472,13 @@ export default function ReviewPanel({ evento, onVolver, onEjecutarIA, procesando
           {vista === 'dudas' && (
             <div className="h-full flex items-center justify-center">
               {!fotoDudosa ? (
-                <div className="text-center text-gray-500"><Check size={48} className="mx-auto mb-4 text-[#22C55E]" /><h2 className="font-serif text-2xl">Todo Limpio</h2><p className="text-xs uppercase tracking-widest mt-2">No hay rostros huérfanos.</p></div>
+                <div className="text-center text-fl-grafito"><Check size={48} className="mx-auto mb-4 text-[#3D6B4F]" /><h2 className="font-serif text-2xl">Todo Limpio</h2><p className="text-xs uppercase tracking-widest mt-2">No hay rostros huérfanos.</p></div>
               ) : (
-                <div className="bg-[#1A1A1A] p-8 border border-[#333] max-w-4xl w-full flex gap-12">
+                <div className="bg-[#181816] p-8 border border-[#333] max-w-4xl w-full flex gap-12">
                   <div className="flex-1 flex flex-col items-center">
-                    <div className="w-full aspect-[3/4] bg-black relative border-2 border-white/10 mb-6 overflow-hidden">
+                    <div className="w-full aspect-[3/4] bg-fl-texto relative border-2 border-white/10 mb-6 overflow-hidden">
                       <img src={fotoUrl(fotoDudosa.photo_url, true)} className="w-full h-full object-cover opacity-50 blur-sm" alt=""/>
-                      <div className="absolute border-2 border-[#C8B99A] shadow-[0_0_0_999px_rgba(0,0,0,0.8)] z-10" style={{ left: `${fotoDudosa.bbox.x}%`, top: `${fotoDudosa.bbox.y}%`, width: `${fotoDudosa.bbox.w}%`, height: `${fotoDudosa.bbox.h}%` }}>
+                      <div className="absolute border-2 border-[#C8B69E] shadow-[0_0_0_999px_rgba(0,0,0,0.8)] z-10" style={{ left: `${fotoDudosa.bbox.x}%`, top: `${fotoDudosa.bbox.y}%`, width: `${fotoDudosa.bbox.w}%`, height: `${fotoDudosa.bbox.h}%` }}>
                         <img src={fotoUrl(fotoDudosa.photo_url, true)} className="absolute w-[9999%] max-w-none" style={{ left: `-${(fotoDudosa.bbox.x / fotoDudosa.bbox.w) * 100}%`, top: `-${(fotoDudosa.bbox.y / fotoDudosa.bbox.h) * 100}%`, width: `${(100 / fotoDudosa.bbox.w) * 100}%` }} alt=""/>
                       </div>
                     </div>
@@ -486,14 +486,14 @@ export default function ReviewPanel({ evento, onVolver, onEjecutarIA, procesando
                   </div>
                   <div className="flex-1">
                     <h2 className="text-3xl font-serif mb-2 text-white">¿Quién es?</h2>
-                    <p className="text-[#9A8F82] text-xs uppercase tracking-widest mb-8">Asigna el rostro al perfil correcto</p>
+                    <p className="text-[#5A5955] text-xs uppercase tracking-widest mb-8">Asigna el rostro al perfil correcto</p>
                     <div className="flex flex-col gap-3">
                       {candidatosDuda.map(c => (
-                        <button key={c.id_identidad} onClick={async () => { await supabase.from('face_detections').update({identity_id: c.id_identidad}).eq('id', fotoDudosa.id); cargarDudas(); cargarStats(); }} className="flex items-center gap-4 bg-[#222] hover:bg-white hover:text-black p-3 transition-colors group text-left">
+                        <button key={c.id_identidad} onClick={async () => { await supabase.from('face_detections').update({identity_id: c.id_identidad}).eq('id', fotoDudosa.id); cargarDudas(); cargarStats(); }} className="flex items-center gap-4 bg-[#181816] hover:bg-fl-lino hover:text-fl-texto p-3 transition-colors group text-left">
                           <img src={fotoUrl(c.avatar)} className="w-12 h-12 rounded-full object-cover filter grayscale group-hover:grayscale-0" alt=""/>
                           <div className="flex-1">
                             <span className="font-serif block">{c.nombre_jugador}</span>
-                            <span className="text-[10px] font-bold text-[#C8B99A]">{Math.round(c.porcentaje_similitud * 100)}% Coincidencia IA</span>
+                            <span className="text-[10px] font-bold text-[#C8B69E]">{Math.round(c.porcentaje_similitud * 100)}% Coincidencia IA</span>
                           </div>
                         </button>
                       ))}
@@ -511,17 +511,17 @@ export default function ReviewPanel({ evento, onVolver, onEjecutarIA, procesando
                 <img src={fotoUrl(corredorSeleccionado.avatar_url, true)} className="w-20 h-28 object-cover border border-[#333]" alt=""/>
                 <div>
                   <div className="flex items-center gap-2">
-                    <Hash size={24} className="text-[#9A8F82]"/>
+                    <Hash size={24} className="text-[#5A5955]"/>
                     <input type="text" value={dorsalTemporal} onChange={e=>setDorsalTemporal(e.target.value)} onBlur={guardarDorsalGlobal} onKeyDown={e=>e.key==='Enter'&&e.target.blur()} className="text-5xl font-serif bg-transparent outline-none text-white uppercase placeholder-gray-800" placeholder="000" />
                   </div>
-                  <p className="text-[10px] uppercase tracking-widest text-[#9A8F82] mt-2">{fotosDelCorredor.length} IMÁGENES ASOCIADAS</p>
+                  <p className="text-[10px] uppercase tracking-widest text-[#5A5955] mt-2">{fotosDelCorredor.length} IMÁGENES ASOCIADAS</p>
                 </div>
               </div>
               <div className="grid grid-cols-2 lg:grid-cols-3 gap-6">
                 
                 {/* 🌟 LAZY LOADING EN LAS FOTOS DE LOS CORREDORES 🌟 */}
                 {fotosDelCorredor.map((f, idx) => (
-                  <div key={idx} className="relative aspect-square bg-[#050505] border border-[#222] cursor-zoom-in" onClick={() => setZoomCara({ photo_url: f.photo_url, bbox: f.bbox_cuerpo || f.bbox })}>
+                  <div key={idx} className="relative aspect-square bg-[#181816] border border-[#181816] cursor-zoom-in" onClick={() => setZoomCara({ photo_url: f.photo_url, bbox: f.bbox_cuerpo || f.bbox })}>
                     <img 
                       src={fotoUrl(f.photo_url, true)} 
                       loading="lazy" 
@@ -542,14 +542,14 @@ export default function ReviewPanel({ evento, onVolver, onEjecutarIA, procesando
       {/* ─── MODAL ZOOM (LUPA MÁGICA) ─── */}
       <AnimatePresence>
         {zoomCara && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/95 backdrop-blur-md" onClick={() => setZoomCara(null)}>
-            <div className="p-6 max-w-5xl w-full flex gap-8 items-center border border-[#333] bg-[#0A0A0A]" onClick={e => e.stopPropagation()}>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-fl-texto/95 backdrop-blur-md" onClick={() => setZoomCara(null)}>
+            <div className="p-6 max-w-5xl w-full flex gap-8 items-center border border-[#333] bg-[#181816]" onClick={e => e.stopPropagation()}>
               <InteractiveZoomImage zoomCara={zoomCara} />
               {zoomCara.identidad && (
                 <div className="w-80 flex flex-col items-center">
                   <img src={fotoUrl(zoomCara.identidad.avatar_url)} className="w-32 h-32 rounded-full border border-[#333] object-cover mb-4" alt=""/>
                   <input type="text" defaultValue={zoomCara.identidad.display_name} onBlur={e => { supabase.from('identities').update({display_name: e.target.value}).eq('id', zoomCara.identidad.id).then(()=>cargarJugadores()); }} onKeyDown={e=>e.key==='Enter'&&e.target.blur()} className="w-full text-center text-2xl font-serif bg-transparent border-b border-[#333] outline-none text-white focus:border-white pb-2" />
-                  <p className="text-[9px] uppercase tracking-widest text-[#9A8F82] mt-3">Editar Nombre y presionar Enter</p>
+                  <p className="text-[9px] uppercase tracking-widest text-[#5A5955] mt-3">Editar Nombre y presionar Enter</p>
                 </div>
               )}
             </div>

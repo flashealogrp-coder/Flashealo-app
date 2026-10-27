@@ -127,8 +127,8 @@ const CameraBiometrica = ({ isOpen, onClose, onComplete }) => {
   const colorEstado = {
     buscando: 'rgba(255, 255, 255, 0.4)',
     alineando: '#FFD400', // Amarillo
-    quieto: '#E11D48',    // Rojo Sport (Enfoque)
-    capturado: '#22C55E'  // Verde
+    quieto: '#A3392B',    // Rojo Sport (Enfoque)
+    capturado: '#3D6B4F'  // Verde
   };
 
   if (!isOpen) return null;
@@ -137,25 +137,25 @@ const CameraBiometrica = ({ isOpen, onClose, onComplete }) => {
     <motion.div 
       initial={{ opacity: 0, y: 100 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 100 }} 
       transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-      style={{ position: 'fixed', inset: 0, background: '#000000', zIndex: 9999, display: 'flex', flexDirection: 'column' }}
+      style={{ position: 'fixed', inset: 0, background: '#181816', zIndex: 9999, display: 'flex', flexDirection: 'column' }}
     >
       {/* HEADER BIOMÉTRICO */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '24px', position: 'absolute', top: 0, width: '100%', zIndex: 50, boxSizing: 'border-box' }}>
         <div>
-          <span style={{ color: '#E11D48', fontSize: 10, letterSpacing: '0.2em', textTransform: 'uppercase', fontWeight: 800, display: 'block', marginBottom: 4 }}>
+          <span style={{ color: '#A3392B', fontSize: 10, letterSpacing: '0.2em', textTransform: 'uppercase', fontWeight: 800, display: 'block', marginBottom: 4 }}>
             {paso === 'procesando' ? 'Completado' : `Paso ${paso === 'frente' ? '1' : paso === 'izquierda' ? '2' : '3'} de 3`}
           </span>
-          <span style={{ color: '#FFF', fontSize: 16, fontWeight: 700, transition: 'color 0.3s ease' }}>
+          <span style={{ color: '#F9F8F5', fontSize: 16, fontWeight: 700, transition: 'color 0.3s ease' }}>
             {paso === 'procesando' ? 'Vectores generados' : obtenerInstruccion()}
           </span>
         </div>
-        <button onClick={onClose} style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: '50%', width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FFF', cursor: 'pointer', backdropFilter: 'blur(10px)' }}>
+        <button onClick={onClose} style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: '50%', width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#F9F8F5', cursor: 'pointer', backdropFilter: 'blur(10px)' }}>
           <X size={20} strokeWidth={2} />
         </button>
       </div>
 
       {/* ÁREA DE VISIÓN CON MÁSCARA (UI FILTER) */}
-      <div style={{ flex: 1, position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#111' }}>
+      <div style={{ flex: 1, position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#181816' }}>
         
         {paso !== 'procesando' ? (
           <>
@@ -199,8 +199,8 @@ const CameraBiometrica = ({ isOpen, onClose, onComplete }) => {
               {paso !== 'frente' && estadoEscaneo !== 'capturado' && (
                 <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}
                   style={{ position: 'absolute', bottom: '15%', display: 'flex', alignItems: 'center', gap: 12, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(10px)', padding: '12px 24px', borderRadius: 50 }}>
-                  <ScanFace size={24} color="#FFF" style={{ transform: paso === 'izquierda' ? 'rotateY(45deg)' : 'rotateY(-45deg)', transition: 'transform 0.5s ease' }} />
-                  <span style={{ color: '#FFF', fontSize: 13, fontWeight: 600 }}>Gira la cabeza hacia la {paso}</span>
+                  <ScanFace size={24} color="#F9F8F5" style={{ transform: paso === 'izquierda' ? 'rotateY(45deg)' : 'rotateY(-45deg)', transition: 'transform 0.5s ease' }} />
+                  <span style={{ color: '#F9F8F5', fontSize: 13, fontWeight: 600 }}>Gira la cabeza hacia la {paso}</span>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -208,12 +208,12 @@ const CameraBiometrica = ({ isOpen, onClose, onComplete }) => {
         ) : (
           /* PANTALLA DE RESULTADOS */
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 24, padding: '24px 40px', width: '100%', maxWidth: 480 }}>
-            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring' }} style={{ width: 72, height: 72, borderRadius: '50%', background: '#22C55E', color: '#FFF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring' }} style={{ width: 72, height: 72, borderRadius: '50%', background: '#3D6B4F', color: '#F9F8F5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <UserCheck size={36} />
             </motion.div>
             
             <div style={{ textAlign: 'center' }}>
-              <h3 style={{ color: '#FFF', fontSize: 24, fontWeight: 800, margin: '0 0 8px 0' }}>Biometría 3D Lista</h3>
+              <h3 style={{ color: '#F9F8F5', fontSize: 24, fontWeight: 800, margin: '0 0 8px 0' }}>Biometría 3D Lista</h3>
               <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 14, margin: 0, lineHeight: 1.5 }}>Se ha generado un modelo multidimensional de tu rostro para garantizar la máxima precisión.</p>
             </div>
             
@@ -234,10 +234,10 @@ const CameraBiometrica = ({ isOpen, onClose, onComplete }) => {
             </div>
 
             <div style={{ display: 'flex', gap: 16, width: '100%', marginTop: 24 }}>
-              <button onClick={iniciarCamara} style={{ flex: 1, background: '#222', color: '#FFF', padding: '16px', borderRadius: 14, border: 'none', fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, cursor: 'pointer' }}>
+              <button onClick={iniciarCamara} style={{ flex: 1, background: '#181816', color: '#F9F8F5', padding: '16px', borderRadius: 14, border: 'none', fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, cursor: 'pointer' }}>
                 <RefreshCcw size={18} /> Repetir
               </button>
-              <button onClick={() => onComplete(fotos)} style={{ flex: 2, background: '#E11D48', color: '#FFF', padding: '16px', borderRadius: 14, border: 'none', fontSize: 14, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, cursor: 'pointer', boxShadow: '0 8px 24px rgba(225, 29, 72, 0.3)' }}>
+              <button onClick={() => onComplete(fotos)} style={{ flex: 2, background: '#A3392B', color: '#F9F8F5', padding: '16px', borderRadius: 14, border: 'none', fontSize: 14, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, cursor: 'pointer', boxShadow: '0 8px 24px rgba(225, 29, 72, 0.3)' }}>
                 <Check size={18} strokeWidth={3} /> BUSCAR MIS FOTOS
               </button>
             </div>

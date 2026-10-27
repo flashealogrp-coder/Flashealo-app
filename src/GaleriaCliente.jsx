@@ -75,6 +75,7 @@ const GaleriaCliente = () => {
         setErrorInicial('No pudimos encontrar esta colección. Verifica el enlace.');
       } else {
         setEvento(data);
+        { const m = data.configuracion_ui && data.configuracion_ui.modo_grid_default; if (['editorial', 'pinterest', 'large'].includes(m)) setModoVista(m); }
         
         // Memoria de Sesión para no pedir la clave 2 veces
         const authMemory = sessionStorage.getItem(`auth_${data.id}`);
@@ -340,18 +341,31 @@ const GaleriaCliente = () => {
 
   const esEventoOCR = evento.tipo_reconocimiento === 'ocr';
 
+  // ── Diseño elegido por el fotógrafo en "Diseño de galería" (se guarda en eventos.configuracion_ui) ──
+  const ui = { ...(evento.configuracion_ui || {}) };
+  const cFondo = ui.color_fondo || CREAM;
+  const cTexto = ui.color_texto || INK;
+  const cAcento = ui.color_acento || SAND;
+  const claseFuente = ui.fuente_titulo === 'sans' ? 'font-sans' : ui.fuente_titulo === 'mono' ? 'font-mono' : 'font-serif';
+  const estiloPortada = autenticado ? (ui.estilo_portada || 'hero_full') : 'hero_full';
+  const velo = (ui.opacidad_overlay || 30) / 100;
+  const posTitulo = ui.posicion_titulo === 'abajo_izq' ? 'abajo_izq' : ui.posicion_titulo === 'abajo_centro' ? 'abajo_centro' : 'centro';
+  const alineacionTitulo = posTitulo === 'abajo_izq' ? 'justify-end items-start text-left pb-20 px-8 md:px-16' : posTitulo === 'abajo_centro' ? 'justify-end items-center text-center pb-20 px-6' : 'justify-center items-center text-center px-6';
+  const barraSolida = scrolled || (autenticado && (estiloPortada === 'split' || estiloPortada === 'editorial'));
+  const modoInicial = ['editorial', 'pinterest', 'large'].includes(ui.modo_grid_default) ? ui.modo_grid_default : 'editorial';
+
   return (
-    <div className={`min-h-screen bg-[#F9F8F5] text-[#181816] font-sans selection:bg-[#181816] selection:text-white ${!autenticado ? 'overflow-hidden h-screen' : ''}`}>
+    <div className={`min-h-screen font-sans selection:bg-[#181816] selection:text-white ${!autenticado ? 'overflow-hidden h-screen' : ''}`} style={{ backgroundColor: cFondo, color: cTexto }}>
       
       {/* ── NAVBAR DINÁMICO ── */}
       <AnimatePresence>
         {autenticado && (
-          <motion.nav initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1, delay: 0.5 }} className={`fixed top-0 w-full z-40 transition-all duration-700 ${scrolled ? 'bg-[#F9F8F5]/95 backdrop-blur-md border-b border-fl-borde py-4 shadow-sm' : 'bg-transparent py-6'}`}>
+          <motion.nav initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1, delay: 0.5 }} className={`fixed top-0 w-full z-40 transition-all duration-700 ${barraSolida ? 'backdrop-blur-md border-b border-fl-borde py-4 shadow-sm' : 'bg-transparent py-6'}`} style={barraSolida ? { backgroundColor: cFondo + 'F2' } : undefined}>
             <div className="max-w-[1600px] mx-auto px-6 md:px-12 flex items-center justify-between relative">
               
               <div onClick={() => navigate('/')} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12 }}>
                 <span style={{ width: 2, height: 18, background: SAND, display: 'inline-block', borderRadius: 1 }} />
-                <span style={{ fontFamily: 'var(--fl-serif)', fontSize: 18, letterSpacing: '0.18em', textTransform: 'uppercase', color: (scrolled || vistaActual === 'galeria') ? INK : WHITE, transition: 'color 0.5s ease' }}>Flashealo</span>
+                <span style={{ fontFamily: 'var(--fl-serif)', fontSize: 18, letterSpacing: '0.18em', textTransform: 'uppercase', color: (barraSolida || vistaActual === 'galeria') ? cTexto : WHITE, transition: 'color 0.5s ease' }}>Flashealo</span>
               </div>
 
               <div className="flex items-center gap-3 md:gap-8">
@@ -371,9 +385,9 @@ const GaleriaCliente = () => {
                   </motion.div>
                 )}
 
-                <div className={`flex text-[10px] uppercase tracking-[0.2em] font-medium ${(scrolled || vistaActual === 'galeria') ? 'text-fl-grafito' : 'text-white/90'}`}>
+                <div className={`flex text-[10px] uppercase tracking-[0.2em] font-medium ${(barraSolida || vistaActual === 'galeria') ? 'text-fl-grafito' : 'text-white/90'}`}>
                   {vistaActual === 'galeria' ? (
-                    <button type="button" onClick={() => { setVistaActual('evento'); setIdentidadSeleccionada(null); setModoVista('editorial'); window.scrollTo(0, 0); }} className="hover:text-fl-texto transition-colors duration-500 flex items-center gap-1 md:gap-2">
+                    <button type="button" onClick={() => { setVistaActual('evento'); setIdentidadSeleccionada(null); setModoVista(modoInicial); window.scrollTo(0, 0); }} className="hover:text-fl-texto transition-colors duration-500 flex items-center gap-1 md:gap-2">
                       <ChevronLeft size={14}/> <span className="hidden sm:inline">Volver a la colección</span><span className="sm:hidden">Volver</span>
                     </button>
                   ) : (
@@ -394,7 +408,44 @@ const GaleriaCliente = () => {
         {vistaActual === 'evento' && (
           <motion.main key="evento" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col">
             
-            <header className="relative h-screen w-full flex items-center justify-center overflow-hidden bg-fl-texto">
+            {estiloPortada !== 'hero_full' && (() => {
+              const portada = renderCoverUrl(evento.portada_url) || "https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?q=80&w=2070&auto=format&fit=crop";
+              const posImg = renderCoverPosition(evento.portada_url);
+              const fecha = <span className="text-[10px] md:text-xs uppercase tracking-[0.35em] font-bold mb-4 block" style={{ color: cAcento }}>{evento.fecha_evento}</span>;
+              const titulo = (tam, color) => <h1 className={`${claseFuente} font-light leading-tight ${tam}`} style={{ color }}>{evento.nombre}</h1>;
+              if (estiloPortada === 'split') return (
+                <header className="w-full min-h-screen flex flex-col md:flex-row" style={{ backgroundColor: '#181816' }}>
+                  <div className="relative md:w-[55%] h-[55vh] md:h-auto">
+                    <img src={portada} alt="" className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: posImg }} />
+                    <div className="absolute inset-0" style={{ background: '#181816', opacity: velo }} />
+                  </div>
+                  <div className={`md:w-[45%] flex flex-col text-white ${posTitulo === 'centro' ? 'justify-center items-start px-8 md:px-14 py-14' : alineacionTitulo + ' py-14'}`}>
+                    {fecha}{titulo('text-4xl md:text-5xl lg:text-6xl', '#fff')}
+                  </div>
+                </header>
+              );
+              if (estiloPortada === 'editorial') return (
+                <header className="relative w-full min-h-screen flex flex-col items-center justify-center pt-28 pb-16" style={{ backgroundColor: cFondo }}>
+                  <div className="relative w-[88%] md:w-[70%] h-[60vh] shadow-2xl">
+                    <img src={portada} alt="" className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: posImg }} />
+                    <div className="absolute inset-0" style={{ background: '#181816', opacity: velo }} />
+                  </div>
+                  <div className={`flex flex-col w-[88%] md:w-[70%] mt-8 ${posTitulo === 'abajo_izq' ? 'items-start text-left' : 'items-center text-center'}`}>
+                    {fecha}{titulo('text-4xl md:text-6xl', cTexto)}
+                  </div>
+                </header>
+              );
+              return (
+                <header className="relative w-full h-screen flex items-end justify-center overflow-hidden bg-fl-texto">
+                  <img src={portada} alt="" className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: posImg }} />
+                  <div className="absolute inset-0" style={{ background: '#181816', opacity: velo }} />
+                  <div className="relative z-10 w-[90%] max-w-2xl mb-16 p-8 md:p-12 shadow-2xl flex flex-col items-center text-center" style={{ backgroundColor: cFondo }}>
+                    {fecha}{titulo('text-3xl md:text-5xl', cTexto)}
+                  </div>
+                </header>
+              );
+            })()}
+            <header className="relative h-screen w-full flex items-center justify-center overflow-hidden bg-fl-texto" style={estiloPortada !== 'hero_full' ? { display: 'none' } : undefined}>
               <div className="absolute inset-0 z-0">
                 {/* 🌟 MAGIA APLICADA: La portada respeta el encuadre (objectPosition) 🌟 */}
                 <motion.img 
@@ -416,7 +467,7 @@ const GaleriaCliente = () => {
                     transformOrigin: 'center center' 
                   }}
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+                <div className="absolute inset-0" style={{ background: '#181816', opacity: velo }} />
               </div>
 
               <AnimatePresence>
@@ -445,9 +496,9 @@ const GaleriaCliente = () => {
 
               <AnimatePresence>
                 {autenticado && (
-                  <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1.2, delay: 0.6 }} className="relative z-10 text-center text-white px-6 mt-16">
-                    <p className="text-[10px] md:text-xs uppercase tracking-[0.4em] font-light mb-6 opacity-80">{evento.fecha_evento}</p>
-                    <h1 className="text-5xl md:text-7xl lg:text-[8rem] font-serif font-light tracking-wide leading-tight mb-8 drop-shadow-2xl">
+                  <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1.2, delay: 0.6 }} className={`relative z-10 text-white w-full h-full flex flex-col ${alineacionTitulo}`}>
+                    <p className="text-[10px] md:text-xs uppercase tracking-[0.4em] font-bold mb-6" style={{ color: cAcento }}>{evento.fecha_evento}</p>
+                    <h1 className={`text-5xl md:text-7xl lg:text-[8rem] ${claseFuente} font-light tracking-wide leading-tight mb-8 drop-shadow-2xl`}>
                       {evento.nombre}
                     </h1>
                     <button type="button" onClick={() => window.scrollTo({ top: window.innerHeight, behavior: 'smooth' })} className="inline-flex flex-col items-center opacity-70 hover:opacity-100 transition-opacity duration-500 mt-12 cursor-pointer">
@@ -462,11 +513,11 @@ const GaleriaCliente = () => {
             {autenticado && (
               <>
                 <section className="py-28 px-6 max-w-3xl mx-auto text-center">
-                  <div style={{ width: 40, height: 1, background: SAND, margin: '0 auto 40px' }} />
-                  <h2 className="text-3xl md:text-4xl font-serif mb-8 italic text-fl-grafito leading-snug">
+                  <div style={{ width: 40, height: 1, background: cAcento, margin: '0 auto 40px' }} />
+                  <h2 className={`text-3xl md:text-4xl ${claseFuente} mb-8 italic leading-snug`} style={{ color: cTexto }}>
                     "{evento.titulo_about || 'Capturando la esencia y la emoción de cada instante.'}"
                   </h2>
-                  <p className="text-fl-grafito font-light leading-relaxed tracking-wide text-sm md:text-base">
+                  <p className="font-light leading-relaxed tracking-wide text-sm md:text-base" style={{ color: cTexto, opacity: 0.75 }}>
                     {evento.descripcion || "Esta colección es un tributo visual diseñado meticulosamente para preservar tus recuerdos con la más alta calidad. Navega a través de los momentos destacados."}
                   </p>
                 </section>
@@ -493,7 +544,7 @@ const GaleriaCliente = () => {
                           return (
                             <button key={c.id} type="button" role="tab" aria-selected={activa} onClick={() => elegirPestana(c.id)}
                               className="shrink-0 px-5 py-2.5 text-[11px] uppercase tracking-[0.18em] border transition-colors duration-300"
-                              style={{ background: activa ? '#181816' : 'transparent', color: activa ? '#fff' : '#181816', borderColor: activa ? '#181816' : 'rgba(24,24,22,0.2)', cursor: 'pointer' }}>
+                              style={{ background: activa ? cTexto : 'transparent', color: activa ? cFondo : cTexto, borderColor: activa ? cTexto : cTexto + '33', cursor: 'pointer' }}>
                               {c.nombre} <span style={{ opacity: 0.55, marginLeft: 6 }}>{total}</span>
                             </button>
                           );
@@ -527,10 +578,10 @@ const GaleriaCliente = () => {
                 )}
 
                 {/* Cambiamos py-32 (arriba y abajo) por pt-16 pb-32 (poquito arriba, mucho abajo) */}
-                <section className="bg-[#F9F8F5] px-6 border-t border-fl-borde">
+                {ui.mostrar_modulo_ia !== false && (<section className="px-6 border-t border-fl-borde" style={{ backgroundColor: cFondo }}>
                   <div className="max-w-6xl mx-auto flex flex-col items-center text-center">
                     <span className="text-[10px] uppercase tracking-[0.3em] text-fl-grafito mb-6">Tu colección personal</span>
-                    <h2 className="text-4xl md:text-5xl font-serif mb-16 text-[#181816]">Encuentra tus fotografías</h2>
+                    <h2 className={`text-4xl md:text-5xl ${claseFuente} mb-16`} style={{ color: cTexto }}>Encuentra tus fotografías</h2>
                     
                     {errorBuscador && <div style={{ color: '#A3392B', marginBottom: 24, fontSize: 13 }}><AlertCircle size={14} style={{display:'inline', marginRight:4}}/>{errorBuscador}</div>}
 
@@ -559,7 +610,7 @@ const GaleriaCliente = () => {
                                     <div className="absolute inset-0 border-[2px] border-transparent group-hover:border-[#C8B69E] rounded-full transition-colors duration-500 pointer-events-none" />
                                   </div>
                                   <div className="flex flex-col items-center">
-                                    {tieneNombreReal && <span className="text-xs font-serif italic tracking-wide text-fl-grafito group-hover:text-fl-texto transition-colors truncate w-full px-2">{id.display_name}</span>}
+                                    {tieneNombreReal && ui.mostrar_nombres_ia !== false && <span className="text-xs font-serif italic tracking-wide text-fl-grafito group-hover:text-fl-texto transition-colors truncate w-full px-2">{id.display_name}</span>}
                                     <span className="text-[9px] uppercase tracking-[0.2em] text-fl-grafito mt-0 font-bold">{id.totalFotos} Fotos</span>
                                   </div>
                                 </button>
@@ -570,7 +621,7 @@ const GaleriaCliente = () => {
                       </div>
                     )}
                   </div>
-                </section>
+                </section>)}
               </>
             )}
           </motion.main>
@@ -580,7 +631,7 @@ const GaleriaCliente = () => {
             VISTA 2: RESULTADOS FOTOS PERSONALES
             ========================================= */}
         {vistaActual === 'galeria' && (
-          <motion.main key="gallery" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ paddingTop: 160, paddingBottom: 120, minHeight: '100vh', background: CREAM }}>
+          <motion.main key="gallery" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ paddingTop: 160, paddingBottom: 120, minHeight: '100vh', background: cFondo, color: cTexto }}>
             
             <div style={{ maxWidth: 720, margin: '0 auto 80px', textAlign: 'center', padding: '0 48px' }}>
               <p style={{ fontSize: 10, letterSpacing: '0.3em', textTransform: 'uppercase', color: TAUPE, marginBottom: 16 }}>Colección Privada</p>
@@ -632,7 +683,7 @@ const GaleriaCliente = () => {
                 </div>
                 <span style={{ fontSize: 9, letterSpacing: '0.2em', textTransform: 'uppercase', color: TAUPE }}>Inteligencia artificial aplicada al arte.</span>
               </div>
-              <button type="button" onClick={() => { setVistaActual('evento'); setIdentidadSeleccionada(null); setModoVista('editorial'); window.scrollTo(0, 0); }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 9, letterSpacing: '0.2em', textTransform: 'uppercase', color: INK, borderBottom: `1px solid ${SAND}`, paddingBottom: 4, transition: 'opacity 0.3s' }} onMouseEnter={e => e.target.style.opacity = 0.6} onMouseLeave={e => e.target.style.opacity = 1}>
+              <button type="button" onClick={() => { setVistaActual('evento'); setIdentidadSeleccionada(null); setModoVista(modoInicial); window.scrollTo(0, 0); }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 9, letterSpacing: '0.2em', textTransform: 'uppercase', color: INK, borderBottom: `1px solid ${SAND}`, paddingBottom: 4, transition: 'opacity 0.3s' }} onMouseEnter={e => e.target.style.opacity = 0.6} onMouseLeave={e => e.target.style.opacity = 1}>
                 ← Volver a la colección general
               </button>
             </div>

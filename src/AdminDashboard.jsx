@@ -287,12 +287,14 @@ export default function AdminDashboard() {
     setConfigUi(configActualizada);
     if (!eventoActivo) return;
     
-    await supabase
+    const { error } = await supabase
       .from('eventos')
       .update({ configuracion_ui: configActualizada })
       .eq('id', eventoActivo.id);
-      
-    setMensaje({ tipo: 'exito', texto: 'Ajustes de diseño guardados correctamente.' });
+    if (error) { setMensaje({ tipo: 'error', texto: 'No se pudo publicar el diseño. Revisa tu sesión de administrador e inténtalo otra vez.' }); return; }
+    setEventoActivo(prev => (prev ? { ...prev, configuracion_ui: configActualizada } : prev));
+    setListaEventos(prev => prev.map(ev => ev.id === eventoActivo.id ? { ...ev, configuracion_ui: configActualizada } : ev));
+    setMensaje({ tipo: 'exito', texto: 'Diseño publicado: ya lo ven los clientes.' });
   };
 
 useEffect(() => {

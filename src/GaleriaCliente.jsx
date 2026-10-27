@@ -47,6 +47,8 @@ const GaleriaCliente = () => {
   
   const [fotosReales, setFotosReales] = useState([]);
   const [fotosGenerales, setFotosGenerales] = useState([]);
+  const rutasConocidas = useRef(new Set());
+  const [recienLlegadas, setRecienLlegadas] = useState(0);
   const [mostrarCantidadGenerales, setMostrarCantidadGenerales] = useState(12);
   const [carpetas, setCarpetas] = useState([]);
   const [carpetaActiva, setCarpetaActiva] = useState('todas');
@@ -72,7 +74,7 @@ const GaleriaCliente = () => {
     const fetchEventoPorSlug = async () => {
       setCargandoInicial(true);
       const esUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slug);
-      const columnas = 'id,nombre,descripcion,logo_url,banner_url,es_gratis,precio_galeria,fecha_evento,estado,created_at,tipo_reconocimiento,slug,portada_url,configuracion_ui,precio_foto,moneda,requiere_pago_para_ver,ubicacion,url_slug,titulo_about,categoria,url_portada,tiene_clave,permitir_descarga,permitir_descarga_zip';
+      const columnas = 'id,nombre,descripcion,logo_url,banner_url,es_gratis,precio_galeria,fecha_evento,estado,created_at,tipo_reconocimiento,slug,portada_url,configuracion_ui,precio_foto,moneda,requiere_pago_para_ver,ubicacion,url_slug,titulo_about,categoria,url_portada,tiene_clave,permitir_descarga,permitir_descarga_zip,en_vivo';
       const buscar = (cliente) => {
         const q = cliente.from('eventos').select(columnas);
         return (esUUID ? q.eq('id', slug) : q.eq('url_slug', slug)).maybeSingle();
@@ -104,12 +106,13 @@ const GaleriaCliente = () => {
         if (data.tipo_reconocimiento !== 'ocr') cargarAvatares(data.id);
         
         let allPhotos = null;
-        try { allPhotos = await leerTodo((d, h) => db.current.from('fotografias').select('url_watermark, url_original, carpeta_id').eq('evento_id', data.id).order('created_at', { ascending: true }).order('id', { ascending: true }).range(d, h)); } catch (e) { allPhotos = null; }
+        try { allPhotos = await leerTodo((d, h) => (data.en_vivo ? db.current.from('fotografias').select('url_watermark, url_original, carpeta_id').eq('evento_id', data.id).not('url_watermark', 'is', null).order('created_at', { ascending: false }).order('id', { ascending: false }) : db.current.from('fotografias').select('url_watermark, url_original, carpeta_id').eq('evento_id', data.id).order('created_at', { ascending: true }).order('id', { ascending: true })).range(d, h)); } catch (e) { allPhotos = null; }
         if (allPhotos) {
           const arrGenerales = allPhotos.map((f, idx) => {
             const path = (f.url_watermark || f.url_original).trim();
-            return { id: idx, src: urlFotoPublica(path) + '?v=1', path: path, carpeta_id: f.carpeta_id || null }; // Guardamos el path para el mapa
+            return { id: path || idx, src: urlFotoPublica(path) + '?v=1', path: path, carpeta_id: f.carpeta_id || null }; // Guardamos el path para el mapa
           });
+          rutasConocidas.current = new Set(arrGenerales.map((f) => f.path));
           setFotosGenerales(arrGenerales);
         }
         // Sets del evento: se muestran como pestañas para que el cliente vaya directo al que quiere.
@@ -155,6 +158,35 @@ const GaleriaCliente = () => {
     obs.observe(el);
     return () => obs.disconnect();
   }, [mostrarCantidadGenerales, fotosMostradas.length, modoVista, autenticado]);
+
+
+  // Colección "En vivo": cada pocos segundos busca fotos nuevas con versión web lista y las pone arriba, sin recargar.
+  useEffect(() => {
+    if (!evento?.en_vivo || !autenticado) return undefined;
+    let activo = true;
+    const buscar = async () => {
+      if (typeof document !== 'undefined' && document.hidden) return;
+      try {
+        const { data: filas } = await db.current.from('fotografias').select('url_watermark, url_original, carpeta_id').eq('evento_id', evento.id).not('url_watermark', 'is', null).order('created_at', { ascending: false }).order('id', { ascending: false }).limit(120);
+        if (!activo || !filas) return;
+        const nuevas = [];
+        filas.forEach((f) => {
+          const path = (f.url_watermark || f.url_original || '').trim();
+          if (!path || rutasConocidas.current.has(path)) return;
+          rutasConocidas.current.add(path);
+          nuevas.push({ id: path, src: urlFotoPublica(path) + '?v=1', path, carpeta_id: f.carpeta_id || null });
+        });
+        if (!nuevas.length) return;
+        setFotosGenerales((prev) => [...nuevas, ...prev]);
+        setRecienLlegadas((n) => n + nuevas.length);
+        const { data: cs } = await db.current.from('carpetas_evento').select('id,nombre,created_at').eq('evento_id', evento.id).order('created_at', { ascending: true });
+        if (activo && cs) setCarpetas(cs);
+      } catch (e) { /* sin red por un momento: se reintenta en el próximo ciclo */ }
+    };
+    const t = setInterval(buscar, 12000);
+    document.addEventListener('visibilitychange', buscar);
+    return () => { activo = false; clearInterval(t); document.removeEventListener('visibilitychange', buscar); };
+  }, [evento?.id, evento?.en_vivo, autenticado]);
 
   const cargarAvatares = async (eventoId) => {
     setCargando(true);
@@ -550,6 +582,12 @@ const GaleriaCliente = () => {
                           {descargandoZip ? 'Preparando descarga…' : 'Descargar toda la colección'}
                         </button>
                         {errorDescarga && !lightboxData.fotos.length && <span style={{ fontSize: 12, color: '#A3392B' }}>{errorDescarga}</span>}
+                      </div>
+                    )}
+                    {evento?.en_vivo && (
+                      <div role="status" aria-live="polite" className="flex items-center gap-3 mb-6" style={{ fontSize: 12, letterSpacing: '0.04em', color: cTexto }}>
+                        <span className="fl-punto-vivo" aria-hidden="true" />
+                        <span>En vivo: las fotos nuevas aparecen solas.{recienLlegadas > 0 ? ` ${recienLlegadas} ${recienLlegadas === 1 ? 'llegó' : 'llegaron'} desde que abriste esta página.` : ''}</span>
                       </div>
                     )}
                     {hayPestanas && (

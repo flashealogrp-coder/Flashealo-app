@@ -5,8 +5,10 @@ import PanelFotografos from './PanelFotografos';
 import PanelReservasPortal from './PanelReservasPortal';
 import SelectorFecha from './components/SelectorFecha';
 import MiEspacio from './MiEspacio';
+import MiPagina from './MiPagina';
 import { planificarReparto, MAX_POR_SET } from './marca/reparto';
 import { leerTodo } from './marca/paginar';
+import QrEvento from './components/QrEvento';
 import { separarPortada, unirPortada } from './marca/portada';
 import { 
   Loader2, Plus, Calendar, Settings, Image as ImageIcon, Trash2, CheckCircle, 
@@ -14,7 +16,7 @@ import {
   ChevronLeft, ChevronRight as ChevronRightIcon, Eye, Heart, Maximize2, X, 
   PanelLeftClose, PanelLeft, UploadCloud, ChevronDown, ChevronUp, MapPin, 
   AlertTriangle, Zap, User, Copy, LogOut, Hash, UserMinus, Combine, Check, 
-  ScanFace, ScanLine, Share2, Edit2, Columns, LayoutGrid, Square, Info, Camera, Sliders, HardDrive, Monitor, Smartphone, Mail, Download, Users, CalendarCheck
+  ScanFace, ScanLine, Share2, Edit2, Columns, LayoutGrid, Square, Info, Camera, Sliders, HardDrive, Monitor, Smartphone, Mail, Download, Users, CalendarCheck, Radio, QrCode, Globe
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -170,6 +172,7 @@ export default function AdminDashboard() {
   const [listaEventos, setListaEventos] = useState([]);
   const [cargando, setCargando] = useState(false);
   const [mensaje, setMensaje] = useState({ tipo: '', texto: '' });
+  const [mostrarQr, setMostrarQr] = useState(false);
   
   const [eventoEditandoId, setEventoEditandoId] = useState(null);
   const [formData, setFormData] = useState({ nombre: '', url_slug: '', tipo_reconocimiento: 'hibrido', password_cliente: '', fecha_evento: '', ubicacion: '', titulo_about: '', descripcion: '' });
@@ -979,6 +982,15 @@ const destruirPerfilFalso = async () => {
     setMensaje({ tipo: 'exito', texto: nuevo ? 'Descarga activada: los clientes pueden bajar las fotos en tamaño real.' : 'Descarga desactivada.' });
   };
 
+  const cambiarEnVivo = async () => {
+    const nuevo = !eventoActivo.en_vivo;
+    const { error } = await supabase.from('eventos').update({ en_vivo: nuevo }).eq('id', eventoActivo.id);
+    if (error) { setMensaje({ tipo: 'error', texto: 'No se pudo cambiar el modo en vivo. ¿Ya aplicaste la migración 0014?' }); return; }
+    setEventoActivo(prev => ({ ...prev, en_vivo: nuevo }));
+    setListaEventos(prev => prev.map(ev => ev.id === eventoActivo.id ? { ...ev, en_vivo: nuevo } : ev));
+    setMensaje({ tipo: 'exito', texto: nuevo ? 'En vivo activado: las fotos que subas aparecen solas en la galería del cliente.' : 'En vivo desactivado.' });
+  };
+
   const cambiarDescargaZip = async () => {
     const nuevo = !eventoActivo.permitir_descarga_zip;
     if (nuevo && !window.confirm('¿Permitir que los clientes descarguen TODA la colección en un zip? Podrás apagarlo cuando quieras.')) return;
@@ -1169,6 +1181,9 @@ const destruirPerfilFalso = async () => {
           {miSlug && <button onClick={() => { setVista('reservas'); setEventoActivo(null); }} className="flex items-center w-full p-3 hover:bg-fl-arena transition-colors" style={{ color: vista === 'reservas' ? INK : TAUPE, paddingLeft: sidebarOpen ? 20 : 0, justifyContent: sidebarOpen ? 'flex-start' : 'center', background: 'none', border: 'none', cursor: 'pointer' }}>
             <CalendarCheck size={18} strokeWidth={1.5}/> {sidebarOpen && <span className="ml-3 text-[13px]">Reservas</span>}
           </button>}
+          {miSlug && <button onClick={() => { setVista('mipagina'); setEventoActivo(null); }} className="flex items-center w-full p-3 hover:bg-fl-arena transition-colors" style={{ color: vista === 'mipagina' ? INK : TAUPE, paddingLeft: sidebarOpen ? 20 : 0, justifyContent: sidebarOpen ? 'flex-start' : 'center', background: 'none', border: 'none', cursor: 'pointer' }}>
+            <Globe size={18} strokeWidth={1.5}/> {sidebarOpen && <span className="ml-3 text-[13px]">Mi página</span>}
+          </button>}
           {esSuper && (
             <button onClick={() => { setVista('fotografos'); setEventoActivo(null); }} className="flex items-center w-full p-3 hover:bg-fl-arena transition-colors" style={{ color: vista === 'fotografos' ? INK : TAUPE, paddingLeft: sidebarOpen ? 20 : 0, justifyContent: sidebarOpen ? 'flex-start' : 'center', background: 'none', border: 'none', cursor: 'pointer' }}>
               <Users size={18} strokeWidth={1.5}/> {sidebarOpen && <span className="ml-3 text-[13px]">Fotógrafos</span>}
@@ -1182,6 +1197,8 @@ const destruirPerfilFalso = async () => {
           </button>
         </div>
       </aside>
+
+      {mostrarQr && eventoActivo && <QrEvento url={`${window.location.origin}/g/${eventoActivo.url_slug || eventoActivo.id}`} nombre={eventoActivo.nombre} onClose={() => setMostrarQr(false)} />}
 
       {/* ─── ÁREA DE CONTENIDO ─── */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden' }}>
@@ -1217,6 +1234,7 @@ const destruirPerfilFalso = async () => {
             className="custom-scrollbar"
           >        
           {vista === 'reservas' && miSlug && <PanelReservasPortal slug={miSlug} avisar={avisarPanel} />}
+          {vista === 'mipagina' && miSlug && <MiPagina slug={miSlug} fotografoId={contexto?.fotografo_id} avisar={avisarPanel} />}
           {vista === 'fotografos' && esSuper && <PanelFotografos avisar={avisarPanel} />}
 
           {vista === 'grid' && (
@@ -1498,6 +1516,8 @@ const destruirPerfilFalso = async () => {
                     <button onClick={abrirSelectorPortada} style={{ background: 'rgba(255,255,255,0.15)', color: WHITE, border: 'none', padding: '10px 18px', borderRadius: 4, cursor: 'pointer', fontSize: 11, display: 'flex', alignItems: 'center', gap: 6 }}><ImageIcon size={13} /> Cambiar portada</button>
                     <button onClick={cambiarDescarga} title="Permitir que el cliente descargue las fotos en tamaño real" style={{ background: eventoActivo.permitir_descarga ? WHITE : 'rgba(255,255,255,0.15)', color: eventoActivo.permitir_descarga ? INK : WHITE, border: 'none', padding: '10px 18px', borderRadius: 4, cursor: 'pointer', fontSize: 11, display: 'flex', alignItems: 'center', gap: 6 }}><Download size={13} /> Descarga: {eventoActivo.permitir_descarga ? 'sí' : 'no'}</button>
                     <button onClick={cambiarDescargaZip} title="Permitir que el cliente descargue toda la colección en un zip" style={{ background: eventoActivo.permitir_descarga_zip ? WHITE : 'rgba(255,255,255,0.15)', color: eventoActivo.permitir_descarga_zip ? INK : WHITE, border: 'none', padding: '10px 18px', borderRadius: 4, cursor: 'pointer', fontSize: 11, display: 'flex', alignItems: 'center', gap: 6 }}><Download size={13} /> Zip completo: {eventoActivo.permitir_descarga_zip ? 'sí' : 'no'}</button>
+                    <button onClick={cambiarEnVivo} title="Las fotos nuevas aparecen solas en la galería del cliente mientras las subes" style={{ background: eventoActivo.en_vivo ? WHITE : 'rgba(255,255,255,0.15)', color: eventoActivo.en_vivo ? INK : WHITE, border: 'none', padding: '10px 18px', borderRadius: 4, cursor: 'pointer', fontSize: 11, display: 'flex', alignItems: 'center', gap: 6 }}><Radio size={13} /> En vivo: {eventoActivo.en_vivo ? 'sí' : 'no'}</button>
+                    <button onClick={() => setMostrarQr(true)} title="Código QR de la galería para imprimir" style={{ background: 'rgba(255,255,255,0.15)', color: WHITE, border: 'none', padding: '10px 18px', borderRadius: 4, cursor: 'pointer', fontSize: 11, display: 'flex', alignItems: 'center', gap: 6 }}><QrCode size={13} /> QR</button>
                     <button onClick={copiarEnlacePublico} style={{ background: SAND, color: INK, border: 'none', padding: '10px 18px', borderRadius: 4, cursor: 'pointer', fontSize: 11, display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600 }}>
                       <Share2 size={13} /> Copiar Enlace
                     </button>

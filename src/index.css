@@ -28,3 +28,10 @@ body {
 
 @keyframes fl-aparece { from { opacity: 0 } to { opacity: 1 } }
 @media (prefers-reduced-motion: reduce) { img { animation: none !important } }
+
+/* Punto de "En vivo" en la galería del cliente */
+.fl-punto-vivo { width: 8px; height: 8px; border-radius: 50%; background: #B3402E; flex-shrink: 0; animation: fl-vivo 1.8s ease-in-out infinite; }
+@keyframes fl-vivo { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+@media (prefers-reduced-motion: reduce) { .fl-punto-vivo { animation: none; } }
+
+@media (max-width: 720px) { .fl-portafolio { column-count: 2 !important; } }

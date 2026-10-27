@@ -11,21 +11,13 @@ import ResultadosAtleta from './ResultadosAtleta';
 import HomeEmpresa from './home/HomeEmpresa';
 import PaginaSport from './PaginaSport';
 import RegistroFotografo from './RegistroFotografo';
-import { lineaDelHost, ADMIN_EN_PRINCIPAL, urlAdminPrincipal, urlReservas } from './marca/anfitrion';
-import { useParams } from 'react-router-dom';
+import PaginaFotografo from './PaginaFotografo';
+import { lineaDelHost, ADMIN_EN_PRINCIPAL, urlAdminPrincipal } from './marca/anfitrion';
 
 // En una línea (sport.*) no hay panel propio: se envía al admin único de la empresa.
 const IrAlAdmin = () => {
   window.location.replace(urlAdminPrincipal(window.location.host));
   return null;
-};
-
-// /f/<carpeta> era una página provisional: el portal de reservas de cada fotógrafo está en reservas.flashealo.do/<carpeta>.
-const IrAReservas = () => {
-  const { slug } = useParams();
-  const destino = urlReservas(window.location.host, slug);
-  if (destino) { window.location.replace(destino); return null; }
-  return <Navigate to="/" replace />;
 };
 
 const App = () => {
@@ -50,8 +42,8 @@ const App = () => {
       {/* Alta de fotógrafos: queda pendiente hasta que el superadmin la aprueba */}
       <Route path="/registro" element={<RegistroFotografo />} />
 
-      {/* Reservas de cada fotógrafo: se atienden en reservas.flashealo.do/<carpeta> */}
-      <Route path="/f/:slug" element={<IrAReservas />} />
+      {/* Página pública de cada fotógrafo (portafolio y servicios); sus reservas están en reservas.flashealo.do/<carpeta> */}
+      <Route path="/f/:slug" element={<PaginaFotografo />} />
 
       {/* RUTA 3: Galería del Cliente */}
       <Route path="/cliente" element={<Cliente />} />

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from './supabaseClient';
 import { urlAdmin } from './urlFotos';
+import { crearPortadaLimpia } from './marca/portadaLimpia';
 import { separarPortada, unirPortada } from './marca/portada';
 import { 
   Loader2, Plus, Calendar, Settings, Image as ImageIcon, Trash2, CheckCircle, 
@@ -762,6 +763,29 @@ const destruirPerfilFalso = async () => {
     setPortadaPos(misma ? { x: actual.x, y: actual.y } : { x: 50, y: 50 });
     setModalPortada({ url: foto.url_original });
     setSelectorPortada(false);
+  };
+
+  const guardarPortadaElegida = async () => {
+    let ruta = modalPortada.url;
+    if (/^o\//.test(ruta)) {
+      // Foto de la colección: se guarda una copia limpia (sin marca de agua) para el público.
+      const origen = urlAdmin(ruta, true);
+      if (!origen) { setMensaje({ tipo: 'error', texto: 'No se encontró la foto original.' }); return; }
+      setSubiendoPortada(true);
+      try {
+        const jpg = await crearPortadaLimpia(origen);
+        const nueva = `portadas/${Date.now()}_coleccion.jpg`;
+        const { error } = await supabase.storage.from('assets').upload(nueva, jpg, { contentType: 'image/jpeg' });
+        if (error) throw error;
+        ruta = nueva;
+      } catch (e) {
+        setSubiendoPortada(false);
+        setMensaje({ tipo: 'error', texto: 'No se pudo preparar la portada sin marca de agua. Revisa que tu sesión de administrador esté activa e inténtalo otra vez.' });
+        return;
+      }
+      setSubiendoPortada(false);
+    }
+    if (await hacerPortada(unirPortada(ruta, portadaPos.x, portadaPos.y))) setModalPortada(null);
   };
 
   const subirPortadaNueva = async (archivo) => {
@@ -2572,7 +2596,7 @@ const destruirPerfilFalso = async () => {
                 <div role="dialog" aria-modal="true" aria-label="Encuadre de la portada" onClick={() => setModalPortada(null)} style={{ position: 'fixed', inset: 0, zIndex: 310, background: 'rgba(24,24,22,0.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
                   <div onClick={(e) => e.stopPropagation()} style={{ background: WHITE, width: '100%', maxWidth: 720, maxHeight: '92vh', overflowY: 'auto', borderRadius: 6, padding: 24 }}>
                     <h2 style={{ margin: '0 0 6px', fontSize: 18, fontWeight: 500, fontFamily: 'var(--fl-serif)' }}>Encuadra la portada</h2>
-                    <p style={{ margin: '0 0 16px', fontSize: 12, color: TAUPE }}>Arrastra la imagen para elegir qué parte se ve.</p>
+                    <p style={{ margin: '0 0 16px', fontSize: 12, color: TAUPE }}>Arrastra la imagen para elegir qué parte se ve. Aquí ves la marca de agua, pero el público verá la portada limpia.</p>
                     <div onPointerDown={handlePointerDown} onPointerMove={handlePointerMove} style={{ position: 'relative', width: '100%', aspectRatio: '16 / 9', background: INK, overflow: 'hidden', borderRadius: 4, cursor: isDraggingPortada ? 'grabbing' : 'grab', touchAction: 'none', userSelect: 'none' }}>
                       <img src={origen || ''} alt="" draggable={false} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: posCss, pointerEvents: 'none' }} />
                     </div>
@@ -2584,7 +2608,7 @@ const destruirPerfilFalso = async () => {
                       <button onClick={() => { setModalPortada(null); abrirSelectorPortada(); }} style={{ padding: '10px 18px', background: WHITE, border: `1px solid ${BORDER}`, borderRadius: 4, fontSize: 12, cursor: 'pointer' }}>Elegir otra</button>
                       <div style={{ display: 'flex', gap: 10 }}>
                         <button onClick={() => setModalPortada(null)} style={{ padding: '10px 18px', background: WHITE, border: `1px solid ${BORDER}`, borderRadius: 4, fontSize: 12, cursor: 'pointer' }}>Cancelar</button>
-                        <button onClick={async () => { if (await hacerPortada(unirPortada(modalPortada.url, portadaPos.x, portadaPos.y))) setModalPortada(null); }} style={{ padding: '10px 22px', background: INK, color: WHITE, border: 'none', borderRadius: 4, fontSize: 12, cursor: 'pointer', fontWeight: 600 }}>Guardar portada</button>
+                        <button onClick={guardarPortadaElegida} disabled={subiendoPortada} style={{ padding: '10px 22px', background: INK, color: WHITE, border: 'none', borderRadius: 4, fontSize: 12, cursor: subiendoPortada ? 'wait' : 'pointer', fontWeight: 600, opacity: subiendoPortada ? 0.7 : 1 }}>{subiendoPortada ? 'Preparando…' : 'Guardar portada'}</button>
                       </div>
                     </div>
                   </div>

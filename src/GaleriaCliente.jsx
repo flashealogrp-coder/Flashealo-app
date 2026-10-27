@@ -287,7 +287,8 @@ const GaleriaCliente = () => {
   const nextImage = (e) => { e.stopPropagation(); setLightboxData(p => ({ ...p, index: p.index === p.fotos.length - 1 ? 0 : p.index + 1 })); };
 
   // ─── COMPONENTE FOTO INTELIGENTE (TETRIS EDITORIAL O COLUMNAS PURAS) ───
-  const RenderizarFoto = ({ foto, index, arrayOrigen }) => {
+  // Es una función que devuelve JSX (no un componente): así React reutiliza las fotos en cada actualización y no parpadean ni se reinician.
+  const renderizarFoto = ({ foto, index, arrayOrigen }) => {
     // Modo 1: Editorial Mosaico (Cortes hermosos sin sobreponerse)
     const editorialPatterns = [
       "col-span-2 row-span-2", // 0: Cuadrado Gigante
@@ -314,6 +315,7 @@ const GaleriaCliente = () => {
 
     return (
       <motion.div 
+        key={foto.id}
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: "-50px" }}
@@ -571,19 +573,19 @@ const GaleriaCliente = () => {
                     )}
                     {modoVista === 'editorial' && (
                       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 auto-rows-[120px] md:auto-rows-[180px] grid-flow-dense gap-2 md:gap-4">
-                        {fotosMostradas.slice(0, mostrarCantidadGenerales).map((foto, index) => <RenderizarFoto key={foto.id} foto={foto} index={index} arrayOrigen={fotosMostradas} />)}
+                        {fotosMostradas.slice(0, mostrarCantidadGenerales).map((foto, index) => renderizarFoto({ foto, index, arrayOrigen: fotosMostradas }))}
                       </div>
                     )}
                     
                     {modoVista === 'pinterest' && (
                       <div className="columns-2 md:columns-3 lg:columns-4 gap-3 md:gap-6">
-                        {fotosMostradas.slice(0, mostrarCantidadGenerales).map((foto, index) => <RenderizarFoto key={foto.id} foto={foto} index={index} arrayOrigen={fotosMostradas} />)}
+                        {fotosMostradas.slice(0, mostrarCantidadGenerales).map((foto, index) => renderizarFoto({ foto, index, arrayOrigen: fotosMostradas }))}
                       </div>
                     )}
 
                     {modoVista === 'large' && (
                       <div className="flex flex-col gap-6 md:gap-16 max-w-4xl mx-auto">
-                        {fotosMostradas.slice(0, mostrarCantidadGenerales).map((foto, index) => <RenderizarFoto key={foto.id} foto={foto} index={index} arrayOrigen={fotosMostradas} />)}
+                        {fotosMostradas.slice(0, mostrarCantidadGenerales).map((foto, index) => renderizarFoto({ foto, index, arrayOrigen: fotosMostradas }))}
                       </div>
                     )}
                     
@@ -676,19 +678,19 @@ const GaleriaCliente = () => {
             <div className="px-6 md:px-12 max-w-[1600px] mx-auto w-full">
               {modoVista === 'editorial' && (
                 <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 auto-rows-[120px] md:auto-rows-[180px] grid-flow-dense gap-2 md:gap-4">
-                  {fotosReales.map((foto, index) => <RenderizarFoto key={foto.id} foto={foto} index={index} arrayOrigen={fotosReales} />)}
+                  {fotosReales.map((foto, index) => renderizarFoto({ foto, index, arrayOrigen: fotosReales }))}
                 </div>
               )}
 
               {modoVista === 'pinterest' && (
                 <div className="columns-2 md:columns-3 lg:columns-4 gap-3 md:gap-6">
-                  {fotosReales.map((foto, index) => <RenderizarFoto key={foto.id} foto={foto} index={index} arrayOrigen={fotosReales} />)}
+                  {fotosReales.map((foto, index) => renderizarFoto({ foto, index, arrayOrigen: fotosReales }))}
                 </div>
               )}
 
               {modoVista === 'large' && (
                 <div className="flex flex-col gap-6 md:gap-16 max-w-4xl mx-auto">
-                  {fotosReales.map((foto, index) => <RenderizarFoto key={foto.id} foto={foto} index={index} arrayOrigen={fotosReales} />)}
+                  {fotosReales.map((foto, index) => renderizarFoto({ foto, index, arrayOrigen: fotosReales }))}
                 </div>
               )}
             </div>

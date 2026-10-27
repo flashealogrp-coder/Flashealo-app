@@ -30,6 +30,10 @@ const GaleriaCliente = () => {
   const [evento, setEvento] = useState(null);
   const [cargandoInicial, setCargandoInicial] = useState(true);
   const [errorInicial, setErrorInicial] = useState(null);
+  // Marca que ve el cliente: undefined = aún no se sabe; la colección de un fotógrafo lleva SU nombre, nunca el de Flashealo.
+  const [marca, setMarca] = useState(undefined);
+  const esEmpresa = marca === null || marca?.empresa === true;
+  const nombreMarca = marca === undefined ? '' : (esEmpresa ? 'Flashealo' : (marca.nombre || ''));
   
   // Autenticación con Memoria de Sesión
   const [autenticado, setAutenticado] = useState(false);
@@ -88,6 +92,7 @@ const GaleriaCliente = () => {
         setErrorInicial('No pudimos encontrar esta colección. Verifica el enlace.');
       } else {
         setEvento(data);
+        supabasePublico.rpc('marca_evento', { p_evento: String(data.id) }).then(({ data: m }) => setMarca(m && typeof m === 'object' ? m : null), () => setMarca(null));
         { const m = data.configuracion_ui && data.configuracion_ui.modo_grid_default; if (['editorial', 'pinterest', 'large'].includes(m)) setModoVista(m); }
         
         // Memoria de Sesión para no pedir la clave 2 veces
@@ -334,7 +339,7 @@ const GaleriaCliente = () => {
     return (
       <div style={{ background: CREAM, minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
         <motion.div animate={{ opacity: [0.2, 1, 0.2] }} transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <span style={{ fontFamily: 'var(--fl-serif)', fontSize: 24, letterSpacing: '0.4em', textTransform: 'uppercase', color: INK }}>Flashealo</span>
+          <span style={{ fontFamily: 'var(--fl-serif)', fontSize: 24, letterSpacing: '0.4em', textTransform: 'uppercase', color: INK }}>{nombreMarca}</span>
         </motion.div>
         <span style={{ fontSize: 9, letterSpacing: '0.3em', color: TAUPE, marginTop: 16, textTransform: 'uppercase' }}>Revelando Colección...</span>
       </div>
@@ -376,9 +381,9 @@ const GaleriaCliente = () => {
           <motion.nav initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1, delay: 0.5 }} className={`fixed top-0 w-full z-40 transition-all duration-700 ${barraSolida ? 'backdrop-blur-md border-b border-fl-borde py-4 shadow-sm' : 'bg-transparent py-6'}`} style={barraSolida ? { backgroundColor: cFondo + 'F2' } : undefined}>
             <div className="max-w-[1600px] mx-auto px-6 md:px-12 flex items-center justify-between relative">
               
-              <div onClick={() => navigate('/')} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div onClick={esEmpresa ? () => navigate('/') : undefined} style={{ cursor: esEmpresa ? 'pointer' : 'default', display: 'flex', alignItems: 'center', gap: 12 }}>
                 <span style={{ width: 2, height: 18, background: SAND, display: 'inline-block', borderRadius: 1 }} />
-                <span style={{ fontFamily: 'var(--fl-serif)', fontSize: 18, letterSpacing: '0.18em', textTransform: 'uppercase', color: (barraSolida || vistaActual === 'galeria') ? cTexto : WHITE, transition: 'color 0.5s ease' }}>Flashealo</span>
+                <span style={{ fontFamily: 'var(--fl-serif)', fontSize: 18, letterSpacing: '0.18em', textTransform: 'uppercase', color: (barraSolida || vistaActual === 'galeria') ? cTexto : WHITE, transition: 'color 0.5s ease' }}>{nombreMarca}</span>
               </div>
 
               <div className="flex items-center gap-3 md:gap-8">
@@ -404,7 +409,7 @@ const GaleriaCliente = () => {
                       <ChevronLeft size={14}/> <span className="hidden sm:inline">Volver a la colección</span><span className="sm:hidden">Volver</span>
                     </button>
                   ) : (
-                    <button type="button" onClick={() => navigate('/')} className="hover:text-fl-texto transition-colors duration-500 hidden sm:block">Volver al Sitio</button>
+                    esEmpresa ? <button type="button" onClick={() => navigate('/')} className="hover:text-fl-texto transition-colors duration-500 hidden sm:block">Volver al Sitio</button> : null
                   )}
                 </div>
               </div>
@@ -692,9 +697,9 @@ const GaleriaCliente = () => {
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, marginBottom: 48 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
                   <span style={{ width: 2, height: 28, background: SAND, borderRadius: 1 }}></span>
-                  <span style={{ fontFamily: 'var(--fl-serif)', fontSize: 24, letterSpacing: '0.2em', textTransform: 'uppercase', color: INK }}>Flashealo</span>
+                  <span style={{ fontFamily: 'var(--fl-serif)', fontSize: 24, letterSpacing: '0.2em', textTransform: 'uppercase', color: INK }}>{nombreMarca}</span>
                 </div>
-                <span style={{ fontSize: 9, letterSpacing: '0.2em', textTransform: 'uppercase', color: TAUPE }}>Inteligencia artificial aplicada al arte.</span>
+                {esEmpresa && <span style={{ fontSize: 9, letterSpacing: '0.2em', textTransform: 'uppercase', color: TAUPE }}>Inteligencia artificial aplicada al arte.</span>}
               </div>
               <button type="button" onClick={() => { setVistaActual('evento'); setIdentidadSeleccionada(null); setModoVista(modoInicial); window.scrollTo(0, 0); }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 9, letterSpacing: '0.2em', textTransform: 'uppercase', color: INK, borderBottom: `1px solid ${SAND}`, paddingBottom: 4, transition: 'opacity 0.3s' }} onMouseEnter={e => e.target.style.opacity = 0.6} onMouseLeave={e => e.target.style.opacity = 1}>
                 ← Volver a la colección general
@@ -783,9 +788,9 @@ const GaleriaCliente = () => {
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
               <span style={{ width: 2, height: 16, background: SAND, display: 'inline-block', borderRadius: 1 }} />
-              <span style={{ fontFamily: 'var(--fl-serif)', fontSize: 16, letterSpacing: '0.18em', textTransform: 'uppercase', color: WHITE }}>Flashealo</span>
+              <span style={{ fontFamily: 'var(--fl-serif)', fontSize: 16, letterSpacing: '0.18em', textTransform: 'uppercase', color: WHITE }}>{nombreMarca}</span>
             </div>
-            <p style={{ fontSize: 8, color: 'rgba(255,255,255,0.35)', letterSpacing: '0.22em', textTransform: 'uppercase' }}>Inteligencia artificial aplicada al arte.</p>
+            {esEmpresa && <p style={{ fontSize: 8, color: 'rgba(255,255,255,0.35)', letterSpacing: '0.22em', textTransform: 'uppercase' }}>Inteligencia artificial aplicada al arte.</p>}
           </div>
           <div style={{ display: 'flex', gap: 24, alignItems: 'center' }}>
             <a href="#" style={{ color: 'rgba(255,255,255,0.4)', transition: 'color 0.4s ease' }} onMouseEnter={e => e.currentTarget.style.color = WHITE} onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.4)'}>

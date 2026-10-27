@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from './supabaseClient';
 import { urlAdmin } from './urlFotos';
 import { crearPortadaLimpia } from './marca/portadaLimpia';
+import { planificarReparto, MAX_POR_SET } from './marca/reparto';
+import { leerTodo } from './marca/paginar';
 import { separarPortada, unirPortada } from './marca/portada';
 import { 
   Loader2, Plus, Calendar, Settings, Image as ImageIcon, Trash2, CheckCircle, 
@@ -200,7 +202,9 @@ export default function AdminDashboard() {
 
   const [mostrarUploader, setMostrarUploader] = useState(false);
   const [archivosUploader, setArchivosUploader] = useState([]);
-  const [estadoSubida, setEstadoSubida] = useState({ activa: false, progreso: 0, total: 0, carpetaId: null, carpetaNombre: '' });
+  const [estadoSubida, setEstadoSubida] = useState({ activa: false, progreso: 0, total: 0, carpetaId: null, carpetaIds: [], carpetaNombre: '', fallidas: 0 });
+  const [repartirAuto, setRepartirAuto] = useState(true);
+  const [maxPorSet, setMaxPorSet] = useState(MAX_POR_SET);
   const [arrastrando, setArrastrando] = useState(false);
   const fileInputRef = useRef(null);
   const [procesandoIA, setProcesandoIA] = useState(false);
@@ -456,8 +460,10 @@ useEffect(() => {
       carpetasData = nuevaCarpeta;
     }
     setCarpetas(carpetasData); setCarpetaActiva(carpetasData[0]);
-    const { data: fotosData } = await supabase.from('fotografias').select('*').eq('evento_id', ev.id);
-    if (fotosData) setFotosEvento(fotosData);
+    try {
+      const fotosData = await leerTodo((d, h) => supabase.from('fotografias').select('*').eq('evento_id', ev.id).order('created_at', { ascending: true }).order('id', { ascending: true }).range(d, h));
+      setFotosEvento(fotosData);
+    } catch (e) { setMensaje({ tipo: 'error', texto: 'No se pudieron cargar todas las fotos del evento.' }); }
     cargarStatsIA(ev.id);
   };
 
@@ -635,7 +641,7 @@ const destruirPerfilFalso = async () => {
 
   const eliminarCarpeta = async (carpeta) => {
     if (carpetas.length <= 1) { setMensaje({ tipo: 'error', texto: 'El evento necesita al menos un set.' }); return; }
-    if (estadoSubida.activa && estadoSubida.carpetaId === carpeta.id) { setMensaje({ tipo: 'error', texto: 'Hay una subida en curso en este set. Espera a que termine.' }); return; }
+    if (estadoSubida.activa && (estadoSubida.carpetaIds || []).includes(carpeta.id)) { setMensaje({ tipo: 'error', texto: 'Hay una subida en curso en este set. Espera a que termine.' }); return; }
     const fotos = fotosEvento.filter(f => f.carpeta_id === carpeta.id);
     if (fotos.length === 0) {
       if (!window.confirm(`¿Eliminar el set "${carpeta.nombre}"?`)) return;
@@ -662,7 +668,7 @@ const destruirPerfilFalso = async () => {
   };
 
   const abrirUploader = () => {
-    if (estadoSubida.activa && estadoSubida.carpetaId !== carpetaActiva?.id) {
+    if (estadoSubida.activa && !(estadoSubida.carpetaIds || []).includes(carpetaActiva?.id)) {
       setMensaje({ tipo: 'error', texto: `Ya hay una subida en curso en "${estadoSubida.carpetaNombre}". Espera a que termine.` });
       return;
     }
@@ -674,8 +680,17 @@ const destruirPerfilFalso = async () => {
 
   const procesarEntry = (entry, filesArray) => {
     return new Promise((resolve) => {
-      if (entry.isFile) { entry.file(file => { if (file.type.startsWith('image/')) filesArray.push(file); resolve(); }); } 
-      else if (entry.isDirectory) { const dirReader = entry.createReader(); dirReader.readEntries(async (entries) => { for (let i = 0; i < entries.length; i++) await procesarEntry(entries[i], filesArray); resolve(); }); } 
+      if (entry.isFile) { entry.file(file => { if (file.type.startsWith('image/')) filesArray.push(file); resolve(); }, () => resolve()); }
+      else if (entry.isDirectory) {
+        // readEntries devuelve como máximo ~100 entradas por llamada: hay que repetir hasta que venga vacío.
+        const dirReader = entry.createReader();
+        const leer = () => dirReader.readEntries(async (entries) => {
+          if (!entries.length) return resolve();
+          for (let i = 0; i < entries.length; i++) await procesarEntry(entries[i], filesArray);
+          leer();
+        }, () => resolve());
+        leer();
+      }
       else resolve();
     });
   };
@@ -688,29 +703,74 @@ const destruirPerfilFalso = async () => {
     if(nuevosArchivos.length > 0) setArchivosUploader(prev => [...prev, ...nuevosArchivos]);
   };
 
-  const iniciarSubidaMasiva = async () => {
-    if (archivosUploader.length === 0 || !carpetaActiva || estadoSubida.activa) return;
-    const carpetaDestino = carpetaActiva;
-    setEstadoSubida({ activa: true, progreso: 0, total: archivosUploader.length, carpetaId: carpetaDestino.id, carpetaNombre: carpetaDestino.nombre });
-    let subidasExitosas = 0;
-    const baseR2Path = `${eventoActivo.url_slug || eventoActivo.id}/${carpetaDestino.nombre.toLowerCase().replace(/ /g, '-')}`;
-
-    for (let i = 0; i < archivosUploader.length; i++) {
-      const file = archivosUploader[i];
+  // Sube una foto con hasta 2 intentos. Devuelve true si quedó guardada.
+  const subirUnaFoto = async (file, carpeta, baseR2Path) => {
+    for (let intento = 0; intento < 2; intento++) {
       try {
         const { data: { session: sesionSubida } } = await supabase.auth.getSession();
         const resURL = await fetch("/api/upload-url", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${sesionSubida?.access_token || ''}` }, body: JSON.stringify({ fileName: file.name, fileType: file.type, carpetaR2: baseR2Path }) });
         const data = await resURL.json();
+        if (!resURL.ok || !data.url) throw new Error(data.error || 'sin enlace');
         const uploadRes = await fetch(data.url, { method: "PUT", headers: { "Content-Type": file.type }, body: file });
-        if (uploadRes.ok) { await supabase.from('fotografias').insert([{ evento_id: eventoActivo.id, carpeta_id: carpetaDestino.id, url_original: data.path }]); subidasExitosas++; }
-      } catch (error) {}
-      setEstadoSubida(prev => ({ ...prev, progreso: i + 1 }));
+        if (!uploadRes.ok) throw new Error('PUT ' + uploadRes.status);
+        const { error } = await supabase.from('fotografias').insert([{ evento_id: eventoActivo.id, carpeta_id: carpeta.id, url_original: data.path }]);
+        if (error) throw error;
+        return true;
+      } catch (e) { /* se reintenta una vez */ }
+    }
+    return false;
+  };
+
+  const iniciarSubidaMasiva = async () => {
+    if (archivosUploader.length === 0 || !carpetaActiva || estadoSubida.activa) return;
+    const carpetaInicio = carpetaActiva;
+    const yaEnSet = fotosEvento.filter(f => f.carpeta_id === carpetaInicio.id).length;
+    // Con el reparto automático: llena el set actual hasta el máximo y crea Set 1, Set 2… para el resto.
+    const tramos = repartirAuto
+      ? planificarReparto({ archivos: archivosUploader, yaEnSetActual: yaEnSet, nombresExistentes: carpetas.map(c => c.nombre), max: maxPorSet })
+      : [{ destino: 'actual', archivos: archivosUploader }];
+    const total = archivosUploader.length;
+    setEstadoSubida({ activa: true, progreso: 0, total, carpetaId: carpetaInicio.id, carpetaIds: [carpetaInicio.id], carpetaNombre: carpetaInicio.nombre, fallidas: 0 });
+    let exitosas = 0, hechas = 0;
+    const fallidos = [];
+    const carpetasCreadas = [];
+
+    for (const tramo of tramos) {
+      let carpeta = carpetaInicio;
+      if (tramo.destino === 'nuevo') {
+        const { data, error } = await supabase.from('carpetas_evento').insert([{ evento_id: eventoActivo.id, nombre: tramo.nombre }]).select();
+        if (error || !data?.[0]) { fallidos.push(...tramo.archivos); hechas += tramo.archivos.length; setEstadoSubida(prev => ({ ...prev, progreso: hechas, fallidas: fallidos.length })); continue; }
+        carpeta = data[0]; carpetasCreadas.push(carpeta);
+        setCarpetas(prev => [...prev, carpeta]);
+        setEstadoSubida(prev => ({ ...prev, carpetaIds: [...prev.carpetaIds, carpeta.id] }));
+      }
+      setEstadoSubida(prev => ({ ...prev, carpetaNombre: carpeta.nombre }));
+      const baseR2Path = `${eventoActivo.url_slug || eventoActivo.id}/${carpeta.nombre.toLowerCase().replace(/ /g, '-')}`;
+      // 4 subidas en paralelo
+      let siguiente = 0;
+      const trabajador = async () => {
+        while (siguiente < tramo.archivos.length) {
+          const file = tramo.archivos[siguiente++];
+          if (await subirUnaFoto(file, carpeta, baseR2Path)) exitosas++; else fallidos.push(file);
+          hechas++;
+          setEstadoSubida(prev => ({ ...prev, progreso: hechas, fallidas: fallidos.length }));
+        }
+      };
+      await Promise.all(Array.from({ length: Math.min(4, tramo.archivos.length) }, trabajador));
     }
 
-    const { data: fotosNuevas } = await supabase.from('fotografias').select('*').eq('evento_id', eventoActivo.id);
-    if (fotosNuevas) setFotosEvento(fotosNuevas);
-    setArchivosUploader([]); setEstadoSubida({ activa: false, progreso: 0, total: 0, carpetaId: null, carpetaNombre: '' }); setMostrarUploader(false);
-    setMensaje({ tipo: 'exito', texto: `${subidasExitosas} fotos subidas. Preparando miniaturas...` });
+    try {
+      const fotosNuevas = await leerTodo((d, h) => supabase.from('fotografias').select('*').eq('evento_id', eventoActivo.id).order('created_at', { ascending: true }).order('id', { ascending: true }).range(d, h));
+      setFotosEvento(fotosNuevas);
+    } catch (e) { /* la lista se actualizará al reentrar */ }
+    // Lo que no se pudo subir se queda en la cola para reintentar.
+    setArchivosUploader(fallidos);
+    setEstadoSubida({ activa: false, progreso: 0, total: 0, carpetaId: null, carpetaIds: [], carpetaNombre: '', fallidas: 0 });
+    if (!fallidos.length) setMostrarUploader(false);
+    const sets = carpetasCreadas.length ? ` Se crearon ${carpetasCreadas.length} sets nuevos (${carpetasCreadas.map(c => c.nombre).join(', ')}).` : '';
+    setMensaje(fallidos.length
+      ? { tipo: 'error', texto: `${exitosas} fotos subidas; ${fallidos.length} no se pudieron subir y siguen en la cola. Pulsa de nuevo "Iniciar subida" para reintentarlas.${sets}` }
+      : { tipo: 'exito', texto: `${exitosas} fotos subidas.${sets} Preparando miniaturas...` });
     try { await llamarIA({ evento_id: eventoActivo.id, accion: "miniaturas" }); } catch (err) {}
   };
 
@@ -887,6 +947,7 @@ const destruirPerfilFalso = async () => {
         <img 
           src={resolverUrlFoto(foto, false)} 
           alt="" 
+          loading="lazy" decoding="async"
           className="w-full h-full object-contain transition-opacity duration-300" 
         />
         
@@ -1341,7 +1402,7 @@ const destruirPerfilFalso = async () => {
                       {carpetas.map(carpeta => {
                         const cant = fotosEvento.filter(f => f.carpeta_id === carpeta.id).length;
                         const isActiva = seccionDashboard === 'fotos' && carpetaActiva?.id === carpeta.id;
-                        const subiendoAqui = estadoSubida.activa && estadoSubida.carpetaId === carpeta.id;
+                        const subiendoAqui = estadoSubida.activa && (estadoSubida.carpetaIds || []).includes(carpeta.id);
                         return (
                           <div key={carpeta.id} className="group relative">
                             <button
@@ -1550,7 +1611,7 @@ const destruirPerfilFalso = async () => {
                       {/* AREA DE FOTOS */}
                       <div style={{ padding: 28, flex: 1, position: 'relative' }}>
                         <AnimatePresence>
-                          {mostrarUploader && (!estadoSubida.activa || estadoSubida.carpetaId === carpetaActiva?.id) && (
+                          {mostrarUploader && (!estadoSubida.activa || (estadoSubida.carpetaIds || []).includes(carpetaActiva?.id)) && (
                             <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} style={{ position: 'absolute', inset: 0, background: 'rgba(250,250,250,0.95)', zIndex: 50, padding: 40, display: 'flex', flexDirection: 'column' }}>
                               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 24 }}>
                                 <h2 style={{ fontSize: 18, fontWeight: 500, margin: 0 }}>Subir a: {carpetaActiva?.nombre}</h2>
@@ -1560,7 +1621,7 @@ const destruirPerfilFalso = async () => {
                                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
                                   <Loader2 size={40} className="animate-spin" color={SAND} style={{ marginBottom: 16 }} />
                                   <h3 style={{ fontSize: 16, color: INK, margin: '0 0 8px 0' }}>Subiendo fotos a &quot;{estadoSubida.carpetaNombre}&quot;</h3>
-                                  <p style={{ color: TAUPE, fontSize: 13 }}>Subiendo {estadoSubida.progreso} de {estadoSubida.total}...</p>
+                                  <p style={{ color: TAUPE, fontSize: 13 }}>Subiendo {estadoSubida.progreso} de {estadoSubida.total}...{estadoSubida.fallidas > 0 && ` (${estadoSubida.fallidas} con error, se reintentarán al final)`}</p>
                                   <div style={{ width: '100%', maxWidth: 400, height: 6, background: BORDER, borderRadius: 4, marginTop: 24, overflow: 'hidden' }}>
                                     <div style={{ height: '100%', background: SAND, width: `${(estadoSubida.progreso / estadoSubida.total) * 100}%`, transition: 'width 0.3s' }} />
                                   </div>
@@ -1577,6 +1638,17 @@ const destruirPerfilFalso = async () => {
                                   {archivosUploader.length > 0 && (
                                     <div style={{ marginTop: 32, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                                       <span style={{ fontSize: 12, color: INK, fontWeight: 600, marginBottom: 12 }}>{archivosUploader.length} archivos en cola</span>
+                                      <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: INK, marginBottom: 6, cursor: 'pointer' }}>
+                                        <input type="checkbox" checked={repartirAuto} onChange={(e) => setRepartirAuto(e.target.checked)} />
+                                        Repartir en sets de hasta
+                                        <input type="number" min={50} max={MAX_POR_SET} value={maxPorSet} onChange={(e) => setMaxPorSet(Math.max(1, Math.min(MAX_POR_SET, Number(e.target.value) || MAX_POR_SET)))} disabled={!repartirAuto} style={{ width: 64, padding: '3px 6px', border: `1px solid ${BORDER}`, borderRadius: 3, fontSize: 12 }} />
+                                        fotos
+                                      </label>
+                                      {repartirAuto && (() => {
+                                        const tr = planificarReparto({ archivos: archivosUploader, yaEnSetActual: fotosEvento.filter(f => f.carpeta_id === carpetaActiva?.id).length, nombresExistentes: carpetas.map(c => c.nombre), max: maxPorSet });
+                                        const nuevos = tr.filter(t => t.destino === 'nuevo').length;
+                                        return <span style={{ fontSize: 11, color: TAUPE, marginBottom: 14 }}>{nuevos > 0 ? `Se llenará "${carpetaActiva?.nombre}" y se crearán ${nuevos} sets nuevos (${tr.filter(t => t.destino === 'nuevo').map(t => t.nombre).join(', ')})` : `Todo cabe en "${carpetaActiva?.nombre}"`}</span>;
+                                      })()}
                                       <button onClick={iniciarSubidaMasiva} style={{ background: INK, color: WHITE, border: 'none', padding: '12px 32px', borderRadius: 4, cursor: 'pointer', fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Iniciar Subida</button>
                                     </div>
                                   )}

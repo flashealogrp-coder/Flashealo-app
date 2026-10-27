@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from './supabaseClient';
 import { urlFotoPublica } from './urlFotos';
 import { resolverPortada } from './marca/portada';
+import { leerTodo } from './marca/paginar';
 import { X, ChevronLeft, ChevronRight, Loader2, AlertCircle, Lock, ChevronDown, Mail, Columns, LayoutGrid, Square } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -80,7 +81,8 @@ const GaleriaCliente = () => {
 
         if (data.tipo_reconocimiento !== 'ocr') cargarAvatares(data.id);
         
-        const { data: allPhotos } = await supabase.from('fotografias').select('url_watermark, url_original').eq('evento_id', data.id);
+        let allPhotos = null;
+        try { allPhotos = await leerTodo((d, h) => supabase.from('fotografias').select('url_watermark, url_original').eq('evento_id', data.id).order('created_at', { ascending: true }).order('id', { ascending: true }).range(d, h)); } catch (e) { allPhotos = null; }
         if (allPhotos) {
           const arrGenerales = allPhotos.map((f, idx) => {
             const path = (f.url_watermark || f.url_original).trim();
@@ -108,7 +110,8 @@ const GaleriaCliente = () => {
   const cargarAvatares = async (eventoId) => {
     setCargando(true);
     const { data: identitiesData } = await supabase.from('identities').select('id,display_name,avatar_url,created_at,evento_id,dorsal,avatar_score').eq('evento_id', eventoId);
-    const { data: detectionsData } = await supabase.from('face_detections').select('identity_id, photo_url').eq('evento_id', eventoId);
+    let detectionsData = null;
+    try { detectionsData = await leerTodo((d, h) => supabase.from('face_detections').select('identity_id, photo_url').eq('evento_id', eventoId).order('id', { ascending: true }).range(d, h)); } catch (e) { detectionsData = null; }
     
     if (identitiesData) {
       const conteos = {};

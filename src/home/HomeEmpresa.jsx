@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   CONTACTO,
@@ -52,7 +52,7 @@ function Flecha() {
   );
 }
 
-function BloqueServicio({ servicio }) {
+function ItemMenu({ servicio, alElegir }) {
   const { nombre, descripcion, desde, detallePrecio, estado, subdominio } = servicio;
   const host = typeof window !== 'undefined' ? window.location.host : '';
   const href = subdominio ? urlDeLinea(subdominio, host, servicio.href) : servicio.href;
@@ -60,20 +60,18 @@ function BloqueServicio({ servicio }) {
 
   const contenido = (
     <>
-      <div className="fh-bloque-cabeza">
-        <h3 className="fh-bloque-nombre">{nombre}</h3>
-        <p className="fh-bloque-texto">{descripcion}</p>
-      </div>
-      <div className="fh-bloque-pie">
+      <span className="fh-item-texto">
+        <span className="fh-item-nombre">{nombre}</span>
+        <span className="fh-item-desc">{descripcion}</span>
+      </span>
+      <span className="fh-item-lado">
         {activa ? (
           <>
-            {desde ? (
-              <span className="fh-precio">
+            {desde && (
+              <span className="fh-item-precio">
                 <span className="fl-etiqueta">Desde</span> {desde}
                 <span className="fh-detalle"> {detallePrecio}</span>
               </span>
-            ) : (
-              <span />
             )}
             <span className="fl-etiqueta fh-ir">
               {desde ? 'Reservar' : 'Entrar'} <Flecha />
@@ -82,31 +80,29 @@ function BloqueServicio({ servicio }) {
         ) : (
           <span className="fl-etiqueta">Próximamente</span>
         )}
-      </div>
+      </span>
     </>
   );
 
   if (!activa) {
     return (
-      <li className="fh-bloque fh-bloque-pausado">
-        <div className="fh-bloque-interior" aria-label={`${nombre}, próximamente`}>
+      <li className="fh-item fh-item-pausado">
+        <div className="fh-item-interior" aria-label={`${nombre}, próximamente`}>
           {contenido}
         </div>
       </li>
     );
   }
-
   const enlace = href.startsWith('/') ? (
-    <Link className="fh-bloque-interior" to={href}>
+    <Link className="fh-item-interior" to={href} onClick={alElegir}>
       {contenido}
     </Link>
   ) : (
-    <a className="fh-bloque-interior" href={href}>
+    <a className="fh-item-interior" href={href} onClick={alElegir}>
       {contenido}
     </a>
   );
-
-  return <li className="fh-bloque">{enlace}</li>;
+  return <li className="fh-item">{enlace}</li>;
 }
 
 const PASOS = [
@@ -129,6 +125,34 @@ export default function HomeEmpresa() {
   const [revelar] = useState(debeDestellar);
   const [telon, setTelon] = useState(revelar);
   const servicios = visibles(SERVICIOS);
+  const [menu, setMenu] = useState(false);
+  const cajaMenu = useRef(null);
+  const botonMenu = useRef(null);
+
+  useEffect(() => {
+    if (!menu) return undefined;
+    const cerrarFuera = (e) => {
+      if (cajaMenu.current && !cajaMenu.current.contains(e.target)) setMenu(false);
+    };
+    const cerrarEsc = (e) => {
+      if (e.key === 'Escape') {
+        setMenu(false);
+        botonMenu.current?.focus();
+      }
+    };
+    document.addEventListener('pointerdown', cerrarFuera);
+    document.addEventListener('keydown', cerrarEsc);
+    return () => {
+      document.removeEventListener('pointerdown', cerrarFuera);
+      document.removeEventListener('keydown', cerrarEsc);
+    };
+  }, [menu]);
+
+  const abrirMenu = (e) => {
+    e.preventDefault();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setMenu(true);
+  };
 
   useEffect(() => {
     if (!revelar) return;
@@ -154,9 +178,27 @@ export default function HomeEmpresa() {
           FLASHEALO
         </a>
         <nav className="fh-nav" aria-label="Principal">
-          <a className="fl-etiqueta" href="#servicios">
-            Servicios
-          </a>
+          <div className="fh-menu" ref={cajaMenu}>
+            <button
+              type="button"
+              ref={botonMenu}
+              className="fl-etiqueta fh-menu-boton"
+              aria-expanded={menu}
+              aria-controls="menu-servicios"
+              onClick={() => setMenu((v) => !v)}
+            >
+              Servicios <span className={`fh-menu-flecha${menu ? ' fh-abierto' : ''}`} aria-hidden="true" />
+            </button>
+            {menu && (
+              <div className="fh-menu-panel" id="menu-servicios">
+                <ul className="fh-items">
+                  {servicios.map((s) => (
+                    <ItemMenu key={s.id} servicio={s} alElegir={() => setMenu(false)} />
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
           <a className="fl-etiqueta" href="#como">
             Cómo funciona
           </a>
@@ -184,24 +226,11 @@ export default function HomeEmpresa() {
                 <a className="fl-boton" href={whatsappUrl()} target="_blank" rel="noreferrer">
                   Escribir por WhatsApp <Flecha />
                 </a>
-                <a className="fl-boton fl-boton-linea" href="#servicios">
+                <a className="fl-boton fl-boton-linea" href="#servicios" onClick={abrirMenu}>
                   Ver servicios <Flecha />
                 </a>
               </div>
             </div>
-          </div>
-        </section>
-
-        <section className="fh-seccion" id="servicios" aria-labelledby="t-servicios">
-          <div className="fh-contenedor">
-            <h2 className="fl-titulo fh-h2" id="t-servicios">
-              Elige lo que necesitas
-            </h2>
-            <ul className="fh-bento">
-              {servicios.map((s) => (
-                <BloqueServicio key={s.id} servicio={s} />
-              ))}
-            </ul>
           </div>
         </section>
 

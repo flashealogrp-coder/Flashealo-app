@@ -202,7 +202,7 @@ export default function AdminDashboard() {
 
   const [mostrarUploader, setMostrarUploader] = useState(false);
   const [archivosUploader, setArchivosUploader] = useState([]);
-  const [estadoSubida, setEstadoSubida] = useState({ activa: false, progreso: 0, total: 0, carpetaId: null, carpetaIds: [], carpetaNombre: '', fallidas: 0 });
+  const [estadoSubida, setEstadoSubida] = useState({ activa: false, progreso: 0, total: 0, carpetaId: null, carpetaIds: [], carpetaNombre: '', fallidas: 0, porSet: {} });
   const [repartirAuto, setRepartirAuto] = useState(true);
   const [maxPorSet, setMaxPorSet] = useState(MAX_POR_SET);
   const [arrastrando, setArrastrando] = useState(false);
@@ -747,7 +747,8 @@ const destruirPerfilFalso = async () => {
       ? planificarReparto({ archivos: archivosUploader, yaEnSetActual: yaEnSet, nombresExistentes: carpetas.map(c => c.nombre), max: maxPorSet })
       : [{ destino: 'actual', archivos: archivosUploader }];
     const total = archivosUploader.length;
-    setEstadoSubida({ activa: true, progreso: 0, total, carpetaId: carpetaInicio.id, carpetaIds: [carpetaInicio.id], carpetaNombre: carpetaInicio.nombre, fallidas: 0 });
+    const tramoActual = tramos.find(t => t.destino === 'actual');
+    setEstadoSubida({ activa: true, progreso: 0, total, carpetaId: carpetaInicio.id, carpetaIds: [carpetaInicio.id], carpetaNombre: carpetaInicio.nombre, fallidas: 0, porSet: tramoActual ? { [carpetaInicio.id]: { hechas: 0, total: tramoActual.archivos.length } } : {} });
     let exitosas = 0, hechas = 0;
     const fallidos = [];
     const carpetasCreadas = [];
@@ -759,7 +760,7 @@ const destruirPerfilFalso = async () => {
         if (error || !data?.[0]) { fallidos.push(...tramo.archivos); hechas += tramo.archivos.length; setEstadoSubida(prev => ({ ...prev, progreso: hechas, fallidas: fallidos.length })); continue; }
         carpeta = data[0]; carpetasCreadas.push(carpeta);
         setCarpetas(prev => [...prev, carpeta]);
-        setEstadoSubida(prev => ({ ...prev, carpetaIds: [...prev.carpetaIds, carpeta.id] }));
+        setEstadoSubida(prev => ({ ...prev, carpetaIds: [...prev.carpetaIds, carpeta.id], porSet: { ...prev.porSet, [carpeta.id]: { hechas: 0, total: tramo.archivos.length } } }));
       }
       setEstadoSubida(prev => ({ ...prev, carpetaNombre: carpeta.nombre }));
       const baseR2Path = `${eventoActivo.url_slug || eventoActivo.id}/${carpeta.nombre.toLowerCase().replace(/ /g, '-')}`;
@@ -770,7 +771,10 @@ const destruirPerfilFalso = async () => {
           const file = tramo.archivos[siguiente++];
           if (await subirUnaFoto(file, carpeta, baseR2Path)) exitosas++; else fallidos.push(file);
           hechas++;
-          setEstadoSubida(prev => ({ ...prev, progreso: hechas, fallidas: fallidos.length }));
+          setEstadoSubida(prev => {
+            const ps = prev.porSet?.[carpeta.id];
+            return { ...prev, progreso: hechas, fallidas: fallidos.length, porSet: ps ? { ...prev.porSet, [carpeta.id]: { ...ps, hechas: ps.hechas + 1 } } : prev.porSet };
+          });
         }
       };
       await Promise.all(Array.from({ length: Math.min(4, tramo.archivos.length) }, trabajador));
@@ -782,7 +786,7 @@ const destruirPerfilFalso = async () => {
     } catch (e) { /* la lista se actualizará al reentrar */ }
     // Lo que no se pudo subir se queda en la cola para reintentar.
     setArchivosUploader(fallidos);
-    setEstadoSubida({ activa: false, progreso: 0, total: 0, carpetaId: null, carpetaIds: [], carpetaNombre: '', fallidas: 0 });
+    setEstadoSubida({ activa: false, progreso: 0, total: 0, carpetaId: null, carpetaIds: [], carpetaNombre: '', fallidas: 0, porSet: {} });
     if (!fallidos.length) setMostrarUploader(false);
     const sets = carpetasCreadas.length ? ` Se crearon ${carpetasCreadas.length} sets nuevos (${carpetasCreadas.map(c => c.nombre).join(', ')}).` : '';
     setMensaje(fallidos.length
@@ -1437,11 +1441,15 @@ const destruirPerfilFalso = async () => {
                                 <Folder size={14} className={isActiva ? 'text-[#C8B69E]' : 'text-[#5A5955]'} />
                                 <span className="truncate">{carpeta.nombre}</span>
                               </div>
-                              {subiendoAqui ? (
-                                <span className="flex items-center gap-1 text-[10px] font-mono text-[#C8B69E]">
-                                  <Loader2 size={11} className="animate-spin" /> {estadoSubida.progreso}/{estadoSubida.total}
-                                </span>
-                              ) : (
+                              {subiendoAqui && estadoSubida.porSet?.[carpeta.id] ? (() => {
+                                const pr = estadoSubida.porSet[carpeta.id];
+                                const completo = pr.hechas >= pr.total;
+                                return (
+                                  <span className="flex items-center gap-1 text-[10px] font-mono text-[#C8B69E]">
+                                    {completo ? <Check size={11} /> : <Loader2 size={11} className="animate-spin" />} {pr.hechas}/{pr.total}
+                                  </span>
+                                );
+                              })() : (
                                 <span className={`text-[10px] px-1.5 py-0.5 rounded font-mono ${isActiva ? 'bg-fl-lino/20 text-white' : 'bg-[#E2DFD9] text-[#181816]'}`}>
                                   {cant}
                                 </span>
@@ -1638,7 +1646,8 @@ const destruirPerfilFalso = async () => {
                                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
                                   <Loader2 size={40} className="animate-spin" color={SAND} style={{ marginBottom: 16 }} />
                                   <h3 style={{ fontSize: 16, color: INK, margin: '0 0 8px 0' }}>Subiendo fotos a &quot;{estadoSubida.carpetaNombre}&quot;</h3>
-                                  <p style={{ color: TAUPE, fontSize: 13 }}>Subiendo {estadoSubida.progreso} de {estadoSubida.total}...{estadoSubida.fallidas > 0 && ` (${estadoSubida.fallidas} con error, se reintentarán al final)`}</p>
+                                  {(() => { const act = (carpetas.find(c => c.nombre === estadoSubida.carpetaNombre) || {}).id; const pr = estadoSubida.porSet?.[act]; return pr ? <p style={{ color: INK, fontSize: 13, margin: '0 0 4px' }}>{estadoSubida.carpetaNombre}: {pr.hechas} de {pr.total}</p> : null; })()}
+                                  <p style={{ color: TAUPE, fontSize: 13 }}>Total: {estadoSubida.progreso} de {estadoSubida.total}{estadoSubida.fallidas > 0 && ` (${estadoSubida.fallidas} con error, se reintentarán al final)`}</p>
                                   <div style={{ width: '100%', maxWidth: 400, height: 6, background: BORDER, borderRadius: 4, marginTop: 24, overflow: 'hidden' }}>
                                     <div style={{ height: '100%', background: SAND, width: `${(estadoSubida.progreso / estadoSubida.total) * 100}%`, transition: 'width 0.3s' }} />
                                   </div>

@@ -63,7 +63,7 @@ const GaleriaCliente = () => {
     const fetchEventoPorSlug = async () => {
       setCargandoInicial(true);
       const esUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slug);
-      let query = supabase.from('eventos').select('id,nombre,descripcion,logo_url,banner_url,es_gratis,precio_galeria,fecha_evento,estado,created_at,tipo_reconocimiento,slug,portada_url,configuracion_ui,precio_foto,moneda,requiere_pago_para_ver,ubicacion,url_slug,titulo_about,categoria,url_portada,tiene_clave,permitir_descarga');
+      let query = supabase.from('eventos').select('id,nombre,descripcion,logo_url,banner_url,es_gratis,precio_galeria,fecha_evento,estado,created_at,tipo_reconocimiento,slug,portada_url,configuracion_ui,precio_foto,moneda,requiere_pago_para_ver,ubicacion,url_slug,titulo_about,categoria,url_portada,tiene_clave,permitir_descarga,permitir_descarga_zip');
       query = esUUID ? query.eq('id', slug) : query.eq('url_slug', slug);
 
       const { data, error } = await query.single();
@@ -212,6 +212,21 @@ const GaleriaCliente = () => {
       window.location.assign(j.url);   // el servidor responde como archivo adjunto: la página no cambia
     } catch (e) { setErrorDescarga(e.message || 'No se pudo descargar.'); }
     finally { setDescargando(false); }
+  };
+
+  const [descargandoZip, setDescargandoZip] = useState(false);
+  const descargarTodo = async () => {
+    if (descargandoZip || !evento) return;
+    setDescargandoZip(true); setErrorDescarga('');
+    try {
+      let clave = '';
+      try { clave = sessionStorage.getItem(`clave_${evento.id}`) || ''; } catch { /* sin almacenamiento */ }
+      const r = await fetch('/api/descarga-zip', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ evento_id: evento.id, clave }) });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok || !j.url) throw new Error(j.error || 'No se pudo descargar.');
+      window.location.assign(j.url);
+    } catch (e) { setErrorDescarga(e.message || 'No se pudo descargar.'); }
+    finally { setTimeout(() => setDescargandoZip(false), 4000); }
   };
 
   const openLightbox = (fotosArray, i) => setLightboxData({ fotos: fotosArray, index: i });
@@ -428,6 +443,14 @@ const GaleriaCliente = () => {
                   /* Redujimos el pb-32 a pb-16 */
                   <section className="px-6 md:px-12 pb-16 max-w-[1600px] mx-auto w-full">
                     
+                    {evento?.permitir_descarga_zip && (
+                      <div className="flex flex-col items-end gap-2 mb-6">
+                        <button type="button" disabled={descargandoZip} onClick={descargarTodo} className="px-8 py-3 bg-[#181816] text-white text-[10px] uppercase tracking-[0.25em] hover:bg-fl-texto transition-all duration-500" style={{ opacity: descargandoZip ? 0.6 : 1, cursor: descargandoZip ? 'wait' : 'pointer' }}>
+                          {descargandoZip ? 'Preparando descarga…' : 'Descargar toda la colección'}
+                        </button>
+                        {errorDescarga && !lightboxData.fotos.length && <span style={{ fontSize: 12, color: '#A3392B' }}>{errorDescarga}</span>}
+                      </div>
+                    )}
                     {modoVista === 'editorial' && (
                       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 auto-rows-[120px] md:auto-rows-[180px] grid-flow-dense gap-2 md:gap-4">
                         {fotosGenerales.slice(0, mostrarCantidadGenerales).map((foto, index) => <RenderizarFoto key={foto.id} foto={foto} index={index} arrayOrigen={fotosGenerales} />)}

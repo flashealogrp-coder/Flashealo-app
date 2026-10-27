@@ -813,6 +813,16 @@ const destruirPerfilFalso = async () => {
     setMensaje({ tipo: 'exito', texto: nuevo ? 'Descarga activada: los clientes pueden bajar las fotos en tamaño real.' : 'Descarga desactivada.' });
   };
 
+  const cambiarDescargaZip = async () => {
+    const nuevo = !eventoActivo.permitir_descarga_zip;
+    if (nuevo && !window.confirm('¿Permitir que los clientes descarguen TODA la colección en un zip? Podrás apagarlo cuando quieras.')) return;
+    const { error } = await supabase.from('eventos').update({ permitir_descarga_zip: nuevo }).eq('id', eventoActivo.id);
+    if (error) { setMensaje({ tipo: 'error', texto: 'No se pudo cambiar la descarga completa. ¿Ya aplicaste la migración 0007?' }); return; }
+    setEventoActivo(prev => ({ ...prev, permitir_descarga_zip: nuevo }));
+    setListaEventos(prev => prev.map(ev => ev.id === eventoActivo.id ? { ...ev, permitir_descarga_zip: nuevo } : ev));
+    setMensaje({ tipo: 'exito', texto: nuevo ? 'Descarga completa activada: los clientes pueden bajar toda la colección en un zip.' : 'Descarga completa desactivada.' });
+  };
+
   const cambiarEstadoEvento = async (nuevo) => {
     if (nuevo === 'activo' && !window.confirm(`¿Publicar "${eventoActivo.nombre}"? Será visible para todo el público.`)) return;
     const { error } = await supabase.from('eventos').update({ estado: nuevo }).eq('id', eventoActivo.id);
@@ -1291,6 +1301,7 @@ const destruirPerfilFalso = async () => {
                     </button>
                     <button onClick={abrirSelectorPortada} style={{ background: 'rgba(255,255,255,0.15)', color: WHITE, border: 'none', padding: '10px 18px', borderRadius: 4, cursor: 'pointer', fontSize: 11, display: 'flex', alignItems: 'center', gap: 6 }}><ImageIcon size={13} /> Cambiar portada</button>
                     <button onClick={cambiarDescarga} title="Permitir que el cliente descargue las fotos en tamaño real" style={{ background: eventoActivo.permitir_descarga ? WHITE : 'rgba(255,255,255,0.15)', color: eventoActivo.permitir_descarga ? INK : WHITE, border: 'none', padding: '10px 18px', borderRadius: 4, cursor: 'pointer', fontSize: 11, display: 'flex', alignItems: 'center', gap: 6 }}><Download size={13} /> Descarga: {eventoActivo.permitir_descarga ? 'sí' : 'no'}</button>
+                    <button onClick={cambiarDescargaZip} title="Permitir que el cliente descargue toda la colección en un zip" style={{ background: eventoActivo.permitir_descarga_zip ? WHITE : 'rgba(255,255,255,0.15)', color: eventoActivo.permitir_descarga_zip ? INK : WHITE, border: 'none', padding: '10px 18px', borderRadius: 4, cursor: 'pointer', fontSize: 11, display: 'flex', alignItems: 'center', gap: 6 }}><Download size={13} /> Zip completo: {eventoActivo.permitir_descarga_zip ? 'sí' : 'no'}</button>
                     <button onClick={copiarEnlacePublico} style={{ background: SAND, color: INK, border: 'none', padding: '10px 18px', borderRadius: 4, cursor: 'pointer', fontSize: 11, display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600 }}>
                       <Share2 size={13} /> Copiar Enlace
                     </button>

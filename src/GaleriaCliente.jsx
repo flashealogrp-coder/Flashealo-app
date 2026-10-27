@@ -299,8 +299,8 @@ const GaleriaCliente = () => {
       "col-span-1 row-span-1", // 5: Cuadrado Pequeño
     ];
 
-    let containerClass = "relative group cursor-pointer transition-all duration-500 ease-out overflow-hidden z-0 bg-[#F9F8F5] ";
-    let imgClass = "filter saturate-[0.9] transition-transform duration-[1.5s] ease-out group-hover:scale-105 ";
+    let containerClass = "relative group cursor-pointer overflow-hidden z-0 bg-[#F9F8F5] ";
+    let imgClass = "block transition-transform duration-[1.5s] ease-out group-hover:scale-105 [backface-visibility:hidden] ";
 
     if (modoVista === 'editorial') {
       containerClass += editorialPatterns[(index * 5) % editorialPatterns.length] + " w-full h-full";
@@ -320,7 +320,7 @@ const GaleriaCliente = () => {
         onClick={() => openLightbox(arrayOrigen, index)}
       >
         <img src={foto.src} alt="Galería" decoding="async" className={imgClass}
-          style={{ animation: 'fl-aparece .5s ease-out both', ...(modoVista === 'editorial' && centrosCara[foto.path] ? { objectPosition: `${centrosCara[foto.path].x}% ${centrosCara[foto.path].y}%` } : {}) }} />
+          style={{ transform: 'translateZ(0)', ...(modoVista === 'editorial' && centrosCara[foto.path] ? { objectPosition: `${centrosCara[foto.path].x}% ${centrosCara[foto.path].y}%` } : {}) }} />
         
         {/* Hover Efecto Completo */}
         <div className="absolute inset-0 bg-fl-texto/0 group-hover:bg-fl-texto/30 active:bg-fl-texto/30 transition-colors duration-500 opacity-0 group-hover:opacity-100 active:opacity-100 flex items-center justify-center pointer-events-none z-20">

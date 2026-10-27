@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from './supabaseClient';
 import { urlAdmin } from './urlFotos';
 import PanelFotografos from './PanelFotografos';
+import PanelReservas from './PanelReservas';
+import PanelMiPagina from './PanelMiPagina';
 import { planificarReparto, MAX_POR_SET } from './marca/reparto';
 import { leerTodo } from './marca/paginar';
 import { separarPortada, unirPortada } from './marca/portada';
@@ -11,7 +13,7 @@ import {
   ChevronLeft, ChevronRight as ChevronRightIcon, Eye, Heart, Maximize2, X, 
   PanelLeftClose, PanelLeft, UploadCloud, ChevronDown, ChevronUp, MapPin, 
   AlertTriangle, Zap, User, Copy, LogOut, Hash, UserMinus, Combine, Check, 
-  ScanFace, ScanLine, Share2, Edit2, Columns, LayoutGrid, Square, Info, Camera, Sliders, HardDrive, Monitor, Smartphone, Mail, Download, Users
+  ScanFace, ScanLine, Share2, Edit2, Columns, LayoutGrid, Square, Info, Camera, Sliders, HardDrive, Monitor, Smartphone, Mail, Download, Users, CalendarCheck, Globe
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -345,6 +347,7 @@ useEffect(() => {
   const esSuper = contexto?.es_admin === true;
   const miSlug = contexto && contexto.estado === 'activo' ? contexto.slug : null;
   // Prefijo de carpeta propio: el superadmin conserva las rutas de siempre; cada fotógrafo trabaja dentro de <su-slug>/.
+  const avisarPanel = useCallback((tipo, texto) => setMensaje({ tipo, texto }), []);
   const rutaBase = esSuper ? '' : (miSlug ? `${miSlug}/` : '');
 
   useEffect(() => {
@@ -1135,9 +1138,17 @@ const destruirPerfilFalso = async () => {
           </button>
         </div>
         <nav style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1, marginTop: 12 }}>
-          <button onClick={() => { setVista('grid'); setEventoActivo(null); }} className="flex items-center w-full p-3 hover:bg-fl-arena transition-colors" style={{ color: !eventoActivo ? INK : TAUPE, paddingLeft: sidebarOpen ? 20 : 0, justifyContent: sidebarOpen ? 'flex-start' : 'center' }}>
+          <button onClick={() => { setVista('grid'); setEventoActivo(null); }} className="flex items-center w-full p-3 hover:bg-fl-arena transition-colors" style={{ color: ['grid','form','dashboard'].includes(vista) ? INK : TAUPE, paddingLeft: sidebarOpen ? 20 : 0, justifyContent: sidebarOpen ? 'flex-start' : 'center' }}>
             <Grid size={18} strokeWidth={1.5}/> {sidebarOpen && <span className="ml-3 text-[13px]">Colecciones</span>}
           </button>
+          <button onClick={() => { setVista('reservas'); setEventoActivo(null); }} className="flex items-center w-full p-3 hover:bg-fl-arena transition-colors" style={{ color: vista === 'reservas' ? INK : TAUPE, paddingLeft: sidebarOpen ? 20 : 0, justifyContent: sidebarOpen ? 'flex-start' : 'center', background: 'none', border: 'none', cursor: 'pointer' }}>
+            <CalendarCheck size={18} strokeWidth={1.5}/> {sidebarOpen && <span className="ml-3 text-[13px]">Reservas</span>}
+          </button>
+          {miSlug && (
+            <button onClick={() => { setVista('mipagina'); setEventoActivo(null); }} className="flex items-center w-full p-3 hover:bg-fl-arena transition-colors" style={{ color: vista === 'mipagina' ? INK : TAUPE, paddingLeft: sidebarOpen ? 20 : 0, justifyContent: sidebarOpen ? 'flex-start' : 'center', background: 'none', border: 'none', cursor: 'pointer' }}>
+              <Globe size={18} strokeWidth={1.5}/> {sidebarOpen && <span className="ml-3 text-[13px]">Mi página</span>}
+            </button>
+          )}
           {esSuper && (
             <button onClick={() => { setVista('fotografos'); setEventoActivo(null); }} className="flex items-center w-full p-3 hover:bg-fl-arena transition-colors" style={{ color: vista === 'fotografos' ? INK : TAUPE, paddingLeft: sidebarOpen ? 20 : 0, justifyContent: sidebarOpen ? 'flex-start' : 'center', background: 'none', border: 'none', cursor: 'pointer' }}>
               <Users size={18} strokeWidth={1.5}/> {sidebarOpen && <span className="ml-3 text-[13px]">Fotógrafos</span>}
@@ -1184,7 +1195,9 @@ const destruirPerfilFalso = async () => {
             }} 
             className="custom-scrollbar"
           >        
-          {vista === 'fotografos' && esSuper && <PanelFotografos avisar={(tipo, texto) => setMensaje({ tipo, texto })} />}
+          {vista === 'reservas' && <PanelReservas esSuper={esSuper} nombreNegocio={contexto?.nombre} avisar={avisarPanel} />}
+          {vista === 'mipagina' && miSlug && <PanelMiPagina slug={miSlug} avisar={avisarPanel} />}
+          {vista === 'fotografos' && esSuper && <PanelFotografos avisar={avisarPanel} />}
 
           {vista === 'grid' && (
             <div style={{ maxWidth: 1200, margin: '0 auto', padding: '28px 32px' }}>

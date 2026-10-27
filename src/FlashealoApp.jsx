@@ -160,9 +160,10 @@ const FlashealoApp = () => {
 
     const { nombre, correo, telefono, servicio, fecha, mensaje, contactar_whatsapp } = formData;
 
-    const { error } = await supabase
-      .from('reservas')
-      .insert([{ nombre, correo, telefono, servicio, fecha: fecha || null, mensaje, contactar_whatsapp }]);
+    const { error } = await supabase.rpc('crear_reserva', {
+      p_slug: 'flashealo', p_nombre: nombre, p_correo: correo, p_telefono: telefono,
+      p_servicio: servicio, p_fecha: fecha || null, p_mensaje: mensaje, p_whatsapp: contactar_whatsapp,
+    });
 
     setEnviando(false);
 

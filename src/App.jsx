@@ -11,6 +11,7 @@ import ResultadosAtleta from './ResultadosAtleta';
 import HomeEmpresa from './home/HomeEmpresa';
 import PaginaSport from './PaginaSport';
 import RegistroFotografo from './RegistroFotografo';
+import PaginaFotografo from './PaginaFotografo';
 import { lineaDelHost, ADMIN_EN_PRINCIPAL, urlAdminPrincipal } from './marca/anfitrion';
 
 // En una línea (sport.*) no hay panel propio: se envía al admin único de la empresa.
@@ -38,6 +39,9 @@ const App = () => {
       
       {/* Alta de fotógrafos: queda pendiente hasta que el superadmin la aprueba */}
       <Route path="/registro" element={<RegistroFotografo />} />
+
+      {/* Página pública y reservas de cada fotógrafo */}
+      <Route path="/f/:slug" element={<PaginaFotografo />} />
 
       {/* RUTA 3: Galería del Cliente */}
       <Route path="/cliente" element={<Cliente />} />

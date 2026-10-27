@@ -43,3 +43,16 @@ test('reparto: con carpetas, ordena por ruta relativa (subcarpetas agrupadas)', 
   const r = ordenarPorNombre([f('E/101/IMG_1.jpg'), f('E/100/IMG_9.jpg'), f('E/100/IMG_10.jpg')]).map((x) => x.webkitRelativePath);
   assert.deepEqual(r, ['E/100/IMG_9.jpg', 'E/100/IMG_10.jpg', 'E/101/IMG_1.jpg']);
 });
+
+test('reparto: usa primero los sets que ya existen y tienen cupo, y solo después crea nuevos', () => {
+  const sets = [{ id: 'b', nombre: 'Set 2', cantidad: 0 }, { id: 'c', nombre: 'Set 3', cantidad: 0 }, { id: 'd', nombre: 'Set 4', cantidad: 480 }, { id: 'e', nombre: 'Set 5', cantidad: 500 }];
+  const t = planificarReparto({ archivos: fotos(1489), yaEnSetActual: 0, nombresExistentes: ['Set 1', 'Set 2', 'Set 3', 'Set 4', 'Set 5'], setsExistentes: sets });
+  assert.deepEqual(t.map((x) => [x.destino, x.nombre || '-', x.archivos.length]),
+    [['actual', '-', 500], ['existente', 'Set 2', 500], ['existente', 'Set 3', 489]]);
+  assert.equal(t.reduce((a, x) => a + x.archivos.length, 0), 1489);
+});
+
+test('reparto: si los sets existentes no alcanzan, el resto va a sets nuevos', () => {
+  const t = planificarReparto({ archivos: fotos(1200), yaEnSetActual: 0, nombresExistentes: ['Set 1', 'Set 2'], setsExistentes: [{ id: 'b', nombre: 'Set 2', cantidad: 300 }] });
+  assert.deepEqual(t.map((x) => [x.destino, x.nombre || '-', x.archivos.length]), [['actual', '-', 500], ['existente', 'Set 2', 200], ['nuevo', 'Set 3', 500]]);
+});

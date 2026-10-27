@@ -806,6 +806,13 @@ const destruirPerfilFalso = async () => {
     return false;
   };
 
+  // Sets ya creados con cupo, en el orden en que se usarán: primero los que siguen al actual y después los anteriores.
+  const setsParaReparto = () => {
+    const idx = carpetas.findIndex(c => c.id === carpetaActiva?.id);
+    const orden = idx < 0 ? carpetas : [...carpetas.slice(idx + 1), ...carpetas.slice(0, idx)];
+    return orden.map(c => ({ id: c.id, nombre: c.nombre, cantidad: fotosEvento.filter(f => f.carpeta_id === c.id).length }));
+  };
+
   const iniciarSubidaMasiva = async () => {
     if (archivosUploader.length === 0 || !carpetaActiva || estadoSubida.activa) return;
     cancelarSubidaRef.current = false; setCancelandoSubida(false);
@@ -813,7 +820,7 @@ const destruirPerfilFalso = async () => {
     const yaEnSet = fotosEvento.filter(f => f.carpeta_id === carpetaInicio.id).length;
     // Con el reparto automático: llena el set actual hasta el máximo y crea Set 1, Set 2… para el resto.
     const tramos = repartirAuto
-      ? planificarReparto({ archivos: archivosUploader, yaEnSetActual: yaEnSet, nombresExistentes: carpetas.map(c => c.nombre), max: maxPorSet })
+      ? planificarReparto({ archivos: archivosUploader, yaEnSetActual: yaEnSet, nombresExistentes: carpetas.map(c => c.nombre), max: maxPorSet, setsExistentes: setsParaReparto() })
       : [{ destino: 'actual', archivos: archivosUploader }];
     const total = archivosUploader.length;
     const tramoActual = tramos.find(t => t.destino === 'actual');
@@ -832,6 +839,10 @@ const destruirPerfilFalso = async () => {
         if (error || !data?.[0]) { fallidos.push(...tramo.archivos); hechas += tramo.archivos.length; setEstadoSubida(prev => ({ ...prev, progreso: hechas, fallidas: fallidos.length })); continue; }
         carpeta = data[0]; carpetasCreadas.push(carpeta);
         setCarpetas(prev => [...prev, carpeta]);
+        setEstadoSubida(prev => ({ ...prev, carpetaIds: [...prev.carpetaIds, carpeta.id], porSet: { ...prev.porSet, [carpeta.id]: { hechas: 0, total: tramo.archivos.length } } }));
+      }
+      if (tramo.destino === 'existente') {
+        carpeta = carpetas.find(c => c.id === tramo.carpetaId) || { id: tramo.carpetaId, nombre: tramo.nombre };
         setEstadoSubida(prev => ({ ...prev, carpetaIds: [...prev.carpetaIds, carpeta.id], porSet: { ...prev.porSet, [carpeta.id]: { hechas: 0, total: tramo.archivos.length } } }));
       }
       setEstadoSubida(prev => ({ ...prev, carpetaNombre: carpeta.nombre }));
@@ -1785,9 +1796,13 @@ const destruirPerfilFalso = async () => {
                                         fotos
                                       </label>
                                       {repartirAuto && (() => {
-                                        const tr = planificarReparto({ archivos: archivosUploader, yaEnSetActual: fotosEvento.filter(f => f.carpeta_id === carpetaActiva?.id).length, nombresExistentes: carpetas.map(c => c.nombre), max: maxPorSet });
-                                        const nuevos = tr.filter(t => t.destino === 'nuevo').length;
-                                        return <span style={{ fontSize: 11, color: TAUPE, marginBottom: 14 }}>{nuevos > 0 ? `Se llenará "${carpetaActiva?.nombre}" y se crearán ${nuevos} sets nuevos (${tr.filter(t => t.destino === 'nuevo').map(t => t.nombre).join(', ')})` : `Todo cabe en "${carpetaActiva?.nombre}"`}</span>;
+                                        const tr = planificarReparto({ archivos: archivosUploader, yaEnSetActual: fotosEvento.filter(f => f.carpeta_id === carpetaActiva?.id).length, nombresExistentes: carpetas.map(c => c.nombre), max: maxPorSet, setsExistentes: setsParaReparto() });
+                                        const nuevos = tr.filter(t => t.destino === 'nuevo');
+                                        const usados = tr.filter(t => t.destino === 'existente');
+                                        const partes = [`Se llenará "${carpetaActiva?.nombre}"`];
+                                        if (usados.length) partes.push(`seguirá con ${usados.map(t => t.nombre).join(', ')}`);
+                                        if (nuevos.length) partes.push(`y creará ${nuevos.length} set${nuevos.length > 1 ? 's' : ''} nuevo${nuevos.length > 1 ? 's' : ''} (${nuevos.map(t => t.nombre).join(', ')})`);
+                                        return <span style={{ fontSize: 11, color: TAUPE, marginBottom: 14 }}>{tr.length > 1 ? partes.join(', ').replace(', y creará', ' y creará') : `Todo cabe en "${carpetaActiva?.nombre}"`}</span>;
                                       })()}
                                       <button onClick={iniciarSubidaMasiva} style={{ background: INK, color: WHITE, border: 'none', padding: '12px 32px', borderRadius: 4, cursor: 'pointer', fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Iniciar Subida</button>
                                       <button onClick={() => setArchivosUploader([])} style={{ marginTop: 10, background: 'none', border: 'none', color: TAUPE, fontSize: 11, cursor: 'pointer', textDecoration: 'underline' }}>Vaciar cola</button>

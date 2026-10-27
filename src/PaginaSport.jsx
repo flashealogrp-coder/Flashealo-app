@@ -17,7 +17,7 @@ export default function PaginaSport() {
     <div style={{ minHeight: '100vh', background: '#F9F8F5', color: '#181816' }}>
       <header className="fl-pildora">
         <a href={inicio} className="fl-marca" aria-label="Flashealo, inicio">
-          FLASHEALO <span className="fl-etiqueta" style={{ marginLeft: 10, letterSpacing: '0.2em' }}>Sport</span>
+          FLASHEALO
         </a>
         <a href={inicio} className="fl-boton fl-boton-linea fl-boton-pildora">
           Inicio <span className="fl-flecha" aria-hidden="true">↗</span>

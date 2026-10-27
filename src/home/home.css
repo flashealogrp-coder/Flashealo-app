@@ -75,9 +75,13 @@
   position: relative;
   display: flex;
   align-items: flex-end;
+  padding: clamp(7rem, 15vh, 9.5rem) 0 clamp(3rem, 8vh, 5rem);
+}
+
+/* Con foto o video de portada, ocupa la pantalla; sin foto, se ajusta al contenido */
+.fh-portada[style] {
   min-height: 82vh;
   min-height: 82svh;
-  padding: 7rem 0 clamp(2.5rem, 8vh, 5rem);
 }
 
 .fh-portada[style] {

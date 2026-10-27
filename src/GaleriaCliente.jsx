@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from './supabaseClient';
 import { urlFotoPublica } from './urlFotos';
+import { resolverPortada } from './marca/portada';
 import { X, ChevronLeft, ChevronRight, Loader2, AlertCircle, Lock, ChevronDown, Mail, Columns, LayoutGrid, Square } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -15,25 +16,10 @@ const WHITE  = '#F9F8F5';
 const DOMINIO_R2 = import.meta.env.VITE_R2_DOMINIO || 'https://pub-c4c062c3f8754b2d9ff6de40e9d6d713.r2.dev'; 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://muvzhnnsdnztlhynuipd.supabase.co";
 
-// 🌟 MAGIA: Renderizadores Inteligentes para leer las Coordenadas de la Portada
-const getUrlCompleta = (ruta) => {
-  if (!ruta) return null;
-  if (ruta.includes('http')) return ruta;
-  if (ruta.includes('/portadas/') || ruta.includes('/logos/')) return `${SUPABASE_URL}/storage/v1/object/public/assets/${ruta}`;
-  return `${DOMINIO_R2}/${ruta}`;
-};
-
-const renderCoverUrl = (urlStr) => {
-  if (!urlStr) return null;
-  const [rawUrl] = urlStr.split('@');
-  return getUrlCompleta(rawUrl);
-};
-
-const renderCoverPosition = (urlStr) => {
-  if (!urlStr || !urlStr.includes('@')) return '50% 50%';
-  const [, pos] = urlStr.split('@');
-  return `${pos.split(',')[0]}% ${pos.split(',')[1]}%`;
-};
+// Portada del evento: ruta + encuadre ("ruta@x,y"); ver marca/portada.js
+const CFG_PORTADA = { dominioFotos: import.meta.env.VITE_FOTOS_DOMINIO || '', supabaseUrl: SUPABASE_URL };
+const renderCoverUrl = (valor) => resolverPortada(valor, CFG_PORTADA).src;
+const renderCoverPosition = (valor) => resolverPortada(valor, CFG_PORTADA).pos;
 
 const GaleriaCliente = () => {
   const { slug } = useParams(); 

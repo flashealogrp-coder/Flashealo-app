@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from './supabaseClient';
 import { urlAdmin } from './urlFotos';
+import { separarPortada, unirPortada } from './marca/portada';
 import { 
   Loader2, Plus, Calendar, Settings, Image as ImageIcon, Trash2, CheckCircle, 
   Lock, Unlock, Grid, Folder, Star, ArrowLeft, FolderInput, CheckCircle2, 
@@ -35,7 +36,7 @@ const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://muvzhnnsdnztl
 const getUrlCompleta = (ruta) => {
   if (!ruta) return null;
   if (ruta.includes('http')) return ruta;
-  if (ruta.includes('/portadas/') || ruta.includes('/logos/')) return `${SUPABASE_URL}/storage/v1/object/public/assets/${ruta}`;
+  if (/(^|\/)(portadas|logos)\//.test(ruta)) return `${SUPABASE_URL}/storage/v1/object/public/assets/${ruta}`;
   return urlAdmin(ruta) || `${DOMINIO_R2}/${ruta}`;
 };
 
@@ -187,7 +188,11 @@ export default function AdminDashboard() {
   const [layoutModo, setLayoutModo] = useState('grid-small'); // 'masonry' | 'grid-small' | 'grid-big' | 'single'
   const [separarFavoritas, setSepararFavoritas] = useState(false);
 
-  const [modalPortada, setModalPortada] = useState(null); 
+  const [modalPortada, setModalPortada] = useState(null);
+  const [selectorPortada, setSelectorPortada] = useState(false);
+  const [tabPortada, setTabPortada] = useState('coleccion');
+  const [portadaMostrar, setPortadaMostrar] = useState(120);
+  const [subiendoPortada, setSubiendoPortada] = useState(false);
   const [portadaPos, setPortadaPos] = useState({ x: 50, y: 50 });
   const [isDraggingPortada, setIsDraggingPortada] = useState(false);
   const dragStart = useRef(null);
@@ -740,11 +745,47 @@ const destruirPerfilFalso = async () => {
     setMensaje({ tipo: 'exito', texto: `Fotografías movidas correctamente.` });
   };
 
-  const hacerPortada = async (url) => {
-    await supabase.from('eventos').update({ portada_url: url }).eq('id', eventoActivo.id);
-    setEventoActivo(prev => ({ ...prev, portada_url: url }));
-    setListaEventos(prev => prev.map(ev => ev.id === eventoActivo.id ? { ...ev, portada_url: url } : ev));
-    setMensaje({ tipo: 'exito', texto: 'Portada actualizada con su nuevo encuadre.' });
+  const hacerPortada = async (valor) => {
+    const { error } = await supabase.from('eventos').update({ portada_url: valor }).eq('id', eventoActivo.id);
+    if (error) { setMensaje({ tipo: 'error', texto: 'No se pudo guardar la portada.' }); return false; }
+    setEventoActivo(prev => ({ ...prev, portada_url: valor }));
+    setListaEventos(prev => prev.map(ev => ev.id === eventoActivo.id ? { ...ev, portada_url: valor } : ev));
+    setMensaje({ tipo: 'exito', texto: 'Portada actualizada.' });
+    return true;
+  };
+
+  const abrirSelectorPortada = () => { setTabPortada(fotosEvento.length > 0 ? 'coleccion' : 'subir'); setPortadaMostrar(120); setSelectorPortada(true); };
+
+  const elegirFotoParaPortada = (foto) => {
+    const actual = separarPortada(eventoActivo?.portada_url);
+    const misma = actual.ruta === foto.url_original;
+    setPortadaPos(misma ? { x: actual.x, y: actual.y } : { x: 50, y: 50 });
+    setModalPortada({ url: foto.url_original });
+    setSelectorPortada(false);
+  };
+
+  const subirPortadaNueva = async (archivo) => {
+    if (!archivo) return;
+    if (!archivo.type.startsWith('image/')) { setMensaje({ tipo: 'error', texto: 'Elige un archivo de imagen.' }); return; }
+    if (archivo.size > 15 * 1024 * 1024) { setMensaje({ tipo: 'error', texto: 'La imagen pesa más de 15 MB. Usa una más liviana.' }); return; }
+    setSubiendoPortada(true);
+    const ext = (archivo.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 5) || 'jpg';
+    const ruta = `portadas/${Date.now()}_portada.${ext}`;
+    const { error } = await supabase.storage.from('assets').upload(ruta, archivo, { contentType: archivo.type });
+    setSubiendoPortada(false);
+    if (error) { setMensaje({ tipo: 'error', texto: 'No se pudo subir la imagen.' }); return; }
+    setPortadaPos({ x: 50, y: 50 });
+    setModalPortada({ url: ruta });
+    setSelectorPortada(false);
+  };
+
+  const cambiarEstadoEvento = async (nuevo) => {
+    if (nuevo === 'activo' && !window.confirm(`¿Publicar "${eventoActivo.nombre}"? Será visible para todo el público.`)) return;
+    const { error } = await supabase.from('eventos').update({ estado: nuevo }).eq('id', eventoActivo.id);
+    if (error) { setMensaje({ tipo: 'error', texto: 'No se pudo cambiar el estado.' }); return; }
+    setEventoActivo(prev => ({ ...prev, estado: nuevo }));
+    setListaEventos(prev => prev.map(ev => ev.id === eventoActivo.id ? { ...ev, estado: nuevo } : ev));
+    setMensaje({ tipo: 'exito', texto: nuevo === 'activo' ? 'Colección publicada.' : nuevo === 'oculto' ? 'Colección oculta. Solo tú la ves.' : 'Colección finalizada.' });
   };
 
   const handleMainScroll = (e) => {
@@ -948,7 +989,7 @@ const destruirPerfilFalso = async () => {
                     nombre: '', 
                     url_slug: '', 
                     categoria: 'sport',
-                    estado: 'activo',
+                    estado: 'oculto',
                     tipo_reconocimiento: 'facial', // 🌟 Predeterminado Facial
                     fecha_evento: '', 
                     ubicacion: '', 
@@ -987,6 +1028,7 @@ const destruirPerfilFalso = async () => {
                             {esPrivado ? <Lock size={10} color={SAND} /> : <Unlock size={10} color={TAUPE} />}
                             <span style={{ fontSize: 8, textTransform: 'uppercase', fontWeight: 600 }}>{esPrivado ? 'Privada' : 'Pública'}</span>
                           </div>
+                          {ev.estado === 'oculto' && <div style={{ position: 'absolute', top: 10, left: 10, background: SAND, color: INK, padding: '3px 8px', borderRadius: 4, fontSize: 8, textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.08em' }}>Borrador</div>}
                         </div>
                         <div style={{ padding: 14 }}>
                           <h3 style={{ fontSize: 14, fontWeight: 600, margin: '0 0 8px 0', color: INK }}>{ev.nombre}</h3>
@@ -1161,9 +1203,9 @@ const destruirPerfilFalso = async () => {
                     <div>
                       <label className="text-[10px] uppercase tracking-widest text-[#181816] font-bold mb-2 block">Estado de Publicación</label>
                       <select value={formData.estado} onChange={e => setFormData({...formData, estado: e.target.value})} className="w-full p-3 bg-[#F9F8F5] outline-none border border-[#E2DFD9] focus:border-[#C8B69E] font-serif rounded-sm transition-colors">
-                        <option value="activo">Activo (Público)</option>
-                        <option value="oculto">Oculto (Borrador Privado)</option>
-                        <option value="inactivo">Inactivo (Archivado)</option>
+                        <option value="oculto">Oculto (borrador, solo tú lo ves)</option>
+                        <option value="activo">Activo (público)</option>
+                        <option value="finalizado">Finalizado (público, evento cerrado)</option>
                       </select>
                     </div>
 
@@ -1206,10 +1248,14 @@ const destruirPerfilFalso = async () => {
                 <img src={renderCoverUrl(eventoActivo.portada_url) || "https://images.unsplash.com/photo-1541534741688?w=1200"} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: renderCoverPosition(eventoActivo.portada_url), opacity: 0.4 }} />
                 <div style={{ position: 'relative', zIndex: 10, width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div>
-                    <h1 style={{ fontSize: 32, fontFamily: 'var(--fl-serif)', color: WHITE, margin: '0 0 8px 0', textShadow: '0 2px 10px rgba(0,0,0,0.5)' }}>{eventoActivo.nombre}</h1>
+                    <h1 style={{ fontSize: 32, fontFamily: 'var(--fl-serif)', color: WHITE, margin: '0 0 8px 0', textShadow: '0 2px 10px rgba(0,0,0,0.5)' }}>{eventoActivo.nombre}{eventoActivo.estado === 'oculto' && <span style={{ marginLeft: 12, verticalAlign: 'middle', fontSize: 10, fontFamily: 'system-ui, sans-serif', letterSpacing: '0.14em', textTransform: 'uppercase', background: SAND, color: INK, padding: '4px 9px', borderRadius: 3 }}>Borrador</span>}</h1>
                     <p style={{ color: 'rgba(255,255,255,0.9)', fontSize: 12, margin: 0, textTransform: 'uppercase', letterSpacing: '0.1em' }}>{eventoActivo.fecha_evento || 'Sin fecha'}</p>
                   </div>
                   <div style={{ display: 'flex', gap: 8 }}>
+                    <button onClick={() => cambiarEstadoEvento(eventoActivo.estado === 'oculto' ? 'activo' : 'oculto')} style={{ background: eventoActivo.estado === 'oculto' ? WHITE : 'rgba(255,255,255,0.15)', color: eventoActivo.estado === 'oculto' ? INK : WHITE, border: 'none', padding: '10px 18px', borderRadius: 4, cursor: 'pointer', fontSize: 11, display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600 }}>
+                      {eventoActivo.estado === 'oculto' ? <><Unlock size={13} /> Publicar</> : <><Lock size={13} /> Ocultar</>}
+                    </button>
+                    <button onClick={abrirSelectorPortada} style={{ background: 'rgba(255,255,255,0.15)', color: WHITE, border: 'none', padding: '10px 18px', borderRadius: 4, cursor: 'pointer', fontSize: 11, display: 'flex', alignItems: 'center', gap: 6 }}><ImageIcon size={13} /> Cambiar portada</button>
                     <button onClick={copiarEnlacePublico} style={{ background: SAND, color: INK, border: 'none', padding: '10px 18px', borderRadius: 4, cursor: 'pointer', fontSize: 11, display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600 }}>
                       <Share2 size={13} /> Copiar Enlace
                     </button>
@@ -2293,6 +2339,7 @@ const destruirPerfilFalso = async () => {
                       </button>
                       
                       <button onClick={() => {
+                        setLightboxIndex(null);
                         setPortadaPos({ x: 50, y: 50 });
                         setModalPortada({ url: fotoActual.url_original });
                       }} style={{ background: 'none', border: 'none', color: WHITE, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
@@ -2471,6 +2518,80 @@ const destruirPerfilFalso = async () => {
 
           {/* LUPA MÁGICA DE DETECCIONES DE IA */}
           <AnimatePresence>
+            {selectorPortada && eventoActivo && (
+              <div role="dialog" aria-modal="true" aria-label="Cambiar portada" onClick={() => setSelectorPortada(false)} style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(24,24,22,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+                <div onClick={(e) => e.stopPropagation()} style={{ background: WHITE, width: '100%', maxWidth: 880, maxHeight: '88vh', display: 'flex', flexDirection: 'column', borderRadius: 6, overflow: 'hidden' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 24px', borderBottom: `1px solid ${BORDER}` }}>
+                    <h2 style={{ margin: 0, fontSize: 18, fontWeight: 500, fontFamily: 'var(--fl-serif)' }}>Cambiar portada</h2>
+                    <button onClick={() => setSelectorPortada(false)} aria-label="Cerrar" style={{ background: 'none', border: 'none', cursor: 'pointer', color: TAUPE }}><X size={20} /></button>
+                  </div>
+                  <div style={{ display: 'flex', gap: 4, padding: '12px 24px 0', borderBottom: `1px solid ${BORDER}` }}>
+                    {[['coleccion', `De esta colección (${fotosEvento.length})`], ['subir', 'Subir imagen']].map(([id, texto]) => (
+                      <button key={id} onClick={() => setTabPortada(id)} style={{ background: 'none', border: 'none', borderBottom: tabPortada === id ? `2px solid ${INK}` : '2px solid transparent', padding: '8px 14px', fontSize: 12, cursor: 'pointer', color: tabPortada === id ? INK : TAUPE, fontWeight: tabPortada === id ? 600 : 400 }}>{texto}</button>
+                    ))}
+                  </div>
+                  <div style={{ padding: 24, overflowY: 'auto', flex: 1 }}>
+                    {tabPortada === 'coleccion' ? (
+                      fotosEvento.length === 0 ? (
+                        <p style={{ color: TAUPE, fontSize: 13, margin: 0 }}>Esta colección todavía no tiene fotos. Sube alguna o usa "Subir imagen".</p>
+                      ) : (
+                        <>
+                          <p style={{ color: TAUPE, fontSize: 12, margin: '0 0 14px' }}>Elige una foto. En el siguiente paso ajustas el encuadre. El público la verá con la marca de agua.</p>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: 8 }}>
+                            {fotosEvento.slice(0, portadaMostrar).map((f) => (
+                              <button key={f.id} onClick={() => elegirFotoParaPortada(f)} title="Usar como portada" style={{ padding: 0, border: `1px solid ${BORDER}`, background: '#E2DFD9', borderRadius: 3, cursor: 'pointer', aspectRatio: '4 / 3', overflow: 'hidden' }}>
+                                <img src={resolverUrlFoto(f)} alt="" loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                              </button>
+                            ))}
+                          </div>
+                          {fotosEvento.length > portadaMostrar && (
+                            <button onClick={() => setPortadaMostrar(n => n + 120)} style={{ marginTop: 16, padding: '10px 20px', background: WHITE, border: `1px solid ${BORDER}`, borderRadius: 4, fontSize: 12, cursor: 'pointer' }}>Mostrar más ({fotosEvento.length - portadaMostrar} restantes)</button>
+                          )}
+                        </>
+                      )
+                    ) : (
+                      <div style={{ border: `2px dashed ${TAUPE}`, borderRadius: 8, padding: '48px 24px', textAlign: 'center' }}>
+                        <UploadCloud size={36} color={TAUPE} style={{ marginBottom: 12 }} />
+                        <p style={{ fontSize: 14, color: INK, margin: '0 0 6px', fontWeight: 500 }}>Sube una imagen para la portada</p>
+                        <p style={{ fontSize: 12, color: TAUPE, margin: '0 0 18px' }}>JPG o PNG, hasta 15 MB. Mejor horizontal.</p>
+                        <label style={{ display: 'inline-block', padding: '10px 24px', background: INK, color: WHITE, borderRadius: 4, fontSize: 12, cursor: subiendoPortada ? 'wait' : 'pointer', opacity: subiendoPortada ? 0.6 : 1 }}>
+                          {subiendoPortada ? 'Subiendo...' : 'Elegir archivo'}
+                          <input type="file" accept="image/*" disabled={subiendoPortada} onChange={(e) => { subirPortadaNueva(e.target.files?.[0]); e.target.value = ''; }} style={{ display: 'none' }} />
+                        </label>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {modalPortada && eventoActivo && (() => {
+              const origen = renderCoverUrl(modalPortada.url);
+              const posCss = `${portadaPos.x}% ${portadaPos.y}%`;
+              return (
+                <div role="dialog" aria-modal="true" aria-label="Encuadre de la portada" onClick={() => setModalPortada(null)} style={{ position: 'fixed', inset: 0, zIndex: 310, background: 'rgba(24,24,22,0.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+                  <div onClick={(e) => e.stopPropagation()} style={{ background: WHITE, width: '100%', maxWidth: 720, maxHeight: '92vh', overflowY: 'auto', borderRadius: 6, padding: 24 }}>
+                    <h2 style={{ margin: '0 0 6px', fontSize: 18, fontWeight: 500, fontFamily: 'var(--fl-serif)' }}>Encuadra la portada</h2>
+                    <p style={{ margin: '0 0 16px', fontSize: 12, color: TAUPE }}>Arrastra la imagen para elegir qué parte se ve.</p>
+                    <div onPointerDown={handlePointerDown} onPointerMove={handlePointerMove} style={{ position: 'relative', width: '100%', aspectRatio: '16 / 9', background: INK, overflow: 'hidden', borderRadius: 4, cursor: isDraggingPortada ? 'grabbing' : 'grab', touchAction: 'none', userSelect: 'none' }}>
+                      <img src={origen || ''} alt="" draggable={false} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: posCss, pointerEvents: 'none' }} />
+                    </div>
+                    <p style={{ margin: '16px 0 6px', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.14em', color: TAUPE }}>Así se verá en el banner</p>
+                    <div style={{ width: '100%', height: 84, background: INK, overflow: 'hidden', borderRadius: 4 }}>
+                      <img src={origen || ''} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: posCss, opacity: 0.6, display: 'block' }} />
+                    </div>
+                    <div style={{ display: 'flex', gap: 10, justifyContent: 'space-between', marginTop: 20, flexWrap: 'wrap' }}>
+                      <button onClick={() => { setModalPortada(null); abrirSelectorPortada(); }} style={{ padding: '10px 18px', background: WHITE, border: `1px solid ${BORDER}`, borderRadius: 4, fontSize: 12, cursor: 'pointer' }}>Elegir otra</button>
+                      <div style={{ display: 'flex', gap: 10 }}>
+                        <button onClick={() => setModalPortada(null)} style={{ padding: '10px 18px', background: WHITE, border: `1px solid ${BORDER}`, borderRadius: 4, fontSize: 12, cursor: 'pointer' }}>Cancelar</button>
+                        <button onClick={async () => { if (await hacerPortada(unirPortada(modalPortada.url, portadaPos.x, portadaPos.y))) setModalPortada(null); }} style={{ padding: '10px 22px', background: INK, color: WHITE, border: 'none', borderRadius: 4, fontSize: 12, cursor: 'pointer', fontWeight: 600 }}>Guardar portada</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+
             {zoomCara && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-fl-texto/90 backdrop-blur-sm" onClick={() => setZoomCara(null)}>
                 <div className="p-6 max-w-4xl w-full bg-[#181816] border border-[#333] relative flex justify-center shadow-2xl" onClick={e => e.stopPropagation()}>

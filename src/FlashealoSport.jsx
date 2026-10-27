@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 // IMPORTAMOS EL NUEVO MÓDULO
 import CameraBiometrica from './CameraBiometrica';
 import { HERO_SPORT } from './marca/sport';
+import { resolverPortada } from './marca/portada';
 import './sport/sport.css';
 
 const PALABRAS_RULETA = [
@@ -16,6 +17,8 @@ const PALABRAS_RULETA = [
   'Kickboxing', 'Softbol', 'Automovilismo', 'Rally',
   'Rugby'
 ];
+
+const CFG_PORTADA = { dominioFotos: import.meta.env.VITE_FOTOS_DOMINIO || '', supabaseUrl: import.meta.env.VITE_SUPABASE_URL || '' };
 
 const FlashealoSport = ({ isMobile }) => {
   const navigate = useNavigate();
@@ -58,6 +61,7 @@ const FlashealoSport = ({ isMobile }) => {
         .select('id,nombre,descripcion,logo_url,banner_url,es_gratis,precio_galeria,fecha_evento,estado,created_at,tipo_reconocimiento,slug,portada_url,configuracion_ui,precio_foto,moneda,requiere_pago_para_ver,ubicacion,url_slug,titulo_about,categoria,url_portada,tiene_clave')
         .eq('categoria', 'sport')
         .eq('tiene_clave', false)
+        .neq('estado', 'oculto')
         .order('fecha_evento', { ascending: false });
 
       if (data) setEventosSport(data);
@@ -257,7 +261,7 @@ const FlashealoSport = ({ isMobile }) => {
                 return (
                   <button type="button" key={evento.id} className="fs-ticket" onClick={() => abrirEvento(evento)}>
                     <div className="fs-portada">
-                      {(evento.portada_url || evento.url_portada) && <img src={evento.portada_url || evento.url_portada} alt="" loading="lazy" />}
+                      {(() => { const pt = resolverPortada(evento.portada_url || evento.url_portada, CFG_PORTADA); return pt.src ? <img src={pt.src} alt="" loading="lazy" style={{ objectPosition: pt.pos }} /> : null; })()}
                       {sello && <span className={`fs-sello ${sello.clase}`}>{sello.texto}</span>}
                     </div>
                     <div className="fs-corte" aria-hidden="true" />

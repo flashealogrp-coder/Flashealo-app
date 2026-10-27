@@ -1,0 +1,151 @@
+/* Componentes base del sistema visual. Se cargan una vez (main.jsx) y los usan todas las vistas:
+   home, galerías, panel, formularios. Prefijo fl- para no chocar con Tailwind ni con estilos antiguos. */
+
+/* ── Tipografía ─────────────────────────────────────────────────────────── */
+.fl-titulo {
+  font-family: var(--fl-serif);
+  font-weight: 300;
+  line-height: 1.08;
+  letter-spacing: -0.01em;
+  color: var(--fl-texto);
+  text-wrap: balance;
+}
+
+.fl-etiqueta {
+  font-family: var(--fl-sans);
+  font-size: 0.6875rem; /* 11 px */
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--fl-grafito);
+}
+
+.fl-parrafo {
+  font-family: var(--fl-sans);
+  font-size: 1rem;
+  line-height: 1.7;
+  color: var(--fl-grafito);
+}
+
+/* ── Barra flotante en píldora ──────────────────────────────────────────── */
+.fl-pildora {
+  position: fixed;
+  top: 1rem;
+  left: 50%;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  width: min(calc(100% - 2rem), 46rem);
+  padding: 0.5rem 0.5rem 0.5rem 1.4rem;
+  border: 1px solid var(--fl-borde);
+  border-radius: 999px;
+  background: var(--fl-vidrio);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  transform: translateX(-50%);
+}
+
+/* ── Botones: borde fino, mayúsculas pequeñas y flecha en diagonal ─────── */
+.fl-boton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  min-height: 2.75rem;
+  padding: 0.75rem 1.5rem;
+  border: 1px solid var(--fl-accion);
+  border-radius: var(--fl-radio);
+  background: var(--fl-accion);
+  color: var(--fl-accion-texto);
+  font-family: var(--fl-sans);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+.fl-boton:hover,
+.fl-boton:focus-visible {
+  background: transparent;
+  color: var(--fl-accion);
+}
+
+.fl-boton-linea {
+  background: transparent;
+  color: var(--fl-accion);
+}
+
+.fl-boton-linea:hover,
+.fl-boton-linea:focus-visible {
+  background: var(--fl-accion);
+  color: var(--fl-accion-texto);
+}
+
+.fl-boton-pildora {
+  border-radius: 999px;
+  min-height: 2.5rem;
+  padding: 0.55rem 1.2rem;
+}
+
+.fl-flecha {
+  display: inline-block;
+  font-size: 1.1em;
+  line-height: 1;
+  letter-spacing: 0;
+  transition: transform 0.25s ease;
+}
+
+.fl-boton:hover .fl-flecha,
+.fl-boton:focus-visible .fl-flecha {
+  transform: translate(2px, -2px);
+}
+
+/* ── Formularios: caja mínima sobre arena, o solo línea inferior ───────── */
+.fl-campo {
+  display: block;
+  width: 100%;
+  min-height: 2.9rem;
+  padding: 0.7rem 0.9rem;
+  border: 0;
+  border-bottom: 1px solid var(--fl-laton);
+  border-radius: var(--fl-radio) var(--fl-radio) 0 0;
+  background: var(--fl-arena);
+  color: var(--fl-texto);
+  font-family: var(--fl-sans);
+  font-size: 1rem;
+  transition: border-color 0.25s ease, background-color 0.25s ease;
+}
+
+.fl-campo::placeholder {
+  color: var(--fl-grafito);
+  opacity: 0.8;
+}
+
+.fl-campo:focus {
+  outline: none;
+  border-bottom-color: var(--fl-texto);
+  background: #e9e5de;
+}
+
+/* ── Tarjetas, divisores, enfoque ──────────────────────────────────────── */
+.fl-tarjeta {
+  background: var(--fl-arena);
+  border: 1px solid var(--fl-borde);
+  border-radius: var(--fl-radio);
+}
+
+.fl-divisor {
+  height: 1px;
+  border: 0;
+  background: var(--fl-borde);
+}
+
+:where(a, button, input, select, textarea, summary):focus-visible {
+  outline: 2px solid var(--fl-texto);
+  outline-offset: 3px;
+}

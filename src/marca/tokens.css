@@ -1,19 +1,40 @@
-/* Kit de marca de Flashealo: una sola fuente de colores, tipografía y espacios.
-   Lo usan la web, el panel y (copiados a marca.json) los correos de reservas. */
+/* Sistema visual de Flashealo: editorial claro. Una sola fuente de colores, tipografía y espacios.
+   Lo usan la web, el panel, las galerías y (copiados en marca.json) los correos de reservas. */
 :root {
-  --fl-carbon: #1c1c1c;
-  --fl-champan: #c8b99a;
-  --fl-marfil: #fdfcf8;
-  --fl-taupe: #9a8f82;
-  --fl-perla: #eaeaea;
+  /* Superficies */
+  --fl-lino: #f9f8f5;        /* fondo principal */
+  --fl-arena: #efece6;       /* fondo secundario y tarjetas */
+  --fl-vidrio: rgba(249, 248, 245, 0.85); /* barras flotantes, con blur(12px) */
 
-  /* Texto pequeño sobre marfil (el taupe solo llega a 3,1:1; este llega a 7,1:1). */
-  --fl-tinta-suave: #5d554b;
+  /* Texto */
+  --fl-texto: #181816;       /* carbón profundo */
+  --fl-grafito: #5a5955;     /* párrafos y texto secundario (6,5:1 sobre lino) */
+
+  /* Líneas */
+  --fl-borde: #e2dfd9;
+  --fl-laton: #c8b69e;       /* divisores con carácter; no se usa para texto */
+
+  /* Acción */
+  --fl-accion: #181816;
+  --fl-accion-texto: #f9f8f5;
+
+  /* Estados (solo para avisos, no para decorar) */
+  --fl-ok: #3d6b4f;
+  --fl-aviso: #8a6a1f;
+  --fl-error: #a3392b;
+
+  /* Nombres anteriores: se mantienen apuntando al sistema nuevo para que ninguna vista se rompa. */
+  --fl-carbon: var(--fl-texto);
+  --fl-marfil: var(--fl-lino);
+  --fl-champan: var(--fl-laton);
+  --fl-taupe: var(--fl-grafito);
+  --fl-perla: var(--fl-borde);
+  --fl-tinta-suave: var(--fl-grafito);
 
   --fl-serif: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
   --fl-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 
-  --fl-radio: 4px;
-  --fl-ancho: 72rem;
-  --fl-margen: clamp(1.25rem, 5vw, 3rem);
+  --fl-radio: 2px;
+  --fl-ancho: 76rem;
+  --fl-margen: clamp(1.25rem, 5vw, 3.5rem);
 }

@@ -2,6 +2,19 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Base global: toda vista parte del lino y la tinta del sistema (las vistas con fondo propio lo conservan). */
+html {
+  background: #f9f8f5;
+}
+
+body {
+  margin: 0;
+  background: var(--fl-lino, #f9f8f5);
+  color: var(--fl-texto, #181816);
+  font-family: var(--fl-sans, 'Inter', system-ui, sans-serif);
+  -webkit-font-smoothing: antialiased;
+}
+
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;
 }
@@ -9,6 +22,6 @@
   background: transparent;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background-color: #E8E4D9;
+  background-color: #e2dfd9;
   border-radius: 10px;
 }

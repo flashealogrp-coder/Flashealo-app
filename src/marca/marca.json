@@ -1,12 +1,13 @@
 {
   "nombre": "Flashealo",
   "colores": {
-    "carbon": "#1c1c1c",
-    "champan": "#c8b99a",
-    "marfil": "#fdfcf8",
-    "taupe": "#9a8f82",
-    "perla": "#eaeaea",
-    "tintaSuave": "#5d554b"
+    "lino": "#F9F8F5",
+    "arena": "#EFECE6",
+    "texto": "#181816",
+    "grafito": "#5A5955",
+    "borde": "#E2DFD9",
+    "laton": "#C8B69E",
+    "fondoCorreo": "#F4F2EC"
   },
   "tipografia": {
     "titulares": "'Cormorant Garamond', Georgia, 'Times New Roman', serif",
@@ -19,5 +20,5 @@
     "instagram": "flashealo.studio",
     "correo": "info@flashealo.do"
   },
-  "nota": "Los correos de reservas usan 'correo' para titulares porque los clientes de correo no cargan fuentes web. Cualquier cambio de marca se hace aquí y en tokens.css."
+  "nota": "Los correos usan 'correo' para titulares porque los clientes de correo no cargan fuentes web. Cualquier cambio de marca se hace aquí y en src/marca/tokens.css."
 }

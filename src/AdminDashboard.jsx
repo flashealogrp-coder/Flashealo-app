@@ -208,6 +208,8 @@ export default function AdminDashboard() {
   const [arrastrando, setArrastrando] = useState(false);
   const fileInputRef = useRef(null);
   const carpetaInputRef = useRef(null);
+  const cancelarSubidaRef = useRef(false);
+  const [cancelandoSubida, setCancelandoSubida] = useState(false);
   const [procesandoIA, setProcesandoIA] = useState(false);
 
   const [seccionDashboard, setSeccionDashboard] = useState('fotos'); 
@@ -740,6 +742,7 @@ const destruirPerfilFalso = async () => {
 
   const iniciarSubidaMasiva = async () => {
     if (archivosUploader.length === 0 || !carpetaActiva || estadoSubida.activa) return;
+    cancelarSubidaRef.current = false; setCancelandoSubida(false);
     const carpetaInicio = carpetaActiva;
     const yaEnSet = fotosEvento.filter(f => f.carpeta_id === carpetaInicio.id).length;
     // Con el reparto automático: llena el set actual hasta el máximo y crea Set 1, Set 2… para el resto.
@@ -752,8 +755,11 @@ const destruirPerfilFalso = async () => {
     let exitosas = 0, hechas = 0;
     const fallidos = [];
     const carpetasCreadas = [];
+    const subidos = new Set();          // archivos que quedaron guardados
+    const okPorCarpeta = new Map();     // carpeta.id -> cuántas fotos se guardaron en esta subida
 
     for (const tramo of tramos) {
+      if (cancelarSubidaRef.current) break;
       let carpeta = carpetaInicio;
       if (tramo.destino === 'nuevo') {
         const { data, error } = await supabase.from('carpetas_evento').insert([{ evento_id: eventoActivo.id, nombre: tramo.nombre }]).select();
@@ -767,9 +773,9 @@ const destruirPerfilFalso = async () => {
       // 4 subidas en paralelo
       let siguiente = 0;
       const trabajador = async () => {
-        while (siguiente < tramo.archivos.length) {
+        while (siguiente < tramo.archivos.length && !cancelarSubidaRef.current) {
           const file = tramo.archivos[siguiente++];
-          if (await subirUnaFoto(file, carpeta, baseR2Path)) exitosas++; else fallidos.push(file);
+          if (await subirUnaFoto(file, carpeta, baseR2Path)) { exitosas++; subidos.add(file); okPorCarpeta.set(carpeta.id, (okPorCarpeta.get(carpeta.id) || 0) + 1); } else fallidos.push(file);
           hechas++;
           setEstadoSubida(prev => {
             const ps = prev.porSet?.[carpeta.id];
@@ -784,14 +790,30 @@ const destruirPerfilFalso = async () => {
       const fotosNuevas = await leerTodo((d, h) => supabase.from('fotografias').select('*').eq('evento_id', eventoActivo.id).order('created_at', { ascending: true }).order('id', { ascending: true }).range(d, h));
       setFotosEvento(fotosNuevas);
     } catch (e) { /* la lista se actualizará al reentrar */ }
-    // Lo que no se pudo subir se queda en la cola para reintentar.
-    setArchivosUploader(fallidos);
+    const cancelada = cancelarSubidaRef.current;
+    // Si se canceló, los sets nuevos que quedaron vacíos se eliminan para no dejar basura.
+    let setsVaciosEliminados = 0;
+    if (cancelada) {
+      for (const c of carpetasCreadas) {
+        if (!okPorCarpeta.get(c.id)) {
+          const { error } = await supabase.from('carpetas_evento').delete().eq('id', c.id);
+          if (!error) { setsVaciosEliminados++; setCarpetas(prev => prev.filter(x => x.id !== c.id)); }
+        }
+      }
+    }
+    // Lo que no se subió (fallos o cancelación) se queda en la cola para continuar o reintentar.
+    const pendientes = archivosUploader.filter(f => !subidos.has(f));
+    setArchivosUploader(pendientes);
+    cancelarSubidaRef.current = false; setCancelandoSubida(false);
     setEstadoSubida({ activa: false, progreso: 0, total: 0, carpetaId: null, carpetaIds: [], carpetaNombre: '', fallidas: 0, porSet: {} });
-    if (!fallidos.length) setMostrarUploader(false);
-    const sets = carpetasCreadas.length ? ` Se crearon ${carpetasCreadas.length} sets nuevos (${carpetasCreadas.map(c => c.nombre).join(', ')}).` : '';
-    setMensaje(fallidos.length
-      ? { tipo: 'error', texto: `${exitosas} fotos subidas; ${fallidos.length} no se pudieron subir y siguen en la cola. Pulsa de nuevo "Iniciar subida" para reintentarlas.${sets}` }
-      : { tipo: 'exito', texto: `${exitosas} fotos subidas.${sets} Preparando miniaturas...` });
+    if (!pendientes.length) setMostrarUploader(false);
+    const creados = carpetasCreadas.length - setsVaciosEliminados;
+    const sets = creados > 0 ? ` Se crearon ${creados} sets nuevos.` : '';
+    setMensaje(cancelada
+      ? { tipo: 'exito', texto: `Subida cancelada. ${exitosas} fotos quedaron subidas; ${pendientes.length} siguen en la cola para continuar cuando quieras.${sets}` }
+      : fallidos.length
+        ? { tipo: 'error', texto: `${exitosas} fotos subidas; ${fallidos.length} no se pudieron subir y siguen en la cola. Pulsa de nuevo "Iniciar subida" para reintentarlas.${sets}` }
+        : { tipo: 'exito', texto: `${exitosas} fotos subidas.${sets} Preparando miniaturas...` });
     try { await llamarIA({ evento_id: eventoActivo.id, accion: "miniaturas" }); } catch (err) {}
   };
 
@@ -1651,6 +1673,16 @@ const destruirPerfilFalso = async () => {
                                   <div style={{ width: '100%', maxWidth: 400, height: 6, background: BORDER, borderRadius: 4, marginTop: 24, overflow: 'hidden' }}>
                                     <div style={{ height: '100%', background: SAND, width: `${(estadoSubida.progreso / estadoSubida.total) * 100}%`, transition: 'width 0.3s' }} />
                                   </div>
+                                  <button
+                                    disabled={cancelandoSubida}
+                                    onClick={() => {
+                                      if (!window.confirm('¿Cancelar la subida? Las fotos que ya se subieron se quedan; las demás quedan en la cola para continuar después.')) return;
+                                      cancelarSubidaRef.current = true; setCancelandoSubida(true);
+                                    }}
+                                    style={{ marginTop: 24, padding: '10px 24px', background: WHITE, border: `1px solid ${BORDER}`, borderRadius: 4, fontSize: 12, cursor: cancelandoSubida ? 'wait' : 'pointer', color: INK, opacity: cancelandoSubida ? 0.7 : 1 }}
+                                  >
+                                    {cancelandoSubida ? 'Cancelando… terminando las fotos en curso' : 'Cancelar subida'}
+                                  </button>
                                 </div>
                               ) : (
                                 <div 

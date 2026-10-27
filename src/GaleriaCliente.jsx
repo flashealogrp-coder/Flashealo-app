@@ -306,7 +306,7 @@ const GaleriaCliente = () => {
       containerClass += editorialPatterns[(index * 5) % editorialPatterns.length] + " w-full h-full";
       imgClass += "w-full h-full object-cover absolute inset-0"; 
     } else if (modoVista === 'pinterest') {
-      containerClass += "mb-4 md:mb-6 break-inside-avoid w-full inline-block"; // Columnas sin corte
+      containerClass += "mb-4 md:mb-6 break-inside-avoid w-full inline-block min-h-[160px]"; // Columnas sin corte
       imgClass += "w-full h-auto object-cover";
     } else if (modoVista === 'large') {
       containerClass += "w-full";
@@ -314,17 +314,13 @@ const GaleriaCliente = () => {
     }
 
     return (
-      <motion.div 
+      <div
         key={foto.id}
-        initial={{ opacity: 0, y: 20 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, margin: "-50px" }}
-        transition={{ duration: 0.8, ease: "easeOut" }}
         className={containerClass}
         onClick={() => openLightbox(arrayOrigen, index)}
       >
-        <img src={foto.src} alt="Galería" loading="lazy" className={imgClass}
-          style={modoVista === 'editorial' && centrosCara[foto.path] ? { objectPosition: `${centrosCara[foto.path].x}% ${centrosCara[foto.path].y}%` } : undefined} />
+        <img src={foto.src} alt="Galería" decoding="async" className={imgClass}
+          style={{ animation: 'fl-aparece .5s ease-out both', ...(modoVista === 'editorial' && centrosCara[foto.path] ? { objectPosition: `${centrosCara[foto.path].x}% ${centrosCara[foto.path].y}%` } : {}) }} />
         
         {/* Hover Efecto Completo */}
         <div className="absolute inset-0 bg-fl-texto/0 group-hover:bg-fl-texto/30 active:bg-fl-texto/30 transition-colors duration-500 opacity-0 group-hover:opacity-100 active:opacity-100 flex items-center justify-center pointer-events-none z-20">
@@ -332,7 +328,7 @@ const GaleriaCliente = () => {
             Ampliar
           </span>
         </div>
-      </motion.div>
+      </div>
     );
   };
 

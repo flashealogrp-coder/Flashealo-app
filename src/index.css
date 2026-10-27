@@ -25,3 +25,6 @@ body {
   background-color: #e2dfd9;
   border-radius: 10px;
 }
+
+@keyframes fl-aparece { from { opacity: 0 } to { opacity: 1 } }
+@media (prefers-reduced-motion: reduce) { img { animation: none !important } }

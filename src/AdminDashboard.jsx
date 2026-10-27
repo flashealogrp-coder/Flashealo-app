@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from './supabaseClient';
 import { urlAdmin } from './urlFotos';
-import { crearPortadaLimpia } from './marca/portadaLimpia';
 import { planificarReparto, MAX_POR_SET } from './marca/reparto';
 import { leerTodo } from './marca/paginar';
 import { separarPortada, unirPortada } from './marca/portada';
@@ -898,26 +897,8 @@ const destruirPerfilFalso = async () => {
   };
 
   const guardarPortadaElegida = async () => {
-    let ruta = modalPortada.url;
-    if (/^o\//.test(ruta)) {
-      // Foto de la colección: se guarda una copia limpia (sin marca de agua) para el público.
-      const origen = urlAdmin(ruta, true);
-      if (!origen) { setMensaje({ tipo: 'error', texto: 'No se encontró la foto original.' }); return; }
-      setSubiendoPortada(true);
-      try {
-        const jpg = await crearPortadaLimpia(origen);
-        const nueva = `portadas/${Date.now()}_coleccion.jpg`;
-        const { error } = await supabase.storage.from('assets').upload(nueva, jpg, { contentType: 'image/jpeg' });
-        if (error) throw error;
-        ruta = nueva;
-      } catch (e) {
-        setSubiendoPortada(false);
-        setMensaje({ tipo: 'error', texto: 'No se pudo preparar la portada sin marca de agua. Revisa que tu sesión de administrador esté activa e inténtalo otra vez.' });
-        return;
-      }
-      setSubiendoPortada(false);
-    }
-    if (await hacerPortada(unirPortada(ruta, portadaPos.x, portadaPos.y))) setModalPortada(null);
+    // Las versiones web ya no llevan marca de agua: la portada de la colección se guarda tal cual.
+    if (await hacerPortada(unirPortada(modalPortada.url, portadaPos.x, portadaPos.y))) setModalPortada(null);
   };
 
   const subirPortadaNueva = async (archivo) => {

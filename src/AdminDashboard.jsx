@@ -3,6 +3,7 @@ import { supabase } from './supabaseClient';
 import { urlAdmin } from './urlFotos';
 import PanelFotografos from './PanelFotografos';
 import PanelReservasPortal from './PanelReservasPortal';
+import SelectorFecha from './components/SelectorFecha';
 import { planificarReparto, MAX_POR_SET } from './marca/reparto';
 import { leerTodo } from './marca/paginar';
 import { separarPortada, unirPortada } from './marca/portada';
@@ -1321,7 +1322,7 @@ const destruirPerfilFalso = async () => {
 
                     <div>
                       <label className="text-[10px] uppercase tracking-widest text-[#181816] font-bold mb-2 block">Fecha del Evento</label>
-                      <input type="date" value={formData.fecha_evento || ''} onChange={e => setFormData({...formData, fecha_evento: e.target.value})} className="w-full p-3 bg-[#F9F8F5] outline-none border border-[#E2DFD9] focus:border-[#C8B69E] font-serif rounded-sm transition-colors" />
+                      <SelectorFecha value={formData.fecha_evento || ''} onChange={(v) => setFormData({...formData, fecha_evento: v})} />
                     </div>
 
                     <div>

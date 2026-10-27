@@ -1,0 +1,56 @@
+/* Selector de fecha · sistema visual de Flashealo (lino, arena, latón, Cormorant + Inter). */
+.fl-sf { position: relative; width: 100%; }
+
+.fl-sf-boton {
+  display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;
+  width: 100%; min-height: 2.9rem; padding: 0.7rem 0.9rem;
+  border: 1px solid var(--fl-borde, #e2dfd9); border-radius: 2px;
+  background: var(--fl-lino, #f9f8f5); color: var(--fl-texto, #181816);
+  font-family: var(--fl-serif, 'Cormorant Garamond', serif); font-size: 1.1rem; text-align: left; cursor: pointer;
+  transition: border-color 0.25s ease;
+}
+.fl-sf-boton:hover, .fl-sf-boton[aria-expanded='true'] { border-color: var(--fl-laton, #c8b69e); }
+.fl-sf-boton:focus-visible { outline: 2px solid var(--fl-texto, #181816); outline-offset: 2px; }
+.fl-sf-boton:disabled { opacity: 0.5; cursor: not-allowed; }
+.fl-sf-boton svg { flex: none; color: var(--fl-grafito, #5a5955); }
+.fl-sf-vacio { color: var(--fl-grafito, #5a5955); opacity: 0.8; }
+
+.fl-sf-panel {
+  position: absolute; z-index: 60; top: calc(100% + 6px); left: 0;
+  width: 19rem; max-width: calc(100vw - 2rem); padding: 1rem 1rem 0.75rem;
+  background: var(--fl-lino, #f9f8f5); border: 1px solid var(--fl-laton, #c8b69e); border-radius: 2px;
+  box-shadow: 0 18px 40px -18px rgba(24, 24, 22, 0.35);
+}
+
+.fl-sf-cab { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; }
+.fl-sf-mes { font-family: var(--fl-serif, 'Cormorant Garamond', serif); font-size: 1.45rem; line-height: 1; text-transform: capitalize; color: var(--fl-texto, #181816); }
+.fl-sf-nav {
+  display: inline-flex; align-items: center; justify-content: center; width: 2.25rem; height: 2.25rem;
+  border: 0; border-radius: 50%; background: transparent; color: var(--fl-texto, #181816); cursor: pointer; transition: background-color 0.2s ease;
+}
+.fl-sf-nav:hover { background: var(--fl-arena, #efece6); }
+.fl-sf-nav:focus-visible, .fl-sf-dia:focus-visible, .fl-sf-texto:focus-visible { outline: 2px solid var(--fl-texto, #181816); outline-offset: 1px; }
+
+.fl-sf-dias, .fl-sf-semana { display: grid; grid-template-columns: repeat(7, 1fr); }
+.fl-sf-dias { margin-bottom: 0.25rem; border-bottom: 1px solid var(--fl-borde, #e2dfd9); padding-bottom: 0.4rem; }
+.fl-sf-dias span { text-align: center; font-family: var(--fl-sans, 'Inter', sans-serif); font-size: 0.68rem; letter-spacing: 0.12em; color: var(--fl-grafito, #5a5955); }
+
+.fl-sf-hueco { height: 2.4rem; }
+.fl-sf-dia {
+  width: 2.4rem; height: 2.4rem; justify-self: center; border: 0; border-radius: 50%; background: transparent; color: var(--fl-texto, #181816);
+  font-family: var(--fl-sans, 'Inter', sans-serif); font-size: 0.9rem; cursor: pointer; transition: background-color 0.2s ease;
+}
+.fl-sf-dia:hover:not(:disabled) { background: var(--fl-arena, #efece6); }
+.fl-sf-dia.es-hoy { box-shadow: inset 0 0 0 1px var(--fl-laton, #c8b69e); }
+.fl-sf-dia.es-elegido { background: var(--fl-texto, #181816); color: var(--fl-lino, #f9f8f5); box-shadow: none; }
+.fl-sf-dia:disabled { color: var(--fl-grafito, #5a5955); opacity: 0.35; cursor: not-allowed; }
+
+.fl-sf-pie { display: flex; justify-content: space-between; margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid var(--fl-borde, #e2dfd9); }
+.fl-sf-texto {
+  border: 0; background: transparent; padding: 0.4rem 0.25rem; cursor: pointer;
+  font-family: var(--fl-sans, 'Inter', sans-serif); font-size: 0.78rem; letter-spacing: 0.06em; color: var(--fl-texto, #181816);
+  text-decoration: underline; text-decoration-color: var(--fl-laton, #c8b69e); text-underline-offset: 4px;
+}
+.fl-sf-texto:disabled { opacity: 0.4; cursor: not-allowed; }
+
+@media (prefers-reduced-motion: reduce) { .fl-sf-boton, .fl-sf-nav, .fl-sf-dia { transition: none; } }

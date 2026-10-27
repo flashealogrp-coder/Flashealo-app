@@ -43,6 +43,9 @@ const GaleriaCliente = () => {
   const [fotosReales, setFotosReales] = useState([]);
   const [fotosGenerales, setFotosGenerales] = useState([]);
   const [mostrarCantidadGenerales, setMostrarCantidadGenerales] = useState(12);
+  const [carpetas, setCarpetas] = useState([]);
+  const [carpetaActiva, setCarpetaActiva] = useState('todas');
+  const [centrosCara, setCentrosCara] = useState({}); // ruta de foto -> {x,y} en % del centro de la cara principal
   const centinelaRef = useRef(null);
   
   const [identidadSeleccionada, setIdentidadSeleccionada] = useState(null);
@@ -82,30 +85,57 @@ const GaleriaCliente = () => {
         if (data.tipo_reconocimiento !== 'ocr') cargarAvatares(data.id);
         
         let allPhotos = null;
-        try { allPhotos = await leerTodo((d, h) => supabase.from('fotografias').select('url_watermark, url_original').eq('evento_id', data.id).order('created_at', { ascending: true }).order('id', { ascending: true }).range(d, h)); } catch (e) { allPhotos = null; }
+        try { allPhotos = await leerTodo((d, h) => supabase.from('fotografias').select('url_watermark, url_original, carpeta_id').eq('evento_id', data.id).order('created_at', { ascending: true }).order('id', { ascending: true }).range(d, h)); } catch (e) { allPhotos = null; }
         if (allPhotos) {
           const arrGenerales = allPhotos.map((f, idx) => {
             const path = (f.url_watermark || f.url_original).trim();
-            return { id: idx, src: urlFotoPublica(path) + '?v=1', path: path }; // Guardamos el path para el mapa
+            return { id: idx, src: urlFotoPublica(path) + '?v=1', path: path, carpeta_id: f.carpeta_id || null }; // Guardamos el path para el mapa
           });
           setFotosGenerales(arrGenerales);
         }
+        // Sets del evento: se muestran como pestañas para que el cliente vaya directo al que quiere.
+        try {
+          const { data: cs } = await supabase.from('carpetas_evento').select('id,nombre,created_at').eq('evento_id', data.id).order('created_at', { ascending: true });
+          setCarpetas(cs || []);
+        } catch (e) { setCarpetas([]); }
+        // Centro de la cara principal de cada foto, para encuadrar el mosaico sobre las caras.
+        try {
+          const dets = await leerTodo((d, h) => supabase.from('face_detections').select('photo_url, bbox').eq('evento_id', data.id).order('id', { ascending: true }).range(d, h));
+          const mejor = {};
+          (dets || []).forEach((det) => {
+            let b = det.bbox;
+            if (typeof b === 'string') { try { b = JSON.parse(b); } catch (e) { b = null; } }
+            const ruta = det.photo_url ? det.photo_url.trim() : '';
+            if (!ruta || !b || ![b.x, b.y, b.w, b.h].every((n) => Number.isFinite(Number(n)))) return;
+            const area = Number(b.w) * Number(b.h);
+            if (!mejor[ruta] || area > mejor[ruta].area) mejor[ruta] = { area, x: Math.min(100, Math.max(0, Number(b.x) + Number(b.w) / 2)), y: Math.min(100, Math.max(0, Number(b.y) + Number(b.h) / 2)) };
+          });
+          const centros = {};
+          Object.keys(mejor).forEach((k) => { centros[k] = { x: mejor[k].x, y: mejor[k].y }; });
+          setCentrosCara(centros);
+        } catch (e) { /* sin centrado: queda al centro de la foto */ }
       }
       setCargandoInicial(false);
     };
     if (slug) fetchEventoPorSlug();
   }, [slug]);
 
+  const idsConFotos = new Set(fotosGenerales.map((f) => f.carpeta_id).filter(Boolean));
+  const pestanas = carpetas.filter((c) => idsConFotos.has(c.id));
+  const hayPestanas = pestanas.length > 1 || (pestanas.length === 1 && fotosGenerales.some((f) => !f.carpeta_id));
+  const fotosMostradas = (!hayPestanas || carpetaActiva === 'todas') ? fotosGenerales : fotosGenerales.filter((f) => (carpetaActiva === 'sin' ? !f.carpeta_id : f.carpeta_id === carpetaActiva));
+  const elegirPestana = (id) => { setCarpetaActiva(id); setMostrarCantidadGenerales(24); };
+
   // Carga continua: al acercarse al final de la cuadrícula se muestran más fotos, hasta completar el total.
   useEffect(() => {
     const el = centinelaRef.current;
-    if (!el || mostrarCantidadGenerales >= fotosGenerales.length) return undefined;
+    if (!el || mostrarCantidadGenerales >= fotosMostradas.length) return undefined;
     const obs = new IntersectionObserver((entradas) => {
       if (entradas.some((e) => e.isIntersecting)) setMostrarCantidadGenerales((prev) => prev + 24);
     }, { rootMargin: '1200px 0px' });
     obs.observe(el);
     return () => obs.disconnect();
-  }, [mostrarCantidadGenerales, fotosGenerales.length, modoVista, autenticado]);
+  }, [mostrarCantidadGenerales, fotosMostradas.length, modoVista, autenticado]);
 
   const cargarAvatares = async (eventoId) => {
     setCargando(true);
@@ -272,7 +302,8 @@ const GaleriaCliente = () => {
         className={containerClass}
         onClick={() => openLightbox(arrayOrigen, index)}
       >
-        <img src={foto.src} alt="Galería" loading="lazy" className={imgClass} />
+        <img src={foto.src} alt="Galería" loading="lazy" className={imgClass}
+          style={modoVista === 'editorial' && centrosCara[foto.path] ? { objectPosition: `${centrosCara[foto.path].x}% ${centrosCara[foto.path].y}%` } : undefined} />
         
         {/* Hover Efecto Completo */}
         <div className="absolute inset-0 bg-fl-texto/0 group-hover:bg-fl-texto/30 active:bg-fl-texto/30 transition-colors duration-500 opacity-0 group-hover:opacity-100 active:opacity-100 flex items-center justify-center pointer-events-none z-20">
@@ -454,25 +485,40 @@ const GaleriaCliente = () => {
                         {errorDescarga && !lightboxData.fotos.length && <span style={{ fontSize: 12, color: '#A3392B' }}>{errorDescarga}</span>}
                       </div>
                     )}
+                    {hayPestanas && (
+                      <div role="tablist" aria-label="Sets de la colección" className="flex gap-2 md:gap-3 overflow-x-auto pb-4 mb-6 -mx-6 px-6 md:mx-0 md:px-0" style={{ scrollbarWidth: 'none' }}>
+                        {[{ id: 'todas', nombre: 'Todas' }, ...pestanas, ...(fotosGenerales.some((f) => !f.carpeta_id) ? [{ id: 'sin', nombre: 'Otras' }] : [])].map((c) => {
+                          const activa = carpetaActiva === c.id;
+                          const total = c.id === 'todas' ? fotosGenerales.length : fotosGenerales.filter((f) => (c.id === 'sin' ? !f.carpeta_id : f.carpeta_id === c.id)).length;
+                          return (
+                            <button key={c.id} type="button" role="tab" aria-selected={activa} onClick={() => elegirPestana(c.id)}
+                              className="shrink-0 px-5 py-2.5 text-[11px] uppercase tracking-[0.18em] border transition-colors duration-300"
+                              style={{ background: activa ? '#181816' : 'transparent', color: activa ? '#fff' : '#181816', borderColor: activa ? '#181816' : 'rgba(24,24,22,0.2)', cursor: 'pointer' }}>
+                              {c.nombre} <span style={{ opacity: 0.55, marginLeft: 6 }}>{total}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
                     {modoVista === 'editorial' && (
                       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 auto-rows-[120px] md:auto-rows-[180px] grid-flow-dense gap-2 md:gap-4">
-                        {fotosGenerales.slice(0, mostrarCantidadGenerales).map((foto, index) => <RenderizarFoto key={foto.id} foto={foto} index={index} arrayOrigen={fotosGenerales} />)}
+                        {fotosMostradas.slice(0, mostrarCantidadGenerales).map((foto, index) => <RenderizarFoto key={foto.id} foto={foto} index={index} arrayOrigen={fotosMostradas} />)}
                       </div>
                     )}
                     
                     {modoVista === 'pinterest' && (
                       <div className="columns-2 md:columns-3 lg:columns-4 gap-3 md:gap-6">
-                        {fotosGenerales.slice(0, mostrarCantidadGenerales).map((foto, index) => <RenderizarFoto key={foto.id} foto={foto} index={index} arrayOrigen={fotosGenerales} />)}
+                        {fotosMostradas.slice(0, mostrarCantidadGenerales).map((foto, index) => <RenderizarFoto key={foto.id} foto={foto} index={index} arrayOrigen={fotosMostradas} />)}
                       </div>
                     )}
 
                     {modoVista === 'large' && (
                       <div className="flex flex-col gap-6 md:gap-16 max-w-4xl mx-auto">
-                        {fotosGenerales.slice(0, mostrarCantidadGenerales).map((foto, index) => <RenderizarFoto key={foto.id} foto={foto} index={index} arrayOrigen={fotosGenerales} />)}
+                        {fotosMostradas.slice(0, mostrarCantidadGenerales).map((foto, index) => <RenderizarFoto key={foto.id} foto={foto} index={index} arrayOrigen={fotosMostradas} />)}
                       </div>
                     )}
                     
-                    {mostrarCantidadGenerales < fotosGenerales.length && (
+                    {mostrarCantidadGenerales < fotosMostradas.length && (
                       <div ref={centinelaRef} aria-hidden="true" className="flex justify-center py-10">
                         <Loader2 className="animate-spin text-[#C8B69E]" size={24} strokeWidth={1} />
                       </div>

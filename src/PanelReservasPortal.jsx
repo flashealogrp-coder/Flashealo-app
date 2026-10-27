@@ -32,7 +32,7 @@ export default function PanelReservasPortal({ slug, avisar }) {
 
           <h2 style={{ fontFamily: 'var(--fl-serif)', fontSize: 22, fontWeight: 400, margin: '0 0 8px', color: INK }}>Gestionar mis reservas</h2>
           <p style={{ fontSize: 14, color: TAUPE, lineHeight: 1.6, margin: '0 0 16px' }}>
-            Ahí apruebas solicitudes, bloqueas fechas y editas tus servicios, horarios, precios y datos de pago en Ajustes. Entras con el mismo correo y contraseña de tu cuenta Flashealo.
+            Ahí apruebas solicitudes, bloqueas fechas y editas tus servicios, horarios, precios y datos de pago en «Mi negocio». Entras con el mismo correo y contraseña de tu cuenta Flashealo.
           </p>
           <a style={{ ...boton, background: INK, color: '#F9F8F5', padding: '12px 22px' }} href={panel} target="_blank" rel="noreferrer"><ExternalLink size={13} /> Abrir mi panel de reservas</a>
         </>

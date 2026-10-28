@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Link, useParams, useSearchParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { supabasePublico } from './supabaseClient';
 import { urlFotoPublica } from './urlFotos';
 import { urlReservas, urlPrincipal } from './marca/anfitrion';
@@ -181,9 +181,7 @@ export default function PaginaFotografo() {
 
       {lista()}
 
-      <footer style={{ maxWidth: t.ancho, margin: '0 auto', padding: '0 24px 40px', fontSize: 12, textAlign: id === 'minimal' ? 'center' : 'left' }}>
-        <Link to="/" style={{ color: t.suave }}>Página creada con Flashealo</Link>
-      </footer>
+      <div style={{ height: 40 }} />
 
       {grande && (
         <div role="dialog" aria-modal="true" aria-label="Foto en grande" onClick={() => setGrande(null)}

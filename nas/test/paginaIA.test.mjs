@@ -62,8 +62,10 @@ test('elegirMejores quita repetidas, respeta el máximo y deja fuera las malas',
 
 test('recomienda plantilla según luz, color y contraste', () => {
   const lote = (o, n = 6) => Array.from({ length: n }, () => ({ luz: 120, saturacion: 0.3, contraste: 45, ...o }));
-  assert.equal(recomendarPlantilla(lote({ luz: 60 })).id, 'oscura');
-  assert.equal(recomendarPlantilla(lote({ luz: 170, saturacion: 0.15 })).id, 'minimal');
+  assert.equal(recomendarPlantilla(lote({ luz: 60 })).id, 'portada');
+  assert.equal(recomendarPlantilla(lote({ luz: 170, saturacion: 0.15 })).id, 'mosaico');
+  assert.equal(recomendarPlantilla(lote({ saturacion: 0.5, contraste: 40 })).id, 'collage');
+  assert.equal(recomendarPlantilla(lote({ luz: 120, saturacion: 0.1 })).id, 'muro');
   assert.equal(recomendarPlantilla(lote({ saturacion: 0.5, contraste: 60 })).id, 'revista');
   assert.equal(recomendarPlantilla(lote({})).id, 'editorial');
   assert.equal(recomendarPlantilla([]), null);

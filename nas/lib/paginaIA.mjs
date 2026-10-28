@@ -8,7 +8,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import sharp from 'sharp';
 
-const IDS_PLANTILLA = ['editorial', 'oscura', 'revista', 'minimal'];
+const IDS_PLANTILLA = ['editorial', 'revista', 'mosaico', 'portada', 'collage', 'muro'];
 const MAX_ANALIZAR = 300;
 const POR_EVENTO = 120;
 const MAX_EVENTOS = 8;
@@ -98,9 +98,11 @@ export function recomendarPlantilla(items) {
   const luz = media((i) => i.luz); const sat = media((i) => i.saturacion); const con = media((i) => i.contraste);
   const oscuras = items.filter((i) => i.luz < 85).length / items.length;
   let id; let motivo;
-  if (oscuras >= 0.4 || luz < 95) { id = 'oscura'; motivo = 'Tus fotos tienen mucha sombra y color intenso: sobre fondo negro se ven más.'; }
+  if (oscuras >= 0.4 || luz < 95) { id = 'portada'; motivo = 'Tus fotos tienen mucha sombra y carácter: sobre fondo negro, en bandas como un libro de fotografía, se ven más.'; }
   else if (sat >= 0.38 && con >= 50) { id = 'revista'; motivo = 'Tus fotos tienen color fuerte y contraste: una portada a pantalla completa las lleva mejor.'; }
-  else if (luz >= 150 && sat < 0.28) { id = 'minimal'; motivo = 'Tus fotos son claras y de colores suaves: una página blanca y limpia las deja respirar.'; }
+  else if (sat >= 0.45) { id = 'collage'; motivo = 'Tus fotos son muy coloridas y alegres: la plantilla Collage, con letras grandes y fotos solapadas, les va.'; }
+  else if (luz >= 150 && sat < 0.28) { id = 'mosaico'; motivo = 'Tus fotos son claras y de colores suaves: una cuadrícula limpia, pegada y sin márgenes las deja respirar.'; }
+  else if (sat < 0.2) { id = 'muro'; motivo = 'Tus fotos son de tonos sobrios y de distintas formas: el Muro respeta cada encuadre.'; }
   else { id = 'editorial'; motivo = 'Tus fotos tienen luz y tonos equilibrados: el fondo crema con letra serif las acompaña bien.'; }
   return { id, motivo, medias: { luz: Math.round(luz), saturacion: Math.round(sat * 100) / 100, contraste: Math.round(con) } };
 }

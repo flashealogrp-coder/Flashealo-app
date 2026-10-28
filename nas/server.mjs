@@ -9,6 +9,7 @@ import { crearCuotas } from './lib/cuotas.mjs';
 import { manejadorUploadUrl, manejadorSubir, espacio } from './lib/subidas.mjs';
 import { manejadorIA } from './lib/ia.mjs';
 import { manejadorMiEspacio } from './lib/miEspacio.mjs';
+import { manejadorPaginaIA } from './lib/paginaIA.mjs';
 import { manejadorFotoIA } from './lib/fotosIA.mjs';
 import { manejadorSelfie } from './lib/selfie.mjs';
 import { manejadorDescargaSolicitud, manejadorDescargaArchivo } from './lib/descargas.mjs';
@@ -37,6 +38,7 @@ export function crearServidor(cfg = leerConfig(), deps = {}) {
   const fotoIA = manejadorFotoIA(cfg);
   const ia = manejadorIA(cfg, ctx, deps.fetch || fetch, cuotas);
   const miEspacio = manejadorMiEspacio(ctx, cuotas);
+  const paginaIA = manejadorPaginaIA(cfg, ctx, deps.fetch || fetch);
   const selfie = manejadorSelfie(cfg, deps.fetch || fetch);
   const descargaSolicitud = manejadorDescargaSolicitud(cfg, deps.fetch || fetch);
   const descargaArchivo = manejadorDescargaArchivo(cfg);
@@ -62,6 +64,10 @@ export function crearServidor(cfg = leerConfig(), deps = {}) {
         return (ruta === '/api/ia' ? ia : uploadUrl)(req, res);
       }
       if (ruta === '/api/mi-espacio') return miEspacio(req, res);
+      if (ruta === '/api/pagina-ia') {
+        try { req.body = await leerJson(req, 1e4); } catch { return res.writeHead(413).end(); }
+        return paginaIA(req, res);
+      }
       if (ruta === '/api/selfie') return selfie(req, res);
       if (ruta === '/api/descarga') {
         try { req.body = await leerJson(req, 1e4); } catch { return res.writeHead(413).end(); }

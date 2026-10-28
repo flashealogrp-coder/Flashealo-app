@@ -34,4 +34,3 @@ body {
 @keyframes fl-vivo { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
 @media (prefers-reduced-motion: reduce) { .fl-punto-vivo { animation: none; } }
 
-@media (max-width: 720px) { .fl-portafolio { column-count: 2 !important; } }

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Copy, ExternalLink, X, Sparkles, Plus, Trash2 } from 'lucide-react';
+import { Copy, ExternalLink, X, Sparkles, Plus, Trash2, Star } from 'lucide-react';
 import { supabase } from './supabaseClient';
 import { urlAdmin, urlFotoPublica } from './urlFotos';
 import { leerTodo } from './marca/paginar';
@@ -40,6 +40,8 @@ export default function MiPagina({ slug, fotografoId, avisar }) {
   const [datosGuardados, setDatosGuardados] = useState(null);
   const [elegidas, setElegidas] = useState([]);
   const [guardadas, setGuardadas] = useState([]);
+  const [portada, setPortada] = useState('');
+  const [portadaGuardada, setPortadaGuardada] = useState('');
   const [colecciones, setColecciones] = useState([]);
   const [coleccion, setColeccion] = useState(null);
   const [fotos, setFotos] = useState(null);
@@ -58,6 +60,8 @@ export default function MiPagina({ slug, fotografoId, avisar }) {
       setPlantilla(normalizarPlantilla(p.plantilla));
       const lista = Array.isArray(p.portafolio) ? p.portafolio : [];
       setElegidas(lista); setGuardadas(lista);
+      const pt = typeof p.portada === 'string' ? p.portada : '';
+      setPortada(pt); setPortadaGuardada(pt);
     }
     if (fotografoId) {
       const { data: evs } = await supabase.from('eventos').select('id,nombre,tiene_clave,created_at').eq('fotografo_id', fotografoId).order('created_at', { ascending: false });
@@ -125,13 +129,15 @@ export default function MiPagina({ slug, fotografoId, avisar }) {
     if (prev.length >= MAX) { avisar('error', `Puedes elegir hasta ${MAX} fotos. Quita una para añadir otra.`); return prev; }
     return [...prev, ruta];
   });
-  const hayCambios = JSON.stringify(elegidas) !== JSON.stringify(guardadas);
+  const portadaEfectiva = elegidas.includes(portada) ? portada : '';
+  const hayCambios = JSON.stringify(elegidas) !== JSON.stringify(guardadas) || portadaEfectiva !== portadaGuardada;
   const guardarPortafolio = async () => {
     setOcupado('portafolio');
-    const { error } = await supabase.rpc('guardar_mi_portafolio', { p_rutas: elegidas });
+    let { error } = await supabase.rpc('guardar_mi_portafolio', { p_rutas: elegidas });
+    if (!error) ({ error } = await supabase.rpc('guardar_mi_portada', { p_ruta: portadaEfectiva }));
     setOcupado('');
-    if (error) { avisar('error', errorBD(error)); return; }
-    setGuardadas(elegidas);
+    if (error) { avisar('error', /portada/i.test(error.message) && /function|schema cache/i.test(error.message) ? 'Falta aplicar la migración 0016 en la NAS.' : errorBD(error)); return; }
+    setGuardadas(elegidas); setPortada(portadaEfectiva); setPortadaGuardada(portadaEfectiva);
     avisar('exito', 'Portafolio guardado. Ya se ve en tu página.');
   };
   const elegirConIA = async () => {
@@ -247,14 +253,23 @@ export default function MiPagina({ slug, fotografoId, avisar }) {
         <button type="button" onClick={elegirConIA} disabled={ocupado === 'fotos'} style={{ ...boton, marginBottom: 14 }}><Sparkles size={13} /> {ocupado === 'fotos' ? 'Analizando tus fotos…' : 'Elegir las mejores con IA'}</button>
 
         {elegidas.length > 0 && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(96px, 1fr))', gap: 8, marginBottom: 16 }}>
-            {elegidas.map((r) => (
-              <div key={r} style={{ position: 'relative', aspectRatio: '1', background: BORDER }}>
-                <img src={MINIATURA(r)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                <button type="button" onClick={() => alternar(r)} aria-label="Quitar del portafolio" style={{ position: 'absolute', top: 4, right: 4, width: 24, height: 24, borderRadius: '50%', border: 'none', background: 'rgba(24,24,22,0.8)', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={13} /></button>
-              </div>
-            ))}
-          </div>
+          <>
+            <p style={{ ...ayuda, margin: '0 0 8px' }}>Toca la estrella para elegir la foto que va detrás de tu nombre (plantilla Revista). Si no eliges, se usa la primera.</p>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(96px, 1fr))', gap: 8, marginBottom: 16 }}>
+              {elegidas.map((r, i) => {
+                const esPortada = (portadaEfectiva || elegidas[0]) === r;
+                return (
+                  <div key={r} style={{ position: 'relative', aspectRatio: '1', background: BORDER, outline: esPortada ? `3px solid ${SAND}` : 'none' }}>
+                    <img src={MINIATURA(r)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                    <button type="button" onClick={() => setPortada(r)} aria-pressed={esPortada} aria-label={esPortada ? 'Es la foto de portada' : 'Usar como foto de portada'} title="Usar como portada"
+                      style={{ position: 'absolute', top: 4, left: 4, width: 24, height: 24, borderRadius: '50%', border: 'none', background: esPortada ? SAND : 'rgba(24,24,22,0.8)', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Star size={13} fill={esPortada ? '#fff' : 'none'} /></button>
+                    <button type="button" onClick={() => alternar(r)} aria-label="Quitar del portafolio" style={{ position: 'absolute', top: 4, right: 4, width: 24, height: 24, borderRadius: '50%', border: 'none', background: 'rgba(24,24,22,0.8)', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={13} /></button>
+                    {esPortada && <span style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: SAND, color: '#fff', fontSize: 10, textAlign: 'center', padding: '2px 0', fontWeight: 600 }}>Portada</span>}
+                  </div>
+                );
+              })}
+            </div>
+          </>
         )}
         <button type="button" onClick={guardarPortafolio} disabled={!hayCambios || ocupado === 'portafolio'} style={{ ...(hayCambios ? botonRelleno : boton), opacity: hayCambios ? 1 : 0.5, cursor: hayCambios ? 'pointer' : 'default', marginBottom: 32 }}>
           {ocupado === 'portafolio' ? 'Guardando…' : 'Guardar portafolio'}

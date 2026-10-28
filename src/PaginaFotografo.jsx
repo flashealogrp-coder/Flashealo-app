@@ -10,10 +10,10 @@ const SERIF = "var(--fl-serif, Georgia, 'Times New Roman', serif)";
 const SANS = "var(--fl-sans, 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif)";
 
 const TEMAS = {
-  editorial: { fondo: '#F9F8F5', texto: '#181816', suave: '#5A5955', acento: '#B8975A', linea: '#E2DFD9', titulo: SERIF, pesoTitulo: 300, mayusTitulo: false, cols: 3, hueco: 12, ancho: 1100 },
-  oscura: { fondo: '#0E0E0D', texto: '#F2F0EA', suave: '#9A968C', acento: '#D9B36B', linea: '#2A2927', titulo: SANS, pesoTitulo: 600, mayusTitulo: true, cols: 2, hueco: 6, ancho: 1240 },
-  revista: { fondo: '#F4EFE6', texto: '#1B1B19', suave: '#5E5A52', acento: '#C8553D', linea: '#DCD4C5', titulo: SERIF, pesoTitulo: 400, mayusTitulo: false, cols: 2, hueco: 14, ancho: 1100 },
-  minimal: { fondo: '#FFFFFF', texto: '#111111', suave: '#6B6B6B', acento: '#111111', linea: '#EAEAEA', titulo: SANS, pesoTitulo: 200, mayusTitulo: false, cols: 4, hueco: 4, ancho: 1000 },
+  editorial: { fondo: '#F9F8F5', texto: '#181816', suave: '#5A5955', acento: '#B8975A', linea: '#E2DFD9', titulo: SERIF, pesoTitulo: 300, mayusTitulo: false, cols: 3, hueco: 12, ancho: 1100, aspecto: '4 / 5' },
+  oscura: { fondo: '#0E0E0D', texto: '#F2F0EA', suave: '#9A968C', acento: '#D9B36B', linea: '#2A2927', titulo: SANS, pesoTitulo: 600, mayusTitulo: true, cols: 3, hueco: 6, ancho: 1240, aspecto: '1 / 1' },
+  revista: { fondo: '#F4EFE6', texto: '#1B1B19', suave: '#5E5A52', acento: '#C8553D', linea: '#DCD4C5', titulo: SERIF, pesoTitulo: 400, mayusTitulo: false, cols: 3, hueco: 16, ancho: 1100, aspecto: '4 / 5' },
+  minimal: { fondo: '#FFFFFF', texto: '#111111', suave: '#6B6B6B', acento: '#111111', linea: '#EAEAEA', titulo: SANS, pesoTitulo: 200, mayusTitulo: false, cols: 4, hueco: 4, ancho: 1000, aspecto: '1 / 1' },
 };
 
 const CSS = `
@@ -75,8 +75,9 @@ export default function PaginaFotografo() {
   const fotos = Array.isArray(perfil.portafolio) ? perfil.portafolio.filter((r) => typeof r === 'string' && r.trim()) : [];
   const servicios = Array.isArray(perfil.servicios) ? perfil.servicios : [];
   const abiertas = perfil.reservas_abiertas !== false;
-  const portada = id === 'revista' && fotos.length > 0 ? fotos[0] : null;
-  const galeria = portada ? fotos.slice(1) : fotos;
+  const elegida = typeof perfil.portada === 'string' && fotos.includes(perfil.portada) ? perfil.portada : null;
+  const portada = id === 'revista' && fotos.length > 0 ? (elegida || fotos[0]) : null;
+  const galeria = portada ? fotos.filter((r) => r !== portada) : fotos;
 
   const oscuro = id === 'oscura';
   const boton = (relleno, sobreFoto = false) => {
@@ -115,8 +116,7 @@ export default function PaginaFotografo() {
   const rejilla = () => {
     if (galeria.length === 0) return null;
     const vars = { '--fp-cols': t.cols, '--fp-hueco': `${t.hueco}px` };
-    if (id === 'minimal') return <div className="fp-cuadros" style={vars}>{galeria.map((r) => foto(r, { aspectRatio: '1 / 1' }))}</div>;
-    return <div className="fp-cols" style={vars}>{galeria.map((r) => foto(r, { breakInside: 'avoid', marginBottom: t.hueco }))}</div>;
+    return <div className="fp-cuadros" style={vars}>{galeria.map((r) => foto(r, { aspectRatio: t.aspecto }))}</div>;
   };
 
   const lista = () => servicios.length > 0 && (
